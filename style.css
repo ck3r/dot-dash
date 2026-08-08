@@ -1,0 +1,51 @@
+:root {
+      font-family:
+        'Monaco',
+        monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      max-width: 800px;
+      margin: 3rem auto;
+      padding: 0 1rem;
+    }
+
+    body {
+      background: #fff;
+      color: #000;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: inherit;
+  text-decoration: none;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+    #morse {
+      white-space: pre-wrap;
+    }
+
+    #text {
+      margin-top: 2rem;
+      font-family: sans-serif;
+    }
+
+    #debug {
+      margin-top: 3rem;
+      color: #777;
+      font-size: 0.8rem;
+    }
