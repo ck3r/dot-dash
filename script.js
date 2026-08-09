@@ -865,18 +865,18 @@ if (
        * No message.
        */
 
-      if (
-        keyerEvents.length === 0
-      ) {
+if (
+  keyerEvents.length === 0
+) {
 
-        document.title =
-          ZERO_WIDTH;
+  document.title =
+    "dot-da.sh";
 
-        setFavicon(false);
+  setFavicon(false);
 
-        return;
+  return;
 
-      }
+}
 
 
       /*
