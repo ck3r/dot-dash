@@ -35,6 +35,14 @@
   font-weight: 600;
 }
 
+.diagram {
+  font-family: "Courier New", monospace;
+  white-space: pre;
+  overflow-x: auto;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
     #morse {
       white-space: pre-wrap;
     }
