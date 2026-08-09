@@ -1,9 +1,4 @@
-console.log("TITLE TEST:", document.title);
 
-setTimeout(() => {
-  document.title = "TEST";
-  console.log("TITLE AFTER:", document.title);
-}, 1000);
     /*
      * ============================================================
      * MORSE
