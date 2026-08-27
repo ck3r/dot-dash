@@ -97,90 +97,142 @@
 │   H   E  L    L    O     W   O   R   L    D         │
 └─────────────────────────────────────────────────────┘
 </pre>
-    <div class="morse-code">
+<style>
+  .morse-code {
+    max-width: 760px;
+    margin: 0 auto;
+    font-family: system-ui, sans-serif;
+  }
+  .morse-code h2 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #666;
+    margin: 0.75rem 0 0.15rem;
+  }
+  .morse-code ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    columns: 2;
+    column-gap: 16px;
+  }
+  .morse-code li {
+    break-inside: avoid;
+  }
+  .morse-code li a {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    text-decoration: none;
+    color: inherit;
+    padding: 0 4px;
+    line-height: 1.35;
+    border-radius: 4px;
+  }
+  .morse-code li a:hover {
+    background: #f0f0f0;
+  }
+  .morse-code .label {
+    font-weight: 600;
+  }
+  .morse-code .code {
+    font-family: 'Courier New', Consolas, Menlo, monospace;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #444;
+  }
+  @media (max-width: 480px) {
+    .morse-code ul {
+      columns: 1;
+    }
+  }
+</style>
+
+<div class="morse-code">
 
   <h2>Letters</h2>
   <ul class="morse-letters">
-    <li><a href="/?/.-">A  .-</a></li>
-    <li><a href="/?/-...">B  -...</a></li>
-    <li><a href="/?/-.-.">C  -.-.</a></li>
-    <li><a href="/?/-..">D  -..</a></li>
-    <li><a href="/?/.">E  .</a></li>
-    <li><a href="/?/..-.">F  ..-.</a></li>
-    <li><a href="/?/--.">G  --.</a></li>
-    <li><a href="/?/....">H  ....</a></li>
-    <li><a href="/?/..">I  ..</a></li>
-    <li><a href="/?/.---">J  .---</a></li>
-    <li><a href="/?/-.-">K  -.-</a></li>
-    <li><a href="/?/.-..">L  .-..</a></li>
-    <li><a href="/?/--">M  --</a></li>
-    <li><a href="/?/-.">N  -.</a></li>
-    <li><a href="/?/---">O  ---</a></li>
-    <li><a href="/?/.--.">P  .--.</a></li>
-    <li><a href="/?/--.-">Q  --.-</a></li>
-    <li><a href="/?/.-.">R  .-.</a></li>
-    <li><a href="/?/...">S  ...</a></li>
-    <li><a href="/?/-">T  -</a></li>
-    <li><a href="/?/..-">U  ..-</a></li>
-    <li><a href="/?/...-">V  ...-</a></li>
-    <li><a href="/?/.--">W  .--</a></li>
-    <li><a href="/?/-..-">X  -..-</a></li>
-    <li><a href="/?/-.--">Y  -.--</a></li>
-    <li><a href="/?/--..">Z  --..</a></li>
+    <li><a href="/?/.-"><span class="label">A</span><span class="code">•–</span></a></li>
+    <li><a href="/?/-..."><span class="label">B</span><span class="code">–•••</span></a></li>
+    <li><a href="/?/-.-."><span class="label">C</span><span class="code">–•–•</span></a></li>
+    <li><a href="/?/-.."><span class="label">D</span><span class="code">–••</span></a></li>
+    <li><a href="/?/."><span class="label">E</span><span class="code">•</span></a></li>
+    <li><a href="/?/..-."><span class="label">F</span><span class="code">••–•</span></a></li>
+    <li><a href="/?/--."><span class="label">G</span><span class="code">––•</span></a></li>
+    <li><a href="/?/...."><span class="label">H</span><span class="code">••••</span></a></li>
+    <li><a href="/?/.."><span class="label">I</span><span class="code">••</span></a></li>
+    <li><a href="/?/.---"><span class="label">J</span><span class="code">•–––</span></a></li>
+    <li><a href="/?/-.-"><span class="label">K</span><span class="code">–•–</span></a></li>
+    <li><a href="/?/.-.."><span class="label">L</span><span class="code">•–••</span></a></li>
+    <li><a href="/?/--"><span class="label">M</span><span class="code">––</span></a></li>
+    <li><a href="/?/-."><span class="label">N</span><span class="code">–•</span></a></li>
+    <li><a href="/?/---"><span class="label">O</span><span class="code">–––</span></a></li>
+    <li><a href="/?/.--."><span class="label">P</span><span class="code">•––•</span></a></li>
+    <li><a href="/?/--.-"><span class="label">Q</span><span class="code">––•–</span></a></li>
+    <li><a href="/?/.-."><span class="label">R</span><span class="code">•–•</span></a></li>
+    <li><a href="/?/..."><span class="label">S</span><span class="code">•••</span></a></li>
+    <li><a href="/?/-"><span class="label">T</span><span class="code">–</span></a></li>
+    <li><a href="/?/..-"><span class="label">U</span><span class="code">••–</span></a></li>
+    <li><a href="/?/...-"><span class="label">V</span><span class="code">•••–</span></a></li>
+    <li><a href="/?/.--"><span class="label">W</span><span class="code">•––</span></a></li>
+    <li><a href="/?/-..-"><span class="label">X</span><span class="code">–••–</span></a></li>
+    <li><a href="/?/-.--"><span class="label">Y</span><span class="code">–•––</span></a></li>
+    <li><a href="/?/--.."><span class="label">Z</span><span class="code">––••</span></a></li>
   </ul>
 
   <h2>Numbers</h2>
   <ul class="morse-numbers">
-    <li><a href="/?/-----">0  -----</a></li>
-    <li><a href="/?/.----">1  .----</a></li>
-    <li><a href="/?/..---">2  ..---</a></li>
-    <li><a href="/?/...--">3  ...--</a></li>
-    <li><a href="/?/....-">4  ....-</a></li>
-    <li><a href="/?/.....">5  .....</a></li>
-    <li><a href="/?/-....">6  -....</a></li>
-    <li><a href="/?/--...">7  --...</a></li>
-    <li><a href="/?/---..">8  ---..</a></li>
-    <li><a href="/?/----.">9  ----.</a></li>
+    <li><a href="/?/-----"><span class="label">0</span><span class="code">–––––</span></a></li>
+    <li><a href="/?/.----"><span class="label">1</span><span class="code">•––––</span></a></li>
+    <li><a href="/?/..---"><span class="label">2</span><span class="code">••–––</span></a></li>
+    <li><a href="/?/...--"><span class="label">3</span><span class="code">•••––</span></a></li>
+    <li><a href="/?/....-"><span class="label">4</span><span class="code">••••–</span></a></li>
+    <li><a href="/?/....."><span class="label">5</span><span class="code">•••••</span></a></li>
+    <li><a href="/?/-...."><span class="label">6</span><span class="code">–••••</span></a></li>
+    <li><a href="/?/--..."><span class="label">7</span><span class="code">––•••</span></a></li>
+    <li><a href="/?/---.."><span class="label">8</span><span class="code">–––••</span></a></li>
+    <li><a href="/?/----."><span class="label">9</span><span class="code">––––•</span></a></li>
   </ul>
 
   <h2>Symbols</h2>
   <ul class="morse-symbols">
-    <li><a href="/?/.-.-.-">.  .-.-.-</a></li>
-    <li><a href="/?/--..--">,  --..--</a></li>
-    <li><a href="/?/..--..">?  ..--..</a></li>
-    <li><a href="/?/-.-.--">!  -.-.--</a></li>
-    <li><a href="/?/.----.">'  .----.</a></li>
-    <li><a href="/?/.-..-.">"  .-..-.</a></li>
-    <li><a href="/?/-.--.">(  -.--.</a></li>
-    <li><a href="/?/-.--.-">)  -.--.-</a></li>
-    <li><a href="/?/.-...">&amp;  .-...</a></li>
-    <li><a href="/?/---...">:  ---...</a></li>
-    <li><a href="/?/-.-.-.">;  -.-.-.</a></li>
-    <li><a href="/?/-..-.">/  -..-.</a></li>
-    <li><a href="/?/..--.-">_  ..--.-</a></li>
-    <li><a href="/?/-...-">=  -...-</a></li>
-    <li><a href="/?/.-.-.">+  .-.-.</a></li>
-    <li><a href="/?/-....-">-  -....-</a></li>
-    <li><a href="/?/...-..-">$  ...-..-</a></li>
-    <li><a href="/?/.--.-.">@  .--.-.</a></li>
+    <li><a href="/?/.-.-.-"><span class="label">.</span><span class="code">•–•–•–</span></a></li>
+    <li><a href="/?/--..--"><span class="label">,</span><span class="code">––••––</span></a></li>
+    <li><a href="/?/..--.."><span class="label">?</span><span class="code">••––••</span></a></li>
+    <li><a href="/?/-.-.--"><span class="label">!</span><span class="code">–•–•––</span></a></li>
+    <li><a href="/?/.----."><span class="label">'</span><span class="code">•––––•</span></a></li>
+    <li><a href="/?/.-..-."><span class="label">"</span><span class="code">•–••–•</span></a></li>
+    <li><a href="/?/-.--."><span class="label">(</span><span class="code">–•––•</span></a></li>
+    <li><a href="/?/-.--.-"><span class="label">)</span><span class="code">–•––•–</span></a></li>
+    <li><a href="/?/.-..."><span class="label">&amp;</span><span class="code">•–•••</span></a></li>
+    <li><a href="/?/---..."><span class="label">:</span><span class="code">–––•••</span></a></li>
+    <li><a href="/?/-.-.-."><span class="label">;</span><span class="code">–•–•–•</span></a></li>
+    <li><a href="/?/-..-."><span class="label">/</span><span class="code">–••–•</span></a></li>
+    <li><a href="/?/..--.-"><span class="label">_</span><span class="code">••––•–</span></a></li>
+    <li><a href="/?/-...-"><span class="label">=</span><span class="code">–•••–</span></a></li>
+    <li><a href="/?/.-.-."><span class="label">+</span><span class="code">•–•–•</span></a></li>
+    <li><a href="/?/-....-"><span class="label">-</span><span class="code">–••••–</span></a></li>
+    <li><a href="/?/...-..-"><span class="label">$</span><span class="code">•••–••–</span></a></li>
+    <li><a href="/?/.--.-."><span class="label">@</span><span class="code">•––•–•</span></a></li>
   </ul>
 
   <h2>Prosigns</h2>
   <ul class="morse-prosigns">
-    <li><a href="/?/...---...">SOS  ...---...</a></li>
-    <li><a href="/?/.-.-">New Line  .-.-</a></li>
-    <li><a href="/?/.-.-.">New Page  .-.-.</a></li>
-    <li><a href="/?/-....-">New Paragraph  -....-</a></li>
-    <li><a href="/?/-.-.-">Attention  -.-.-</a></li>
-    <li><a href="/?/........">Error  ........</a></li>
-    <li><a href="/?/.-...">Wait  .-...</a></li>
-    <li><a href="/?/-...-.-">Break  -...-.-</a></li>
-    <li><a href="/?/-.-..-..">Closing  -.-..-..</a></li>
-    <li><a href="/?/-..---">Shift to Wabun code  -..---</a></li>
-    <li><a href="/?/...">End of contact  ...</a></li>
-    <li><a href="/?/...-.">Understood  ...-.</a></li>
-    <li><a href="/?/-.--.">Invitation for named station to transmit  -.--.</a></li>
-    <li><a href="/?/-.-">Invitation for any station to transmit  -.-</a></li>
+    <li><a href="/?/...---..."><span class="label">SOS</span><span class="code">•••–––•••</span></a></li>
+    <li><a href="/?/.-.-"><span class="label">New Line</span><span class="code">•–•–</span></a></li>
+    <li><a href="/?/.-.-."><span class="label">New Page</span><span class="code">•–•–•</span></a></li>
+    <li><a href="/?/-....-"><span class="label">New Paragraph</span><span class="code">–••••–</span></a></li>
+    <li><a href="/?/-.-.-"><span class="label">Attention</span><span class="code">–•–•–</span></a></li>
+    <li><a href="/?/........"><span class="label">Error</span><span class="code">••••••••</span></a></li>
+    <li><a href="/?/.-..."><span class="label">Wait</span><span class="code">•–•••</span></a></li>
+    <li><a href="/?/-...-.-"><span class="label">Break</span><span class="code">–•••–•–</span></a></li>
+    <li><a href="/?/-.-..-.."><span class="label">Closing</span><span class="code">–•–••–••</span></a></li>
+    <li><a href="/?/-..---"><span class="label">Shift to Wabun code</span><span class="code">–••–––</span></a></li>
+    <li><a href="/?/..."><span class="label">End of contact</span><span class="code">•••</span></a></li>
+    <li><a href="/?/...-."><span class="label">Understood</span><span class="code">•••–•</span></a></li>
+    <li><a href="/?/-.--."><span class="label">Invitation for named station to transmit</span><span class="code">–•––•</span></a></li>
+    <li><a href="/?/-.-"><span class="label">Invitation for any station to transmit</span><span class="code">–•–</span></a></li>
   </ul>
 
 </div>
