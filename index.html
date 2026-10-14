@@ -5,11 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>dot-da.sh</title>
 
-  <meta name="description" content="Morse code tools and shareable URLs.">
+    <link id="favicon" rel="icon" type="image/svg+xml" href="switch.svg">
 
-  <link id="favicon" rel="icon" type="image/svg+xml" href="favicon-open.svg">
-
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="style.css">
 
   <!-- Primary Meta Tags -->
 <meta name="title" content="dot-da.sh" />
@@ -17,17 +15,17 @@
 
 <!-- Open Graph / Facebook -->
 <meta property="og:type" content="website" />
-<meta property="og:url" content="http://dot-da.sh/" />
+<meta property="og:url" content="https://dot-da.sh/" />
 <meta property="og:title" content="dot-da.sh" />
 <meta property="og:description" content=".... . .-.. .-.. --- / .-- --- .-. .-.. -.." />
-<meta property="og:image" content="http://dot-da.sh/preview.png" />
+<meta property="og:image" content="https://dot-da.sh/preview.png" />
 
 <!-- X (Twitter) -->
 <meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:url" content="http://dot-da.sh/" />
+<meta property="twitter:url" content="https://dot-da.sh/" />
 <meta property="twitter:title" content="dot-da.sh" />
 <meta property="twitter:description" content=".... . .-.. .-.. --- / .-- --- .-. .-.. -.." />
-<meta property="twitter:image" content="http://dot-da.sh/preview.png" />
+<meta property="twitter:image" content="https://dot-da.sh/preview.png" />
 
 <!-- Meta Tags Generated with https://metatags.io -->
   
@@ -41,10 +39,20 @@
   </a>
 </header>
   <main>
-            <pre id="morse"></pre>
-        <h2 id="text"></h2>
+    <pre id="morse"></pre>
+    <h2 id="text"></h2>
 
-        <pre id="status"></pre>
+    <form id="compose">
+      <input id="input" placeholder="type text or morse" autocomplete="off" spellcheck="false">
+      <button>share</button>
+    </form>
+    <output id="link"></output>
+
+    <details>
+      <summary>debug</summary>
+      <pre id="status"></pre>
+    </details>
+
 <pre class="diagram">
 
                 
@@ -97,66 +105,6 @@
 │   H   E  L    L    O     W   O   R   L    D         │
 └─────────────────────────────────────────────────────┘
 </pre>
-<style>
-  .morse-code {
-    max-width: 760px;
-    margin: 0 auto;
-    font-family: system-ui, sans-serif;
-  }
-  .morse-code h2 {
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: #666;
-    margin: 0.75rem 0 0.15rem;
-    text-align: center;
-  }
-  .morse-code ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    flex: 1;
-  }
-  .morse-code .group-row {
-    display: flex;
-    gap: 16px;
-  }
-  .morse-code li a {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    text-decoration: none;
-    color: inherit;
-    padding: 0 4px;
-    line-height: 1.35;
-    border-radius: 4px;
-  }
-  .morse-code li a:hover {
-    background: #f0f0f0;
-  }
-  .morse-code .label {
-    font-weight: 600;
-  }
-  .morse-code .code {
-    font-family: 'Courier New', Consolas, Menlo, monospace;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: #444;
-  }
-  /* wing effect: right-align codes at the outer edge of each column */
-  .morse-code .col-left .code {
-    text-align: right;
-  }
-  @media (max-width: 480px) {
-    .morse-code .group-row {
-      flex-direction: column;
-    }
-  }
-
-  
-</style>
-
-
 
   <div class="morse-code">
 
@@ -244,7 +192,7 @@
     <li><a href="/?/...---..."><span class="code">•••–––•••</span><span class="label">SOS</span></a></li>
     <li><a href="/?/.-.-"><span class="code">•–•–</span><span class="label">New Line</span></a></li>
     <li><a href="/?/.-.-."><span class="code">•–•–•</span><span class="label">New Page</span></a></li>
-    <li><a href="/?/-....-"><span class="code">–••••–</span><span class="label">New Paragraph</span></a></li>
+    <li><a href="/?/-...-"><span class="code">–•••–</span><span class="label">New Paragraph</span></a></li>
     <li><a href="/?/-.-.-"><span class="code">–•–•–</span><span class="label">Attention</span></a></li>
     <li><a href="/?/........"><span class="code">••••••••</span><span class="label">Error</span></a></li>
     <li><a href="/?/.-..."><span class="code">•–•••</span><span class="label">Wait</span></a></li>
@@ -253,7 +201,7 @@
     <li><a href="/?/-...-.-"><span class="label">Break</span><span class="code">–•••–•–</span></a></li>
     <li><a href="/?/-.-..-.."><span class="label">Closing</span><span class="code">–•–••–••</span></a></li>
     <li><a href="/?/-..---"><span class="label">Shift to Wabun code</span><span class="code">–••–––</span></a></li>
-    <li><a href="/?/..."><span class="label">End of contact</span><span class="code">•••</span></a></li>
+    <li><a href="/?/...-.-"><span class="label">End of contact</span><span class="code">•••–•–</span></a></li>
     <li><a href="/?/...-."><span class="label">Understood</span><span class="code">•••–•</span></a></li>
     <li><a href="/?/-.--."><span class="label">Invitation for named station to transmit</span><span class="code">–•––•</span></a></li>
     <li><a href="/?/-.-"><span class="label">Invitation for any station to transmit</span><span class="code">–•–</span></a></li>
@@ -262,6 +210,6 @@
 
 </div>
     </main>
-  <script src="/script.js"></script>
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>
