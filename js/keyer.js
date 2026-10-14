@@ -9,6 +9,18 @@
  *   signal   ███ █ ███ █
  *   title    T N K C        (each beat revises the guess)
  *
+ * It also announces each step, so anything else (the trees,
+ * later sound or vibration) can follow along:
+ *
+ *   keyer.on(event => …)
+ *
+ *   { type: "start" }
+ *   { type: "beat",   path: ".-" }   every unit a mark is held
+ *   { type: "letter", path: ".-" }   letter finished (gap begins)
+ *   { type: "word" }                 word gap begins
+ *   { type: "end",    path: "." }    message finished
+ *   { type: "key",    down: true }   key closed / opened (the switch)
+ *
  * Morse timing (units):
  *
  *   dit          1
@@ -89,6 +101,7 @@ function setFavicon(closed) {
   if (faviconState === closed) return;   // only touch the DOM on change
   faviconState = closed;
   favicon.href = closed ? faviconURLs.closed : faviconURLs.open;
+  emit({ type: "key", down: closed });   // anything else drawing the switch follows
 }
 
 
@@ -104,9 +117,60 @@ function setFavicon(closed) {
  *   dit = 1 frame · dah = 3 frames
  */
 
+/*
+ * A single character also draws its signal as it's keyed:
+ *
+ *   E █
+ *   I █˽˽˽█            dah, first beat: still a dot guess
+ *   A █˽˽˽██           second beat: it's a dah after all
+ *   A █˽˽˽███
+ *   …
+ *   J █˽˽˽███˽˽˽███˽˽˽███
+ *
+ * █ = one unit of key down; ˽˽˽ = the gap between marks
+ * (three ˽ are about as wide as one █ in tab titles).
+ */
+
+const MARK = "█";
+const GAP = "˽˽˽";
+
+/*
+ * Single-character titles use Unicode "Mathematical Monospace"
+ * letters and digits (𝙰–𝚉, 𝟶–𝟿), so the signal after them
+ * doesn't jitter as the letter changes width (I vs W).
+ * Punctuation has no monospace version and stays as is.
+ */
+function mono(ch) {
+  if (/^[A-Z]$/.test(ch)) return String.fromCodePoint(0x1D670 + ch.charCodeAt(0) - 65);
+  if (/^[0-9]$/.test(ch)) return String.fromCodePoint(0x1D7F6 + ch.charCodeAt(0) - 48);
+  return ch;
+}
+
+const monoText = str => [...str].map(mono).join("");
+
+/*
+ * Full messages: monospace too, and a visible word space.
+ * A plain trailing space is trimmed from tab titles, so the
+ * word gap used to show nothing; ˽˽ drops in as the gap
+ * begins and stays as the separator:
+ *
+ *   𝙷𝙴𝙻𝙻𝙾  →  𝙷𝙴𝙻𝙻𝙾˽˽  →  𝙷𝙴𝙻𝙻𝙾˽˽𝙴  →  …  𝙷𝙴𝙻𝙻𝙾˽˽𝚆𝙾𝚁𝙻𝙳
+ */
+const WORD_SPACE = "˽˽";
+
 function getTitleFrames(words) {
   const frames = [];
+  const paths = [];
   let decoded = "";
+
+  const single = words.length === 1 && words[0].length === 1;
+  let signal = "";
+
+  const frame = path => {
+    const at = nodeAt(path) ?? "�";
+    frames.push(single ? `${mono(at)} ${signal}` : monoText(decoded + at));
+    paths.push(path);
+  };
 
   for (const word of words) {
     for (const code of word) {
@@ -114,27 +178,31 @@ function getTitleFrames(words) {
 
       for (const symbol of code) {
         path += ".";
-        frames.push(decoded + (nodeAt(path) ?? "�"));
+        signal += (signal ? GAP : "") + MARK;
+        frame(path);
 
         if (symbol === "-") {
           path = path.slice(0, -1) + "-";
-          frames.push(decoded + (nodeAt(path) ?? "�"));
-          frames.push(decoded + (nodeAt(path) ?? "�"));
+          signal += MARK;
+          frame(path);
+          signal += MARK;
+          frame(path);
         }
       }
 
       decoded += DECODE[code] ?? "�";
     }
-    decoded += " ";
+    decoded += WORD_SPACE;
   }
 
-  decoded = decoded.trimEnd();
+  decoded = decoded.slice(0, -WORD_SPACE.length);
+  decoded = single ? `${mono(decoded)} ${signal}` : monoText(decoded);
 
   if (frames.length === 0 || frames[frames.length - 1] !== decoded) {
     frames.push(decoded);
   }
 
-  return frames;
+  return { frames, paths };
 }
 
 
@@ -152,12 +220,12 @@ function getKeyerEvents(words) {
   words.forEach((word, w) => {
     word.forEach((code, c) => {
       [...code].forEach((symbol, s) => {
-        events.push({ state: "closed", units: symbol === "." ? 1 : 3 });
+        events.push({ state: "closed", units: symbol === "." ? 1 : 3, code });
         if (s < code.length - 1) events.push({ state: "open", units: 1 });
       });
-      if (c < word.length - 1) events.push({ state: "open", units: 3 });
+      if (c < word.length - 1) events.push({ state: "open", units: 3, code });
     });
-    if (w < words.length - 1) events.push({ state: "open", units: 7 });
+    if (w < words.length - 1) events.push({ state: "open", units: 7, code: word[word.length - 1] });
   });
 
   return events;
@@ -175,7 +243,19 @@ const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 let timer = null;
 let events = [];
 let frames = [];
+let paths = [];
 let eventIndex = 0;
+
+const listeners = [];
+
+function emit(event) {
+  for (const fn of listeners) fn(event);
+}
+
+function lastCode() {
+  for (let i = events.length - 1; i >= 0; i--) if (events[i].code) return events[i].code;
+  return null;
+}
 let unit = 0;
 let frameIndex = 0;
 
@@ -197,6 +277,7 @@ function tick() {
     stop();
     setFavicon(false);
     if (frames.length) document.title = frames[frames.length - 1];
+    emit({ type: "end", path: lastCode() });
     return;
   }
 
@@ -204,9 +285,32 @@ function tick() {
 
   setFavicon(event.state === "closed");
 
+  /*
+   * The word space is painted once the last letter's own
+   * 3-unit gap has passed (3 units into the 7-unit word gap),
+   * the same rhythm as every other character.
+   */
+  if (event.state === "open" && event.units === 7 && unit === 3) {
+    const shown = frames[frameIndex - 1];
+    if (shown !== undefined) {
+      setTimeout(() => { document.title = shown + WORD_SPACE; }, TITLE_LATENCY_MS);
+    }
+  }
+
+  /* A gap is announced as it begins. */
+  if (event.state === "open" && unit === 0) {
+    if (event.units >= 3) emit({ type: "letter", path: event.code });
+    if (event.units === 7) emit({ type: "word" });
+  }
+
   /* Title advances once per closed unit, so a dah holds 3 frames. */
   if (event.state === "closed") {
-    const frame = frames[frameIndex++];
+    const frame = frames[frameIndex];
+    const path = paths[frameIndex];
+    frameIndex++;
+
+    emit({ type: "beat", path });
+
     setTimeout(() => {
       if (frame !== undefined) document.title = frame;
     }, TITLE_LATENCY_MS);
@@ -225,14 +329,17 @@ function start() {
   frameIndex = 0;
 
   setFavicon(false);
+  emit({ type: "start" });
 
   if (events.length === 0) {
     document.title = IDLE_TITLE;
+    emit({ type: "end", path: null });
     return;
   }
 
   if (reducedMotion.matches) {
     document.title = frames[frames.length - 1];
+    emit({ type: "end", path: lastCode() });
     return;
   }
 
@@ -252,9 +359,13 @@ reducedMotion.addEventListener("change", start);
 
 
 export function play(words) {
-  frames = getTitleFrames(words);
+  ({ frames, paths } = getTitleFrames(words));
   events = getKeyerEvents(words);
   start();
+}
+
+export function on(fn) {
+  listeners.push(fn);
 }
 
 export function stats() {
