@@ -15,7 +15,8 @@
 index.html      page + reference chart
 style.css
 js/morse.js     the core: tree, encode/decode, URL formats, cost
-js/keyer.js     favicon + title transmitter
+js/keyer.js     favicon + title transmitter; announces each beat
+js/tree.js      live ASCII trees (horizontal + vertical), built from the data
 js/main.js      wires the page to the core
 ```
 

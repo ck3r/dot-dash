@@ -1,161 +1,594 @@
+/* ============================================================
+ * dot-da.sh — bakelite & brass
+ * ============================================================
+ *
+ * The palette comes from a telegraph key: a black Bakelite
+ * base, brass contacts, and the red/blue of dot and dash.
+ * One typeface family (the system's monospace), so nothing
+ * to download and box-drawing lines that join up.
+ *
+ *   ┌─ label ─────────┐   every section is a "frame": a ruled
+ *   │                 │   box with its name in the top border
+ *   └─────────────────┘
+ */
+
 :root {
-      font-family:
-        'Monaco',
-        monospace;
-    }
+  --bakelite: #1c1916;   /* background */
+  --paper:    #e9e3d5;   /* text */
+  --graphite: #8c857a;   /* secondary text */
+  --wire:     #4a443c;   /* lines, dimmed tree parts */
+  --brass:    #d6a650;   /* focus and cursor only */
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+  --dot:  #e2604f;
+  --dash: #6ea8e0;
+  --num:  #6ea8e0;
+  --sym:  #e2604f;
+  --dim:  #4a443c;
 
-    body {
-      max-width: 800px;
-      margin: 3rem auto;
-      padding: 0 1rem;
-    }
+  --mono: Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace;
 
-    html,
-    body {
-      background: #fff;
-      color: #000;
-      line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  background: var(--bakelite);
+}
+
+body {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+  background: var(--bakelite);
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 15px;
+  line-height: 1.5;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  background: var(--paper);
+  color: var(--bakelite);
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 1px dashed var(--brass);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: var(--brass);
+  color: var(--bakelite);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+
+/* ============================================================
+ * HEADER
+ * ============================================================ */
+
+.top {
+  margin-bottom: 2.5rem;
+}
 
 .logo {
   display: inline-flex;
   align-items: center;
   gap: 0.75rem;
-  color: inherit;
+  font-size: 1.15rem;
+  font-weight: 700;
   text-decoration: none;
-  font-size: 1.25rem;
-  font-weight: 600;
 }
 
-.diagram {
-  font-family: "Courier New", monospace;
-  white-space: pre;
-  overflow-x: auto;
-  font-size: 12px;
-  line-height: 1.2;
+.logo svg {
+  color: var(--paper);
+  overflow: visible;
 }
 
-    #morse {
-      white-space: pre-wrap;
-    }
+.logo:hover svg {
+  color: var(--bakelite);
+}
 
-    #text {
-      margin-top: 2rem;
-      font-family: sans-serif;
-    }
+/* the switch keys along with the message: lever drops shut, LED lights */
+.logo .arm {
+  transform-box: view-box;
+  transform-origin: 16.02px 47.22px;
+  transform: rotate(-30deg);
+}
 
-    #status {
-      margin-top: 3rem;
-      color: #777;
-      font-size: 0.8rem;
-    }
+.logo.down .arm {
+  transform: rotate(0deg);
+}
+
+.logo .led {
+  fill: transparent;
+}
+
+.logo.down .led {
+  fill: var(--brass);
+}
+
 
 /* ============================================================
- * COMPOSE
+ * FRAMES
+ * ============================================================
+ *
+ * A ruled box with its name sitting in the top border.
+ * The message frame is wired down into the tree frame below
+ * (the signal travels from one to the other).
+ */
+
+.frame {
+  position: relative;
+  border: 1px solid var(--wire);
+  padding: 1.75rem 1.5rem 1.5rem;
+  margin-top: 2.5rem;
+}
+
+.frame-label {
+  position: absolute;
+  top: -0.75em;
+  left: 1rem;
+  padding: 0 0.6ch;
+  background: var(--bakelite);
+  color: var(--graphite);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* the wire between message and tree */
+.message-frame::after {
+  content: "";
+  position: absolute;
+  left: 3rem;
+  top: 100%;
+  height: calc(2.5rem + 1px);
+  border-left: 1px solid var(--wire);
+}
+
+
+/* ============================================================
+ * MESSAGE
  * ============================================================ */
 
-#compose {
+.message {
   display: flex;
-  gap: 0.5rem;
-  margin: 2rem 0 0.5rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem 0;
+  font-size: 1.35rem;
+  line-height: 1.25;
 }
 
-#compose input {
-  flex: 1;
-  font: inherit;
-  padding: 0.5rem;
-  border: 1px solid #000;
+.message .word {
+  display: inline-flex;
+  gap: 2ch;
 }
 
-#compose button {
+.message .slash {
+  margin: 0 1.5ch;
+  color: var(--graphite);
+}
+
+.message .ch {
+  display: inline-grid;
+}
+
+.message .code,
+.message .plain {
+  white-space: pre;
+}
+
+.message .plain {
+  color: var(--paper);
+}
+
+.message .code {
+  color: var(--graphite);
+}
+
+.signal .message .dot  { color: var(--dot); }
+.signal .message .dash { color: var(--dash); }
+
+/*
+ * during playback: marks appear as they're keyed, a letter
+ * lights up when its last mark is done (underlined until the
+ * next one starts), everything not yet sent waits dimmed
+ */
+.message.live .code span,
+.message.live .plain {
+  opacity: 0.25;
+  transition: opacity 0.06s linear;
+}
+
+.message.live .code .keyed,
+.message.live .landed .plain,
+.message.live .sent .plain {
+  opacity: 1;
+}
+
+.message.live .landed .plain {
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+
+.empty {
+  color: var(--graphite);
+}
+
+.replay {
+  margin-top: 1.5rem;
+}
+
+
+/* ============================================================
+ * CONTROLS
+ * ============================================================ */
+
+button {
   font: inherit;
-  padding: 0.5rem 1rem;
-  border: 1px solid #000;
-  background: #fff;
+  color: var(--paper);
+  background: transparent;
+  border: 1px solid var(--paper);
+  padding: 0.35rem 0.9rem;
   cursor: pointer;
 }
 
-#compose button:hover {
-  background: #000;
-  color: #fff;
+button:hover {
+  background: var(--paper);
+  color: var(--bakelite);
 }
 
-#link {
+.compose {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.compose input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: var(--paper);
+  background: transparent;
+  border: 1px solid var(--wire);
+  padding: 0.5rem 0.75rem;
+  caret-color: var(--brass);
+}
+
+.link:empty {
+  display: none;
+}
+
+.compose input::placeholder {
+  color: var(--graphite);
+}
+
+.link {
   display: block;
-  font-size: 0.8rem;
+  margin-top: 0.5rem;
+  color: var(--graphite);
+  font-size: 0.85rem;
   word-break: break-all;
-  min-height: 1.5em;
 }
 
-details {
-  margin: 2rem 0;
-  color: #777;
-  font-size: 0.8rem;
+/* option rows: plain words, [x] checkboxes, underlined menus */
+
+.options {
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.75rem;
+  font-size: 0.9rem;
+  color: var(--graphite);
 }
+
+.options-look {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--wire);
+}
+
+.check {
+  position: relative;
+  cursor: pointer;
+  color: var(--paper);
+}
+
+.check input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.check::before {
+  content: "[ ] ";
+  white-space: pre;
+  color: var(--graphite);
+}
+
+.check:has(input:checked)::before {
+  content: "[x] ";
+  color: var(--paper);
+}
+
+.check:has(input:focus-visible) {
+  outline: 1px dashed var(--brass);
+  outline-offset: 3px;
+}
+
+.pick select {
+  font: inherit;
+  color: var(--paper);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px dotted var(--graphite);
+  margin-left: 0.5ch;
+  padding: 0 0.25ch;
+  cursor: pointer;
+}
+
+.pick select option {
+  background: var(--bakelite);
+  color: var(--paper);
+}
+
 
 /* ============================================================
- * REFERENCE CHART (was inline in index.html)
+ * TREES
+ * ============================================================
+ *
+ *   idle      everything in paper
+ *   .live     playing: everything dims except the path
+ *   .on       on the current path
+ *   .landed   the character just finished
+ */
+
+.tree {
+  font-family: var(--mono);
+  white-space: pre;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.1;
+  width: fit-content;     /* centred as a diagram, scrolls if wider than the frame */
+  max-width: 100%;
+  margin: 1.75rem auto 0;
+  padding-bottom: 0.4em;  /* room for "_" on the last row (the scroll box clips) */
+  font-synthesis: none;   /* never fake a bold that changes widths */
+}
+
+.tree .lbl:not(.blank) {
+  cursor: pointer;
+}
+
+.tree .blank {
+  color: var(--dim);
+}
+
+.tree span {
+  transition: color 0.08s linear;
+}
+
+.tree.live span:not(.on):not(.legend) {
+  color: var(--dim);
+}
+
+.tree .on,
+.tree .root.on {
+  color: var(--paper);
+}
+
+/*
+ * Only text goes bold. Line characters stay regular: many
+ * monospace fonts have no bold box-drawing glyphs, and the
+ * fallback font is a different width, so lines would grow.
+ */
+.tree .lbl.on,
+.tree .mark.on {
+  font-weight: 700;
+}
+
+.tree .landed {
+  background: var(--paper);
+  color: var(--bakelite) !important;
+}
+
+.tree .legend {
+  color: var(--graphite);
+}
+
+/* signal colours: the path itself */
+.signal .tree .on.dot,
+.signal .tree .legend.dot   { color: var(--dot); }
+.signal .tree .on.dash,
+.signal .tree .legend.dash  { color: var(--dash); }
+
+/* category colours: characters in the tree (when not dimmed) */
+.category .tree:not(.live) .lbl.num,
+.category .tree .lbl.num.on  { color: var(--num); }
+.category .tree:not(.live) .lbl.sym,
+.category .tree .lbl.sym.on  { color: var(--sym); }
+
+/* one tree at a time */
+@media (max-width: 720px) {
+  .tree-h { display: none; }
+}
+
+@media (min-width: 721px) {
+  .tree-v { display: none; }
+}
+
+
+/* ============================================================
+ * ABOUT (single character)
+ * ============================================================ */
+
+.overview {
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.overview .char {
+  font-weight: 700;   /* same size as the rest, so the columns line up */
+}
+
+.overview .here {
+  background: var(--paper);
+  color: var(--bakelite);
+}
+
+.signal .overview .dot  { color: var(--dot); }
+.signal .overview .dash { color: var(--dash); }
+
+
+/* ============================================================
+ * ALL CHARACTERS
  * ============================================================ */
 
 .morse-code {
-    max-width: 760px;
-    margin: 0 auto;
-    font-family: system-ui, sans-serif;
-  }
-  .morse-code h2 {
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: #666;
-    margin: 0.75rem 0 0.15rem;
-    text-align: center;
-  }
-  .morse-code ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    flex: 1;
-  }
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+/* short codes stay close to their characters; prosigns have long names */
+.morse-code > h2,
+.morse-code .group-row {
+  max-width: 400px;
+  margin-inline: auto;
+}
+
+.morse-code > h2:has(+ .morse-prosigns),
+.morse-code .morse-prosigns {
+  max-width: none;
+}
+
+.morse-code h2 {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--graphite);
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.morse-code h2:first-child {
+  margin-top: 0;
+}
+
+.morse-code ul {
+  list-style: none;
+  flex: 1;
+}
+
+.morse-code .group-row {
+  display: flex;
+  gap: 2.5rem;
+}
+
+.morse-code li a {
+  display: flex;
+  justify-content: space-between;
+  gap: 1ch;
+  padding: 0 0.5ch;
+  text-decoration: none;
+  line-height: 1.6;
+}
+
+.morse-code .code {
+  color: var(--graphite);
+  letter-spacing: 0.15em;
+  white-space: nowrap;
+}
+
+.morse-code li a:hover .code {
+  color: inherit;
+}
+
+/* wing effect: codes at the outer edge of each column */
+.morse-code .col-left .code {
+  text-align: right;
+}
+
+@media (max-width: 480px) {
   .morse-code .group-row {
-    display: flex;
-    gap: 16px;
+    flex-direction: column;
+    gap: 0;
   }
-  .morse-code li a {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    text-decoration: none;
-    color: inherit;
-    padding: 0 4px;
-    line-height: 1.35;
-    border-radius: 4px;
+}
+
+
+/* ============================================================
+ * DEBUG
+ * ============================================================ */
+
+.debug {
+  margin-top: 2.5rem;
+  color: var(--graphite);
+  font-size: 0.8rem;
+}
+
+.debug summary {
+  cursor: pointer;
+}
+
+.debug pre {
+  margin-top: 0.5rem;
+  white-space: pre-wrap;
+}
+
+
+/* ============================================================
+ * SMALL SCREENS
+ * ============================================================ */
+
+@media (max-width: 600px) {
+  body {
+    padding: 1.25rem 1rem 3rem;
   }
-  .morse-code li a:hover {
-    background: #f0f0f0;
+
+  .frame {
+    padding: 1.5rem 1rem 1.25rem;
   }
-  .morse-code .label {
-    font-weight: 600;
+
+  .message {
+    font-size: 1.1rem;
   }
-  .morse-code .code {
-    font-family: 'Courier New', Consolas, Menlo, monospace;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: #444;
+
+  .compose {
+    flex-direction: column;
   }
-  /* wing effect: right-align codes at the outer edge of each column */
-  .morse-code .col-left .code {
-    text-align: right;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tree span,
+  .message .code span,
+  .message .plain {
+    transition: none;
   }
-  @media (max-width: 480px) {
-    .morse-code .group-row {
-      flex-direction: column;
-    }
-  }
+}

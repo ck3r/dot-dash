@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#1c1916">
   <title>dot-da.sh</title>
 
-    <link id="favicon" rel="icon" type="image/svg+xml" href="switch.svg">
+  <link id="favicon" rel="icon" type="image/svg+xml" href="switch.svg">
 
   <link rel="stylesheet" href="style.css">
 
@@ -32,80 +34,89 @@
 </head>
 
 <body>
-  <header>
-  <a href="/" class="logo">
-    <img src="switch.svg" alt="">
-    <span>dot-da.sh</span>
-  </a>
-</header>
+  <header class="top">
+    <a href="/" class="logo" aria-label="dot-da.sh home">
+      <svg viewBox="0 0 73 79" width="27" height="29" aria-hidden="true" fill="none">
+        <circle cx="13.66" cy="52.81" r="7" stroke="currentColor" stroke-width="6"/>
+        <rect class="arm" x="16.02" y="47.22" width="56" height="7" rx="3.5" fill="currentColor"/>
+        <circle class="led" cx="13.66" cy="52.81" r="3.6"/>
+      </svg>
+      <span>dot-da.sh</span>
+    </a>
+  </header>
+
   <main>
-    <pre id="morse"></pre>
-    <h2 id="text"></h2>
 
-    <form id="compose">
-      <input id="input" placeholder="type text or morse" autocomplete="off" spellcheck="false">
-      <button>share</button>
-    </form>
-    <output id="link"></output>
+    <!-- ───────────── message ───────────── -->
+    <section class="frame message-frame" aria-labelledby="message-label">
+      <h2 class="frame-label" id="message-label">message</h2>
 
-    <details>
-      <summary>debug</summary>
-      <pre id="status"></pre>
-    </details>
+      <div id="message" class="message" aria-live="off"></div>
+      <p id="empty" class="empty" hidden>
+        Nothing to decode yet. Type something below, or try
+        <a href="?/_..._---_..._">SOS</a>.
+      </p>
 
-<pre class="diagram">
+      <button id="replay" class="replay" type="button" hidden>▶ replay</button>
 
-                
-          .H  
-         ┌──  
-       .S│-V  
-      ┌──┤    
-      │-U│.F  
-      │  └──  
-    .I│   -   
-   ┌──┤       
-   │-A│   .L  
-   │  │  ┌──  
-   │  │.R│-   
-   │  └──┤    
-   │   -W│.P  
-   │     └──  
- .E│      -J  
- ──┤          
- -T│      .B  
-   │     ┌──  
-   │   .D│-X  
-   │  ┌──┤    
-   │  │-K│.C  
-   │  │  └──  
-   │.N│   -Y  
-   └──┤       
-    -M│   .Z  
-      │  ┌──  
-      │.G│-Q  
-      └──┤    
-       -O│.   
-         └──  
-          -   
-              
+      <form id="compose" class="compose">
+        <label for="input" class="visually-hidden">Message to send</label>
+        <input id="input" placeholder="type a message, or paste morse" autocomplete="off" spellcheck="false">
+        <button type="submit">send</button>
+      </form>
+      <output id="link" class="link"></output>
+    </section>
 
-┌──────────────────────[favicon]──────────────────────┐
-│                                                     │
-│                        .E│T-                        │
-│              ┌───────────┴───────────┐              │
-│            .I│A-                   .N│M-            │
-│        ┌─────┴─────┐           ┌─────┴─────┐        │
-│      .S│U-       .R│W-       .D│K-       .G│O-      │
-│     ┌──┴──┐     ┌──┴──┐     ┌──┴──┐     ┌──┴──┐     │
-│   .H│V- .F│_- .L│_- .P│J- .B│X- .C│Y- .Z│Q- ._│_-   │
-│                                                     │
-└───┐  ┌──────────────────────────────────────────────┘
-┌───┘  └──────────────────────────────────────────────┐
-│  .... . .-.. .-.. --- / .-- --- .-. .-.. -..        │
-│   H   E  L    L    O     W   O   R   L    D         │
-└─────────────────────────────────────────────────────┘
-</pre>
+    <!-- ───────────── tree ───────────── -->
+    <section class="frame tree-frame" aria-labelledby="tree-label">
+      <h2 class="frame-label" id="tree-label">tree</h2>
 
+      <fieldset class="options">
+        <legend class="visually-hidden">What the tree shows</legend>
+        <label class="check"><input type="checkbox" id="opt-letters" checked> letters</label>
+        <label class="pick">numbers
+          <select id="opt-numbers">
+            <option value="off">off</option>
+            <option value="on">standard</option>
+            <option value="cut">cut</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="opt-symbols"> symbols</label>
+        <label class="check"><input type="checkbox" id="opt-prune"> prune empty</label>
+      </fieldset>
+
+      <pre class="tree tree-h" id="tree-h" aria-label="Morse tree: dot branches left, dash branches right"></pre>
+      <pre class="tree tree-v" id="tree-v" aria-label="Morse tree: dot branches up, dash branches down"></pre>
+
+      <fieldset class="options options-look">
+        <legend class="visually-hidden">How the tree looks</legend>
+        <label class="pick">style
+          <select id="opt-style">
+            <option value="branches">branches</option>
+            <option value="classic">classic</option>
+          </select>
+        </label>
+        <label class="pick">size
+          <select id="opt-size">
+            <option value="auto">auto</option>
+            <option value="roomy">roomy</option>
+            <option value="compact">compact</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="opt-signal" checked> dot/dash colors</label>
+        <label class="check"><input type="checkbox" id="opt-category"> character colors</label>
+      </fieldset>
+    </section>
+
+    <!-- ───────────── one character ───────────── -->
+    <section class="frame overview-frame" id="overview-frame" aria-labelledby="overview-label" hidden>
+      <h2 class="frame-label" id="overview-label">about</h2>
+      <pre id="overview" class="overview"></pre>
+    </section>
+
+    <!-- ───────────── reference ───────────── -->
+    <section class="frame chart-frame" aria-labelledby="chart-label">
+      <h2 class="frame-label" id="chart-label">all characters</h2>
   <div class="morse-code">
 
   <h2>Letters</h2>
@@ -209,7 +220,15 @@
   </div>
 
 </div>
-    </main>
+    </section>
+
+    <details class="debug">
+      <summary>debug</summary>
+      <pre id="status"></pre>
+    </details>
+
+  </main>
+
   <script type="module" src="js/main.js"></script>
 </body>
 </html>
