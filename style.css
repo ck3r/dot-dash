@@ -520,13 +520,19 @@ button:hover {
   line-height: 1.6;
 }
 
+/* codes are what you type (. and -), bold so a period still reads */
 .morse-code .code {
-  color: var(--graphite);
-  letter-spacing: 0.15em;
+  color: var(--paper);
+  font-weight: 700;
+  letter-spacing: 0.25em;
   white-space: nowrap;
 }
 
-.morse-code li a:hover .code {
+.signal .morse-code .dot  { color: var(--dot); }
+.signal .morse-code .dash { color: var(--dash); }
+
+.morse-code li a:hover .code,
+.morse-code li a:hover .code span {
   color: inherit;
 }
 
@@ -535,10 +541,36 @@ button:hover {
   text-align: right;
 }
 
+/*
+ * Phones keep the two wings side by side, characters meeting
+ * in the middle, codes on the outside:
+ *
+ *   .-      A  N      -.
+ *   -...    B  O     ---
+ *
+ * Only the prosigns stack (their names are too long to pair).
+ */
 @media (max-width: 480px) {
   .morse-code .group-row {
+    gap: 1.25rem;
+  }
+
+  .morse-code .code {
+    letter-spacing: 0.15em;
+  }
+
+  .morse-code .morse-prosigns {
     flex-direction: column;
     gap: 0;
+  }
+
+  /* stacked, so the second half reads the same way round as the first */
+  .morse-code .morse-prosigns .col-right a {
+    flex-direction: row-reverse;
+  }
+
+  .morse-code .morse-prosigns .label {
+    text-align: right;
   }
 }
 
