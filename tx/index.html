@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#1c1916">
+  <title>dot-da.sh / tx</title>
+
+  <link rel="icon" type="image/svg+xml" href="../switch.svg">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="tx.css">
+</head>
+
+<!--
+  ============================================================
+  TX — transmit (step 1: layout, tap keying, history, tree)
+  ============================================================
+
+   o⁄ tx                          [.-] [A]
+  ┌──┬──────────────────────────────────┐
+  │><│  .... . .-.. .-.. ---           │  history (tape)
+  │A │> .-- --- .-.                    │  current line
+  │/ │                                  │
+  │R │  5 chars          11 dits · 5 dahs│
+  │  │  1 word                     2.1 s│
+  └──┴───────────────(↑)────────────────┘
+    ▷ ──●──────────────────  ⟲   ♪ ☼ ≋
+  ⌃ settings
+  ┌──┬────────┬─────────────────┐
+  │↶ │   .    │        -        │  keyer pad
+  │˽ │  dit   │       dah       │
+  │/ │        │                 │
+  └──┴────────┴─────────────────┘
+-->
+
+<body class="tx signal">
+
+  <header class="tx-top">
+    <a href="/" class="logo" aria-label="dot-da.sh home">
+      <svg viewBox="0 0 73 79" width="23" height="25" aria-hidden="true" fill="none">
+        <circle cx="13.66" cy="52.81" r="7" stroke="currentColor" stroke-width="6"/>
+        <rect class="arm" x="16.02" y="47.22" width="56" height="7" rx="3.5" fill="currentColor"/>
+        <circle class="led" cx="13.66" cy="52.81" r="3.6"/>
+      </svg>
+      <span>tx</span>
+    </a>
+
+    <div class="input-mode" role="group" aria-label="input">
+      <button type="button" data-mode="key" aria-pressed="true" title="key Morse">.-</button>
+      <span aria-hidden="true">⇄</span>
+      <button type="button" data-mode="type" aria-pressed="false" title="type text">A</button>
+    </div>
+  </header>
+
+
+  <main class="station">
+
+    <!-- the tree: a magnified view of where you are; >< opens the
+         whole tree in the left half, the message moves to the right -->
+    <aside class="tree-edge" aria-label="the Morse tree">
+      <button type="button" id="tree-toggle" class="edge-toggle" aria-expanded="false" title="show the whole tree">&gt;&lt;</button>
+      <div id="local" class="local"></div>
+      <div id="tree-box" class="tree-box" hidden>
+        <pre id="tree" class="tree" aria-label="Morse tree"></pre>
+      </div>
+    </aside>
+
+    <section class="field" aria-label="message">
+      <ol id="tape" class="tape"></ol>
+
+      <!-- stats either side of the send button -->
+      <div class="field-foot">
+        <span id="stats-text" class="stats"></span>
+        <span id="stats-morse" class="stats"></span>
+      </div>
+
+      <button type="button" id="send" class="send" title="send (Enter)" aria-label="send">↑</button>
+
+    </section>
+
+  </main>
+
+
+  <details class="privacy">
+    <summary>Morse is an encoding, not encryption.<br>Don't send anything private.</summary>
+    <p>Anyone who knows Morse can read it. Shared links show it
+    decoded in their previews, and your history stays on this
+    device until you clear it.</p>
+  </details>
+
+
+  <div class="controls">
+
+    <div class="player" aria-disabled="true" title="playback comes in step 4">
+      <button type="button" disabled aria-label="play">▷</button>
+      <span class="track"><span class="knob"></span></span>
+      <span class="time">0:00</span>
+      <button type="button" disabled aria-label="repeat">⟲</button>
+      <span class="outputs" role="group" aria-label="outputs (not wired yet)">
+        <button type="button" data-out="sound" aria-pressed="true" title="sound">♪</button>
+        <button type="button" data-out="light" aria-pressed="false" title="light">☼</button>
+        <button type="button" data-out="vibrate" aria-pressed="false" title="vibration">≋</button>
+      </span>
+    </div>
+
+    <button type="button" id="tray-toggle" class="tray-toggle" aria-expanded="false" aria-controls="tray">
+      <span class="chev">⌃</span> settings
+    </button>
+
+    <!--
+      settings: laid out now, wired up in later steps.
+
+        20     20      600   60     60      ← value on top
+        ┃      ┃       ┃     ┃      ┃
+        ●      ●       ┃     ●      ●
+        ┃      ┃       ●     ┃      ┃
+       wpm  farns.   pitch  vol  strength   ← label at the bottom
+       └─ speed ─┘   └─ sound ─┘  vibrate
+    -->
+    <section id="tray" class="tray" hidden>
+      <div class="faders">
+        <div class="group">
+          <div class="pair">
+            <label class="fader"><output for="opt-wpm">20</output>
+              <input type="range" id="opt-wpm" min="5" max="40" value="20"><span>wpm</span></label>
+            <label class="fader"><output for="opt-fwpm">20</output>
+              <input type="range" id="opt-fwpm" min="5" max="40" value="20"><span>farns.</span></label>
+          </div>
+          <span class="group-name">speed</span>
+        </div>
+        <div class="group">
+          <div class="pair">
+            <label class="fader"><output for="opt-hz">600</output>
+              <input type="range" id="opt-hz" min="300" max="1000" step="10" value="600"><span>pitch</span></label>
+            <label class="fader"><output for="opt-vol">60</output>
+              <input type="range" id="opt-vol" min="0" max="100" value="60"><span>vol</span></label>
+          </div>
+          <span class="group-name">sound</span>
+        </div>
+        <div class="group" id="vibe-set" hidden>
+          <div class="pair">
+            <label class="fader"><output for="opt-vibe">60</output>
+              <input type="range" id="opt-vibe" min="0" max="100" value="60"><span>strength</span></label>
+          </div>
+          <span class="group-name">vibrate</span>
+        </div>
+      </div>
+
+      <div class="switches">
+        <label>key
+          <select id="opt-key">
+            <option value="tap">tap</option>
+            <option value="straight" disabled>straight</option>
+            <option value="bug" disabled>bug</option>
+            <option value="iambic-a" disabled>iambic A</option>
+            <option value="iambic-b" disabled>iambic B</option>
+            <option value="ultimatic" disabled>ultimatic</option>
+          </select>
+        </label>
+        <label>sound
+          <select id="opt-sound">
+            <option value="tone">tone</option>
+            <option value="sounder">sounder</option>
+          </select>
+        </label>
+        <label>light
+          <select id="opt-light">
+            <option value="lamp">lamp</option>
+            <option value="signal">signal lamp</option>
+            <option value="torch" id="torch-choice" hidden>flashlight</option>
+          </select>
+        </label>
+      </div>
+
+      <p class="note">not wired yet: these arrive with timed keying, sound and light.</p>
+      <button type="button" id="clear-history" class="quiet">clear history</button>
+    </section>
+
+
+    <!-- keyer pad (tap mode): ↶ ˽ / | dit | dah -->
+    <div id="pad" class="pad">
+      <button type="button" class="key side" data-act="undo" aria-label="undo">↶</button>
+      <button type="button" class="key side" data-act="letter" aria-label="letter space">˽</button>
+      <button type="button" class="key side" data-act="word" aria-label="word space">/</button>
+      <button type="button" class="key dit" data-act="." aria-label="dit"><b>.</b><span>dit</span></button>
+      <button type="button" class="key dah" data-act="-" aria-label="dah"><b>-</b><span>dah</span></button>
+    </div>
+
+    <!-- type mode: the phone's own keyboard -->
+    <form id="type" class="type" hidden>
+      <input id="text" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false"
+             placeholder="type a message, Enter to send" aria-label="message text">
+    </form>
+
+  </div>
+
+  <script type="module" src="../js/tx.js"></script>
+</body>
+</html>

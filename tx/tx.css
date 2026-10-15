@@ -1,0 +1,647 @@
+/* ============================================================
+ * /tx — the transmit station (mobile first)
+ * ============================================================
+ *
+ * Builds on ../style.css (colours, type, buttons). The page
+ * fills the screen: header, the field (which grows), then the
+ * controls and keyer pad pinned at the bottom, under the thumb.
+ */
+
+body.tx {
+  max-width: 520px;
+  height: 100dvh;
+  padding: 0.75rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  overflow: hidden;
+}
+
+.tx [hidden] {
+  display: none !important;   /* the display rules below mustn't un-hide things */
+}
+
+.tx button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;   /* no double-tap zoom */
+}
+
+/*
+ * The site's button:hover (paper fill) sticks after a tap on
+ * touch screens, so here small buttons keep their own colours
+ * on hover; only real hover devices get a brass hint.
+ */
+.tx .input-mode button:hover,
+.tx .edge-toggle:hover,
+.tx .x:hover,
+.tx .outputs button:hover,
+.tx .player button:hover,
+.tx .tray-toggle:hover,
+.tx .quiet:hover {
+  background: transparent;
+  color: var(--graphite);
+}
+
+.tx .send:hover {
+  background: var(--bakelite);
+  color: var(--paper);
+}
+
+@media (hover: hover) {
+  .tx .edge-toggle:hover,
+  .tx .x:hover,
+  .tx .tray-toggle:hover,
+  .tx .quiet:hover,
+  .tx .input-mode button:hover { color: var(--brass); }
+  .tx .send:not(:disabled):hover { border-color: var(--brass); color: var(--brass); }
+}
+
+
+/* ---------- header ---------- */
+
+.tx-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tx-top .logo {
+  font-size: 1rem;
+}
+
+.input-mode {
+  display: flex;
+  align-items: center;
+  gap: 0.4ch;
+  color: var(--graphite);
+}
+
+.input-mode button,
+.tx .input-mode button:hover {
+  min-width: 3.2ch;
+  padding: 0.15rem 0.5rem;
+  border-color: var(--wire);
+  color: var(--graphite);
+}
+
+.input-mode button[aria-pressed="true"],
+.tx .input-mode button[aria-pressed="true"]:hover {
+  border-color: var(--paper);
+  color: var(--paper);
+}
+
+
+/* ---------- station: tree edge + field ---------- */
+
+.station {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  border: 1px solid var(--wire);
+}
+
+.tree-edge {
+  flex: none;
+  width: 6.5ch;
+  border-right: 1px solid var(--wire);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.4rem 0;
+  gap: 0.8rem;
+}
+
+.edge-toggle {
+  border: 0;
+  padding: 0.1rem 0.3rem;
+  color: var(--graphite);
+  font-size: 0.85rem;
+  letter-spacing: -0.1em;
+}
+
+/*
+ * the magnified view:      E        parent
+ *                          |
+ *                         [A]       here
+ *                         / \
+ *                        R   W      children (tap = dit / dah)
+ */
+.local {
+  font-size: 15px;
+  line-height: 1.25;
+  white-space: pre;
+  text-align: center;
+  color: var(--graphite);
+}
+
+.local .here {
+  background: var(--paper);
+  color: var(--bakelite);
+  padding: 0 0.3ch;
+  font-weight: 700;
+}
+
+.local button {
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--paper);
+  min-width: 2ch;
+}
+
+.local button:hover {
+  background: none;
+  color: var(--brass);
+}
+
+.signal .local .dot  { color: var(--dot); }
+.signal .local .dash { color: var(--dash); }
+
+.field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* ---------- the tape (history + current line) ---------- */
+
+.tape {
+  position: relative;   /* offsets measured from here */
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0.25rem 0.6rem 0.5rem;
+  overscroll-behavior: contain;
+}
+
+.entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6ch;
+  padding: 0.55rem 0;
+  border-bottom: 1px dashed var(--wire);
+}
+
+.entry:last-child {
+  border-bottom: 0;
+}
+
+/* history above: the top edge fades out */
+.tape.more-above {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 2.2rem);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 2.2rem);
+}
+
+.entry .marker {
+  flex: none;
+  width: 1.2ch;
+  color: var(--brass);
+}
+
+.entry .line {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.6rem 0;
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+
+.entry.past .line {
+  cursor: pointer;
+}
+
+.entry.past {
+  opacity: 0.7;
+}
+
+.entry .x {
+  flex: none;
+  border: 0;
+  padding: 0 0.3ch;
+  color: var(--graphite);
+}
+
+/* words wrap whole; a letter is its code over its character */
+.line .w { display: inline-flex; flex-wrap: wrap; gap: 0.6rem 1.4ch; }   /* a word wider than the line breaks between letters */
+.line .slash { margin: 0 1.2ch; color: var(--graphite); }
+.line .c { display: inline-grid; }
+.line .m, .line .p { white-space: pre; }
+.line .m { color: var(--graphite); }
+
+.signal .line .dot  { color: var(--dot); }
+.signal .line .dash { color: var(--dash); }
+
+/* the letter being keyed: its best guess so far, dimmed */
+.line .c.partial .p { color: var(--graphite); }
+
+.caret {
+  display: inline-block;
+  width: 0.55ch;
+  height: 1.1em;
+  margin-left: 0.4ch;
+  background: var(--brass);
+  animation: blink 1.1s steps(1) infinite;
+}
+
+@keyframes blink { 50% { opacity: 0; } }
+
+.empty-line {
+  color: var(--graphite);
+}
+
+
+/* ---------- field footer, send ---------- */
+
+.field-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1ch;
+  padding: 0.3rem 0.6rem 0.45rem;
+  font-size: 0.75rem;
+  color: var(--graphite);
+  border-top: 1px dashed var(--wire);
+}
+
+.stats {
+  white-space: pre-line;
+  line-height: 1.35;
+  min-height: 2.7em;   /* keeps the footer steady when empty */
+}
+
+#stats-morse {
+  text-align: right;
+}
+
+.outputs {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.outputs button,
+.tx .outputs button:hover {
+  border: 0;
+  padding: 0.05rem 0.35rem;
+  color: var(--wire);
+  font-size: 0.95rem;
+}
+
+.outputs button[aria-pressed="true"],
+.tx .outputs button[aria-pressed="true"]:hover {
+  color: var(--paper);
+}
+
+.send {
+  position: absolute;
+  left: 50%;
+  bottom: -1.15rem;
+  transform: translateX(-50%);
+  width: 2.3rem;
+  height: 2.3rem;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--bakelite);
+  font-weight: 700;
+  z-index: 3;
+}
+
+.send:disabled {
+  border-color: var(--wire);
+  color: var(--wire);
+  cursor: default;
+}
+
+.send:disabled:hover {
+  background: var(--bakelite);
+}
+
+
+/* ---------- the whole tree (left half, no scrolling) ---------- */
+
+body.tree-open .tree-edge {
+  width: 50%;
+}
+
+.tree-box {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  padding: 0 0.3rem 0.3rem;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.tree-box.scrolls {
+  overflow-y: auto;
+}
+
+.tree-box .tree {
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  line-height: 1;   /* rows touch, so the │ lines join up */
+}
+
+/* the pad gives up some height so the tree can be bigger */
+body.tree-open .pad {
+  height: clamp(118px, 19dvh, 210px);
+}
+
+/* ---------- privacy note ---------- */
+
+.privacy {
+  margin-top: 1rem;   /* room for the send button */
+  font-size: 0.72rem;
+  color: var(--graphite);
+}
+
+.privacy summary {
+  cursor: pointer;
+  list-style: none;
+  text-align: center;
+}
+
+.privacy summary::-webkit-details-marker { display: none; }
+
+.privacy p {
+  margin-top: 0.3rem;
+  text-align: center;
+}
+
+
+/* ---------- controls ---------- */
+
+.controls {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.player {
+  display: flex;
+  align-items: center;
+  gap: 0.8ch;
+}
+
+/* playback arrives in step 4 */
+.player > button,
+.player .track,
+.player .time {
+  opacity: 0.4;
+}
+
+.player button {
+  border: 0;
+  padding: 0 0.3ch;
+}
+
+.player .track {
+  position: relative;
+  flex: 1;
+  height: 1px;
+  background: var(--graphite);
+}
+
+.player .knob {
+  position: absolute;
+  left: 0;
+  top: -4px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--paper);
+}
+
+.player .time {
+  font-size: 0.75rem;
+  color: var(--graphite);
+}
+
+.tray-toggle {
+  align-self: flex-start;
+  border: 0;
+  padding: 0;
+  font-size: 0.8rem;
+  color: var(--graphite);
+}
+
+.tray-toggle .chev {
+  display: inline-block;
+  transition: transform 0.15s;
+}
+
+.tray-toggle[aria-expanded="true"] .chev {
+  transform: rotate(180deg);
+}
+
+.tray {
+  height: clamp(220px, 36dvh, 330px);   /* takes the pad's place */
+  overflow-y: auto;
+  border-top: 1px dashed var(--wire);
+  padding: 0.5rem 0 0.25rem;
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+/*
+ * faders: radio-panel style columns, value on top, label below,
+ * grouped in pairs with the group's name underneath
+ */
+.faders {
+  flex: 1;
+  min-height: 150px;
+  display: flex;
+  justify-content: space-around;
+  gap: 0.4rem;
+}
+
+.group {
+  flex: 2;
+}
+
+.group:has(.fader:only-child) {
+  flex: 1;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.2rem;
+}
+
+.pair {
+  flex: 1;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.group-name {
+  text-align: center;
+  color: var(--graphite);
+  border-top: 1px solid var(--wire);
+  padding-top: 0.15rem;
+  font-size: 0.72rem;
+}
+
+.fader {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.fader output {
+  color: var(--paper);
+  font-size: 0.85rem;
+}
+
+.fader span {
+  color: var(--graphite);
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+/* vertical: low at the bottom, high at the top */
+.fader input[type="range"] {
+  flex: 1;
+  min-height: 0;
+  width: 2rem;
+  writing-mode: vertical-lr;
+  direction: rtl;
+  accent-color: var(--brass);
+  cursor: pointer;
+}
+
+.switches {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.4rem 1rem;
+  color: var(--graphite);
+}
+
+.switches select {
+  font: inherit;
+  color: var(--paper);
+  background: var(--bakelite);
+  border: 0;
+  border-bottom: 1px dotted var(--graphite);
+  margin-left: 0.4ch;
+}
+
+.tray .note {
+  color: var(--brass);
+  font-size: 0.72rem;
+}
+
+.quiet {
+  align-self: flex-start;
+  border-color: var(--wire);
+  color: var(--graphite);
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+}
+
+
+/* ---------- keyer pad ---------- */
+
+.pad {
+  display: grid;
+  grid-template-columns: 1fr 1.7fr 2.4fr;
+  grid-template-rows: repeat(3, 1fr);
+  gap: 6px;
+  height: clamp(170px, 30dvh, 280px);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.key {
+  border: 1px solid var(--wire);
+  background: color-mix(in srgb, var(--paper) 4%, var(--bakelite));
+  color: var(--paper);
+  padding: 0;
+  font-size: 1.3rem;
+  touch-action: none;   /* a press is a press, never a scroll */
+}
+
+.key:hover {
+  background: color-mix(in srgb, var(--paper) 4%, var(--bakelite));
+  color: var(--paper);
+}
+
+.key.side { grid-column: 1; }
+.key.dit  { grid-column: 2; }
+.key.dah  { grid-column: 3; }
+
+.key.dit,
+.key.dah {
+  grid-row: 1 / span 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+}
+
+.key b {
+  font-size: 2.6rem;
+  line-height: 1;
+}
+
+.key span {
+  font-size: 0.85rem;
+  color: var(--graphite);
+}
+
+.signal .key.dit b { color: var(--dot); }
+.signal .key.dah b { color: var(--dash); }
+
+.key.pressed,
+.key.pressed:hover {
+  background: var(--paper);
+  color: var(--bakelite);
+}
+
+.key.pressed b,
+.key.pressed span {
+  color: var(--bakelite) !important;
+}
+
+
+/* ---------- type mode ---------- */
+
+.type input {
+  width: 100%;
+  font: inherit;
+  font-size: 16px;   /* 16px+ stops phones zooming in on focus */
+  color: var(--paper);
+  background: transparent;
+  border: 1px solid var(--wire);
+  padding: 0.7rem 0.75rem;
+  caret-color: var(--brass);
+}
+
+.type input::placeholder {
+  color: var(--graphite);
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .caret { animation: none; }
+}
