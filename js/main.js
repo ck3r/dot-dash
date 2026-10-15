@@ -179,6 +179,22 @@ for (const [id, className] of [
 }
 
 
+/*
+ * The all-characters chart is plain text in the HTML (readable
+ * without JS); here each mark gets its own span so the chart
+ * follows the dot/dash colours too.
+ */
+for (const code of document.querySelectorAll(".morse-code .code")) {
+  const marks = [...code.textContent].map(s => {
+    const m = document.createElement("span");
+    m.className = s === "." ? "dot" : "dash";
+    m.textContent = s;
+    return m;
+  });
+  code.replaceChildren(...marks);
+}
+
+
 function show(next) {
   words = next;
   message.render(words);
