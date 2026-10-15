@@ -26,6 +26,7 @@
 import { DECODE, TREE, encode, parse, format, cost } from "./morse.js";
 import { createTree, buildModel } from "./tree.js";
 import { createKeyer, timing, MODES } from "./tx-keyer.js";
+import { createSound } from "./tx-sound.js";
 
 const $ = s => document.querySelector(s);
 
@@ -478,11 +479,37 @@ const keyer = createKeyer({
   timing: timingNow,
   mark: m => press(m),
   gap: kind => press(kind),
-  signal: down => logo.classList.toggle("down", down),
+  signal: down => {
+    logo.classList.toggle("down", down);
+    sound.key(down);
+  },
   train: e => trainView.show(e)
 });
 
 let keyMode = "tap";
+
+const sound = createSound();
+
+/*
+ * Tap mode: each tap is sounded as a proper mark (1 or 3 units
+ * at the current speed), so even tapping teaches the rhythm.
+ * Taps faster than that queue up, a unit apart, like a keyer;
+ * if they pile up more than a couple of seconds, the extras
+ * are shown but not sounded.
+ */
+let tapBusyUntil = -Infinity;
+
+function tapMark(m) {
+  const t = timingNow();
+  const now = performance.now();
+  const start = Math.max(now, tapBusyUntil + t.unit);
+  const length = (m === "." ? 1 : 3) * t.unit;
+  if (start - now > 2000) return;
+  tapBusyUntil = start + length;
+  sound.mark((start - now) / 1000, length / 1000);
+  setTimeout(() => logo.classList.add("down"), start - now);
+  setTimeout(() => logo.classList.remove("down"), start - now + length);
+}
 
 const LABELS = {
   tap:         ["dit", "dah"],
@@ -512,6 +539,7 @@ $("#opt-key").addEventListener("change", () => setKeyMode($("#opt-key").value));
 function keyDown(button) {
   if (!button || button.classList.contains("pressed")) return;
   button.classList.add("pressed");
+  sound.unlock();                 // audio may only start inside a press
   const act = button.dataset.act;
   const mark = act === "." || act === "-";
 
@@ -519,7 +547,7 @@ function keyDown(button) {
     keyer.down(act);
     return;
   }
-  if (mark) logo.classList.add("down");
+  if (mark) tapMark(act);
   else keyer.reset();             // undo / spaces cancel a pending gap
   press(act);
 }
@@ -528,11 +556,7 @@ function keyUp(button) {
   if (!button || !button.classList.contains("pressed")) return;
   button.classList.remove("pressed");
   const act = button.dataset.act;
-  if ((act === "." || act === "-") && keyMode !== "tap") {
-    keyer.up(act);
-    return;
-  }
-  logo.classList.remove("down");
+  if ((act === "." || act === "-") && keyMode !== "tap") keyer.up(act);
 }
 
 for (const button of document.querySelectorAll("#pad .key")) {
@@ -571,6 +595,7 @@ document.addEventListener("keyup", event => {
 function releaseAll() {
   for (const b of document.querySelectorAll("#pad .key.pressed")) keyUp(b);
   keyer.reset();
+  sound.silence();
 }
 window.addEventListener("blur", releaseAll);
 document.addEventListener("visibilitychange", () => { if (document.hidden) releaseAll(); });
@@ -777,11 +802,50 @@ $("#vibe-set").hidden = !("vibrate" in navigator);
 document.querySelector('[data-out="vibrate"]').hidden = !("vibrate" in navigator);
 if (!/Android/i.test(navigator.userAgent)) $("#torch-choice").remove();   // placeholder until wired
 
+/* output toggles (♪ ☼ ≋), remembered on this device */
+const OUTPUTS_KEY = "dot-dash:tx-outputs";
+
+function applyOutputs() {
+  const on = name => document.querySelector(`[data-out="${name}"]`).getAttribute("aria-pressed") === "true";
+  sound.setEnabled(on("sound"));
+}
+
+try {
+  const saved = JSON.parse(localStorage.getItem(OUTPUTS_KEY)) ?? {};
+  for (const [name, on] of Object.entries(saved)) {
+    document.querySelector(`[data-out="${name}"]`)?.setAttribute("aria-pressed", String(on));
+  }
+} catch { }
+
 for (const b of document.querySelectorAll(".outputs button")) {
   b.addEventListener("click", () => {
     b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true"));
+    const saved = {};
+    for (const o of document.querySelectorAll(".outputs button")) saved[o.dataset.out] = o.getAttribute("aria-pressed") === "true";
+    try { localStorage.setItem(OUTPUTS_KEY, JSON.stringify(saved)); } catch { }
+    applyOutputs();
+    if (b.dataset.out === "sound" && sound.enabled) preview();
   });
 }
+
+/* sound settings: live while sliding, a short sample on release */
+function applySound() {
+  sound.setPitch(Number($("#opt-hz").value));
+  sound.setVolume(Number($("#opt-vol").value) / 100);
+  sound.setKind($("#opt-sound").value);
+}
+
+function preview() {
+  sound.unlock();
+  const t = timingNow();
+  sound.mark(0, Math.max(t.unit, 120) / 1000);
+}
+
+$("#opt-hz").addEventListener("input", applySound);
+$("#opt-vol").addEventListener("input", applySound);
+$("#opt-sound").addEventListener("change", () => { applySound(); preview(); });
+$("#opt-hz").addEventListener("change", preview);
+$("#opt-vol").addEventListener("change", preview);
 
 /* clear history: tap twice (no pop-up dialogs) */
 let clearArmed = null;
@@ -811,6 +875,8 @@ $("#clear-history").addEventListener("click", event => {
  */
 
 loadSettings();
+applySound();
+applyOutputs();
 trainView.build();
 setKeyMode($("#opt-key").value);
 
