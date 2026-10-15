@@ -86,7 +86,8 @@ export function createSound(options = {}) {
   /* call from inside a tap / key press: browsers need a gesture */
   function unlock() {
     if (!build()) return null;
-    if (ctx.state === "suspended") ctx.resume?.();
+    /* live audio only: an offline (rendering) context runs on its own */
+    if (!options.context && ctx.state === "suspended") ctx.resume?.();
     return ctx;
   }
 
@@ -135,8 +136,10 @@ export function createSound(options = {}) {
   /* key closed / opened, now or at a given audio time */
   function key(down, at) {
     if (!enabled && down) return;
+    if (!down && !ctx) return;          // nothing has played yet: nothing to stop
     if (!unlock()) return;
-    const t = at ?? ctx.currentTime;
+    /* never in the past: a mark due a hair ago plays now */
+    const t = Math.max(at ?? 0, ctx.currentTime);
     if (kind === "tone") {
       toneOn = down;
       toneGain.gain.setTargetAtTime(down ? TONE_LEVEL : 0, t, RISE);
@@ -148,7 +151,7 @@ export function createSound(options = {}) {
   /* a whole mark, `delay` s from now, `length` s long (playback, taps) */
   function mark(delay, length) {
     if (!enabled || !unlock()) return;
-    const t = ctx.currentTime + delay;
+    const t = ctx.currentTime + Math.max(0, delay);
     key(true, t);
     key(false, t + length);
   }

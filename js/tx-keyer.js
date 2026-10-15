@@ -32,7 +32,10 @@
  *
  * The page gives it callbacks; the keyer never touches the DOM:
  *
- *   mark(m)            a mark was keyed ("." or "-")
+ *   mark(m, took)      a mark was keyed ("." or "-"), with how it was
+ *                      actually keyed: { on, gap } in ms (gap = the
+ *                      wait since the previous mark ended, null if
+ *                      none), so playback can replay YOUR timing
  *   gap(kind)          "letter" or "word": the wait was long enough
  *   signal(down)       the key is closed / open (logo, later sound)
  *   train(event)       for the timing bar: { phase, t0, ... }
@@ -89,6 +92,10 @@ export function createKeyer(cb, clock = realClock) {
   let gapTimers = [];
   let loopTimer = null;
 
+  /* when the last mark ended (to measure the gap before the next) */
+  let lastEnd = null;
+  const gapFrom = start => (lastEnd === null ? null : Math.round(start - lastEnd));
+
   function clearGaps() {
     gapTimers.forEach(clock.clear);
     gapTimers = [];
@@ -115,9 +122,11 @@ export function createKeyer(cb, clock = realClock) {
     if (downAt === null) return;
     const now = clock.now();
     const mark = now - downAt >= cb.timing().dahAt ? "-" : ".";
+    const took = { on: Math.round(now - downAt), gap: gapFrom(downAt) };
     downAt = null;
+    lastEnd = now;
     cb.signal(false);
-    cb.mark(mark);
+    cb.mark(mark, took);
     startGaps(now);
   }
 
@@ -133,12 +142,13 @@ export function createKeyer(cb, clock = realClock) {
     const start = clock.now();
 
     cb.signal(true);
-    cb.mark(m);
+    cb.mark(m, { on: Math.round(on), gap: gapFrom(start) });
     cb.train({ phase: "send", t0: start, mark: m, length: on });
 
     loopTimer = clock.set(() => {
       cb.signal(false);
       const end = clock.now();
+      lastEnd = end;
       /* the 1-unit space inside a letter, then decide what's next */
       loopTimer = clock.set(() => next(end), t.unit);
     }, on);
@@ -210,8 +220,16 @@ export function createKeyer(cb, clock = realClock) {
     if (mode === "bug" && side === "-") openStraight();
   }
 
-  /* drop everything (mode change, page hidden) */
+  /* stop waiting for a letter / word space (undo, a space key):
+     the timing of the message so far is kept */
+  function cancel() {
+    clearGaps();
+    cb.train({ phase: null });
+  }
+
+  /* drop everything (mode change, page hidden, message sent) */
   function reset() {
+    lastEnd = null;
     clearGaps();
     if (loopTimer) clock.clear(loopTimer);
     loopTimer = null;
@@ -229,5 +247,5 @@ export function createKeyer(cb, clock = realClock) {
     mode = next;
   }
 
-  return { down, up, reset, setMode, get mode() { return mode; } };
+  return { down, up, cancel, reset, setMode, get mode() { return mode; } };
 }
