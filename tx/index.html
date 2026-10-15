@@ -122,10 +122,10 @@
       <div class="faders">
         <div class="group">
           <div class="pair">
-            <label class="fader"><output for="opt-wpm">20</output>
-              <input type="range" id="opt-wpm" min="5" max="40" value="20"><span>wpm</span></label>
-            <label class="fader"><output for="opt-fwpm">20</output>
-              <input type="range" id="opt-fwpm" min="5" max="40" value="20"><span>farns.</span></label>
+            <label class="fader"><output for="opt-wpm">5</output>
+              <input type="range" id="opt-wpm" min="5" max="40" value="5"><span>wpm</span></label>
+            <label class="fader"><output for="opt-fwpm">5</output>
+              <input type="range" id="opt-fwpm" min="5" max="40" value="5"><span>farns.</span></label>
           </div>
           <span class="group-name">speed</span>
         </div>
@@ -151,11 +151,11 @@
         <label>key
           <select id="opt-key">
             <option value="tap">tap</option>
-            <option value="straight" disabled>straight</option>
-            <option value="bug" disabled>bug</option>
-            <option value="iambic-a" disabled>iambic A</option>
-            <option value="iambic-b" disabled>iambic B</option>
-            <option value="ultimatic" disabled>ultimatic</option>
+            <option value="straight">straight</option>
+            <option value="bug">bug</option>
+            <option value="iambic-a">iambic A</option>
+            <option value="iambic-b">iambic B</option>
+            <option value="ultimatic">ultimatic</option>
           </select>
         </label>
         <label>sound
@@ -173,12 +173,26 @@
         </label>
       </div>
 
-      <p class="note">not wired yet: these arrive with timed keying, sound and light.</p>
+      <p class="note">sound, light and vibration aren't wired yet.</p>
       <button type="button" id="clear-history" class="quiet">clear history</button>
     </section>
 
 
-    <!-- keyer pad (tap mode): ↶ ˽ / | dit | dah -->
+    <!--
+      timing train (timed keying). Both halves always shown, each
+      as wide as its share of real time:
+
+        Δt ├──.──┃──-──┤├─────˽──────/──┤
+            key held          key up
+      The half in use fills; the symbol you'd get right now lights.
+    -->
+    <div id="train" class="train" hidden aria-hidden="true">
+      <span class="dt">Δt</span>
+      <div class="seg on"><div class="fill"></div><div class="ticks"></div></div>
+      <div class="seg off"><div class="fill"></div><div class="ticks"></div></div>
+    </div>
+
+    <!-- keyer pad: ↶ ˽ / | dit | dah  (labels follow the key setting) -->
     <div id="pad" class="pad">
       <button type="button" class="key side" data-act="undo" aria-label="undo">↶</button>
       <button type="button" class="key side" data-act="letter" aria-label="letter space">˽</button>

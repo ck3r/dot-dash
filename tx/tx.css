@@ -558,6 +558,70 @@ body.tree-open .pad {
 }
 
 
+/* ---------- timing train ---------- */
+
+.train {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  font-size: 0.75rem;
+  color: var(--graphite);
+}
+
+.train .dt {
+  margin-right: 0.8ch;
+}
+
+.train .seg {
+  position: relative;
+  flex: 1 1 0;      /* JS sets flex-grow to each half's length in ms */
+  min-width: 0;
+  height: 1.6rem;
+  border: 1px solid var(--wire);
+  overflow: hidden;
+}
+
+.train .seg.off {
+  border-left: 0;
+}
+
+.train .fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: color-mix(in srgb, var(--paper) 22%, var(--bakelite));
+}
+
+.signal .train .fill.dot  { background: color-mix(in srgb, var(--dot) 55%, var(--bakelite)); }
+.signal .train .fill.dash { background: color-mix(in srgb, var(--dash) 55%, var(--bakelite)); }
+.train .fill.past         { opacity: 0.4; }   /* the last mark, kept while you wait */
+
+/* a tick: a dotted line through the bar with its symbol beside it */
+.train .tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 1px dotted var(--wire);
+  padding-left: 0.4ch;
+  display: flex;
+  align-items: center;
+  color: var(--wire);              /* greyed out until it's what you'd get */
+  font-size: 0.9rem;
+  font-weight: 700;
+  pointer-events: none;
+  transition: color 0.05s linear;
+}
+
+.train .tick.split {
+  border-left: 1px solid var(--brass);
+  padding: 0;
+}
+
+.train .tick.lit                 { color: var(--paper); border-left-color: var(--graphite); }
+.signal .train .tick.lit.dot     { color: var(--dot); }
+.signal .train .tick.lit.dash    { color: var(--dash); }
+
+
 /* ---------- keyer pad ---------- */
 
 .pad {
@@ -611,6 +675,10 @@ body.tree-open .pad {
 
 .signal .key.dit b { color: var(--dot); }
 .signal .key.dah b { color: var(--dash); }
+
+/* straight key: one big key across both columns */
+body[data-key="straight"] .key.dah { display: none; }
+body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
 
 .key.pressed,
 .key.pressed:hover {
