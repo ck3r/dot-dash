@@ -46,12 +46,53 @@
       <span>tx</span>
     </a>
 
-    <div class="input-mode" role="group" aria-label="input">
-      <button type="button" data-mode="key" aria-pressed="true" title="key Morse">.-</button>
-      <span aria-hidden="true">⇄</span>
-      <button type="button" data-mode="type" aria-pressed="false" title="type text">A</button>
+    <div class="top-right">
+      <button type="button" id="paste" class="share-toggle" title="paste into the message (or long-press the message)">paste</button>
+      <button type="button" id="share-toggle" class="share-toggle" aria-expanded="false" aria-controls="share">share</button>
+      <div class="input-mode" role="group" aria-label="input">
+        <button type="button" data-mode="key" aria-pressed="true" title="key Morse">.-</button>
+        <span aria-hidden="true">⇄</span>
+        <button type="button" data-mode="type" aria-pressed="false" title="type text">A</button>
+      </div>
     </div>
   </header>
+
+  <!--
+    share: the message the player would play (the current line,
+    or the last one sent)
+
+      ┌─ share ─────────────────────┐
+      │ copy morse   .... . .-.. …  │
+      │ copy text    HEL…           │
+      │ copy link    dot-da.sh/?/…  │
+      │ ─────────────────────────── │
+      │ save .txt  .wav  .gif       │
+      │ share…                      │
+      └─────────────────────────────┘
+  -->
+  <section id="share" class="share-menu" hidden aria-label="share">
+    <span class="frame-label">share</span>
+    <button type="button" class="close" aria-label="close">×</button>
+    <div class="rows" id="share-copy">
+      <button type="button" data-do="copy-morse"><span>copy morse</span><span class="peek" data-peek="morse"></span></button>
+      <button type="button" data-do="copy-text"><span>copy text</span><span class="peek" data-peek="text"></span></button>
+      <button type="button" data-do="copy-link"><span>copy link</span><span class="peek" data-peek="link"></span></button>
+    </div>
+    <div class="rows saves">
+      <span class="lead">save</span>
+      <button type="button" data-do="save-txt">.txt</button>
+      <button type="button" data-do="save-wav">.wav</button>
+      <button type="button" data-do="save-gif" id="save-gif">.gif</button>
+    </div>
+    <div class="rows" id="share-native" hidden>
+      <button type="button" data-do="share"><span>share…</span></button>
+    </div>
+    <p class="share-note" id="share-note" aria-live="polite"></p>
+  </section>
+
+  <!-- long-press the message: a paste bubble, like a text field's -->
+  <button type="button" id="paste-bubble" class="paste-bubble" hidden>paste</button>
+  <p id="toast" class="toast" aria-live="polite" hidden></p>
 
 
   <main class="station">
@@ -62,7 +103,10 @@
       <button type="button" id="tree-toggle" class="edge-toggle" aria-expanded="false" title="show the whole tree">&gt;&lt;</button>
       <div id="local" class="local"></div>
       <div id="tree-box" class="tree-box" hidden>
-        <pre id="tree" class="tree" aria-label="Morse tree"></pre>
+        <p class="tree-legend" aria-hidden="true"><span class="dot">↑DOT</span> <span class="dash">↓DASH</span></p>
+        <div id="tree-scroll" class="tree-scroll">
+          <pre id="tree" class="tree" aria-label="Morse tree"></pre>
+        </div>
       </div>
     </aside>
 
@@ -82,22 +126,35 @@
   </main>
 
 
-  <details class="privacy">
-    <summary>Morse is an encoding, not encryption.<br>Don't send anything private.</summary>
-    <p>Anyone who knows Morse can read it. Shared links show it
-    decoded in their previews, and your history stays on this
-    device until you clear it.</p>
-  </details>
+  <p class="privacy">
+    Morse is an encoding, not encryption.<br>Don't send anything private.
+    <button type="button" id="privacy-info" class="info" aria-label="more about privacy"
+            aria-expanded="false" aria-controls="privacy-pop">i</button>
+  </p>
+
+  <!-- the details, in a small popup (× / tap outside / Escape to close) -->
+  <section id="privacy-pop" class="popup" role="dialog" aria-labelledby="privacy-title" hidden>
+    <span class="frame-label" id="privacy-title">privacy</span>
+    <button type="button" class="close" aria-label="close">×</button>
+    <p>Morse is an encoding, not encryption: anyone who knows it,
+    or pastes it into a decoder, can read your message.</p>
+    <p>Shared links show the message decoded in their previews.</p>
+    <p>Your history stays on this device until you clear it, here
+    or at the top of the history.</p>
+    <button type="button" id="privacy-clear" class="quiet popup-clear">clear history</button>
+  </section>
 
 
   <div class="controls">
 
-    <div class="player" title="playback comes in step 4">
-      <button type="button" disabled aria-label="play">▷</button>
-      <span class="track"><span class="knob"></span></span>
-      <span class="time">0:00</span>
-      <button type="button" disabled aria-label="repeat">⟲</button>
-      <span class="outputs" role="group" aria-label="outputs (not wired yet)">
+    <!-- playback: the current line (or, if it's empty, the last message sent) -->
+    <div class="player">
+      <button type="button" id="play" class="play" aria-label="play" title="play (P)">▷</button>
+      <span id="time" class="time">0.0s</span>
+      <input type="range" id="seek" class="seek" min="0" max="0" step="1" value="0" aria-label="position">
+      <button type="button" id="repeat" class="repeat" aria-pressed="false" aria-label="repeat" title="repeat">⟲</button>
+      <span class="divider" aria-hidden="true">│</span>
+      <span class="outputs" role="group" aria-label="outputs">
         <button type="button" data-out="sound" aria-pressed="true" title="sound">♪</button>
         <button type="button" data-out="light" aria-pressed="false" title="light">☼</button>
         <button type="button" data-out="vibrate" aria-pressed="false" title="vibration">≋</button>
@@ -174,7 +231,6 @@
       </div>
 
       <p class="note">sound, light and vibration aren't wired yet.</p>
-      <button type="button" id="clear-history" class="quiet">clear history</button>
     </section>
 
 
@@ -182,12 +238,11 @@
       timing train (timed keying). Both halves always shown, each
       as wide as its share of real time:
 
-        Δt ├──.──┃──-──┤├─────˽──────/──┤
+        ├──.──┃──-──┤├─────˽──────/──┤
             key held          key up
       The half in use fills; the symbol you'd get right now lights.
     -->
     <div id="train" class="train" hidden aria-hidden="true">
-      <span class="dt">Δt</span>
       <div class="seg on"><div class="fill"></div><div class="ticks"></div></div>
       <div class="seg off"><div class="fill"></div><div class="ticks"></div></div>
     </div>
@@ -201,11 +256,21 @@
       <button type="button" class="key dah" data-act="-" aria-label="dah"><b>-</b><span>dah</span></button>
     </div>
 
-    <!-- type mode: the phone's own keyboard -->
-    <form id="type" class="type" hidden>
-      <input id="text" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false"
-             placeholder="type a message, Enter to send" aria-label="message text">
-    </form>
+    <!--
+      type mode: our own keyboard, so the phone's never pops up
+      (and shoves the page around). Morse-first: each key's code
+      sits above its letter. What you type appears in the message
+      above, with the caret on the letters' line.
+
+        --.-  .--   .   .-.   -   -.--  ..-   ..   ---  .--.
+         Q     W    E    R    T    Y     U    I     O    P
+           A  S  D  F  G  H  J  K  L
+           Z  X  C  V  B  N  M   ⌫
+        [        space       ][send]
+    -->
+    <div id="type" class="type" hidden>
+      <div id="kbd" class="kbd" aria-label="keyboard"></div>
+    </div>
 
   </div>
 
