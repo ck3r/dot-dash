@@ -25,6 +25,7 @@
 
 import { DECODE, TREE, encode, parse, format, cost } from "./morse.js";
 import { createTree, buildModel } from "./tree.js";
+import { createKeyer, timing, MODES } from "./tx-keyer.js";
 
 const $ = s => document.querySelector(s);
 
@@ -104,6 +105,7 @@ function press(act) {
 function send() {
   const words = wordsOf(tokens);
   if (!words.length) return;
+  keyer.reset();
   history.push(format(words));
   while (history.length > HISTORY_MAX) history.shift();
   saveHistory();
@@ -258,6 +260,7 @@ $("#tape").addEventListener("scroll", fadeTape, { passive: true });
 
 /* tap a past message: it comes back as the current line */
 function recall(i) {
+  keyer.reset();
   tokens = tokensOf(parse(history[i]));
   if (mode === "type") $("#text").value = plainText(wordsOf(tokens)) ?? "";
   update();
@@ -284,8 +287,12 @@ function drawStats() {
   if (!codes.length) { left.textContent = right.textContent = ""; return; }
   const dits = codes.join("").split("").filter(s => s === ".").length;
   const dahs = codes.join("").length - dits;
-  const units = codes.reduce((n, c) => n + cost(c), 0) + 4 * (words.length - 1);
-  const seconds = units * 1.2 / Number($("#opt-wpm").value);
+  /* marks and the gaps inside letters at letter speed; the gaps
+     between letters and words as stretched by Farnsworth */
+  const t = timingNow();
+  const inside = codes.reduce((n, c) => n + cost(c) - 3, 0);   // cost() = marks + inner gaps + 3
+  const ms = inside * t.unit + (codes.length - words.length) * t.letter + (words.length - 1) * t.word + t.letter;
+  const seconds = ms / 1000;
   const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
   left.textContent = `${plural(codes.length, "char")}\n${plural(words.length, "word")}`;
   right.textContent = `${plural(dits, "dit")} · ${plural(dahs, "dah")}\n${seconds.toFixed(1)} s`;
@@ -462,15 +469,69 @@ function update() {
 
 const logo = $(".logo");
 
+function timingNow() {
+  return timing(Number($("#opt-wpm").value), Number($("#opt-fwpm").value));
+}
+
+/* the timed keyer (straight, bug, paddles); tap mode bypasses it */
+const keyer = createKeyer({
+  timing: timingNow,
+  mark: m => press(m),
+  gap: kind => press(kind),
+  signal: down => logo.classList.toggle("down", down),
+  train: e => trainView.show(e)
+});
+
+let keyMode = "tap";
+
+const LABELS = {
+  tap:         ["dit", "dah"],
+  straight:    ["key", ""],
+  bug:         ["dit · auto", "dah"],
+  "iambic-a":  ["dit paddle", "dah paddle"],
+  "iambic-b":  ["dit paddle", "dah paddle"],
+  ultimatic:   ["dit paddle", "dah paddle"]
+};
+
+function setKeyMode(next) {
+  keyMode = MODES.includes(next) ? next : "tap";
+  keyer.setMode(keyMode);
+  document.body.dataset.key = keyMode;
+  $("#opt-key").value = keyMode;
+  const [dit, dah] = LABELS[keyMode];
+  $("#pad .key.dit span").textContent = dit;
+  $("#pad .key.dah span").textContent = dah;
+  $("#pad .key.dit b").textContent = keyMode === "straight" ? "" : ".";
+  showInput();
+}
+
+$("#opt-key").addEventListener("change", () => setKeyMode($("#opt-key").value));
+
+
+/* press / release from a finger, mouse or hardware key */
 function keyDown(button) {
+  if (!button || button.classList.contains("pressed")) return;
   button.classList.add("pressed");
   const act = button.dataset.act;
-  if (act === "." || act === "-") logo.classList.add("down");
+  const mark = act === "." || act === "-";
+
+  if (mark && keyMode !== "tap") {
+    keyer.down(act);
+    return;
+  }
+  if (mark) logo.classList.add("down");
+  else keyer.reset();             // undo / spaces cancel a pending gap
   press(act);
 }
 
 function keyUp(button) {
+  if (!button || !button.classList.contains("pressed")) return;
   button.classList.remove("pressed");
+  const act = button.dataset.act;
+  if ((act === "." || act === "-") && keyMode !== "tap") {
+    keyer.up(act);
+    return;
+  }
   logo.classList.remove("down");
 }
 
@@ -482,11 +543,14 @@ for (const button of document.querySelectorAll("#pad .key")) {
   });
   button.addEventListener("pointerup", () => keyUp(button));
   button.addEventListener("pointercancel", () => keyUp(button));
+  button.addEventListener("lostpointercapture", () => keyUp(button));
   button.addEventListener("contextmenu", event => event.preventDefault());
 }
 
-/* a hardware keyboard works too:  .  -  space  /  backspace  enter */
+/* a hardware keyboard works too:  .  -  space  /  backspace  enter
+   (in timed modes . and - are the paddles, or the key) */
 const KEYS = { ".": ".", "-": "-", " ": "letter", "/": "word", "Backspace": "undo" };
+const padKey = act => document.querySelector(`#pad .key[data-act="${CSS.escape(act)}"]`);
 
 document.addEventListener("keydown", event => {
   if (mode === "type" || event.target.closest?.("input, select, textarea")) return;
@@ -495,13 +559,118 @@ document.addEventListener("keydown", event => {
   if (!act || event.ctrlKey || event.metaKey || event.altKey) return;
   event.preventDefault();
   if (event.repeat) return;
-  keyDown(document.querySelector(`#pad .key[data-act="${CSS.escape(act)}"]`));
+  keyDown(padKey(act));
 });
 
 document.addEventListener("keyup", event => {
   const act = KEYS[event.key];
-  if (act) keyUp(document.querySelector(`#pad .key[data-act="${CSS.escape(act)}"]`));
+  if (act) keyUp(padKey(act));
 });
+
+/* let go of everything if the page loses focus mid-press */
+function releaseAll() {
+  for (const b of document.querySelectorAll("#pad .key.pressed")) keyUp(b);
+  keyer.reset();
+}
+window.addEventListener("blur", releaseAll);
+document.addEventListener("visibilitychange", () => { if (document.hidden) releaseAll(); });
+
+
+/*
+ * ============================================================
+ * TIMING TRAIN
+ * ============================================================
+ *
+ *   held / sent    Δt ├──.──┃──-──┤       0 … 4 units
+ *                            └ past here a held key is a dah
+ *   waiting        Δt ├───˽────/──┤       0 … past the word gap
+ */
+
+const trainView = (() => {
+  const onSeg = $("#train .seg.on"), offSeg = $("#train .seg.off");
+  const onFill = onSeg.querySelector(".fill"), offFill = offSeg.querySelector(".fill");
+  let ticks = {};
+  let event = null;
+  let frame = 0;
+
+  /* the two halves: key held 0…4 units, key up 0…past the word gap */
+  const spans = t => ({ on: 4 * t.unit, off: t.wordAt * 1.2 });
+
+  /* labels are built once (and again only if the speed changes) */
+  function build() {
+    const t = timingNow();
+    const { on, off } = spans(t);
+    onSeg.style.flexGrow = on;
+    offSeg.style.flexGrow = off;
+    ticks = {};
+    const place = (seg, at, max, key, label, cls) => {
+      const tick = el("span", "tick" + (cls ? " " + cls : ""), label);
+      tick.style.left = Math.min(100, (at / max) * 100) + "%";
+      seg.querySelector(".ticks").append(tick);
+      if (key) ticks[key] = tick;
+    };
+    for (const seg of [onSeg, offSeg]) seg.querySelector(".ticks").textContent = "";
+    place(onSeg, t.unit, on, ".", ".", "dot");
+    place(onSeg, t.dahAt, on, null, "", "split");
+    place(onSeg, 3 * t.unit, on, "-", "-", "dash");
+    place(offSeg, t.letterAt, off, "letter", "˽");
+    place(offSeg, t.wordAt, off, "word", "/");
+  }
+
+  function light(key) {
+    for (const [k, tick] of Object.entries(ticks)) tick.classList.toggle("lit", k === key);
+  }
+
+  function draw() {
+    if (!event) return;
+    const t = timingNow();
+    const { on, off } = spans(t);
+    let elapsed = performance.now() - event.t0;
+
+    if (event.phase === "gap") {
+      offFill.style.width = Math.min(100, (elapsed / off) * 100) + "%";
+      light(elapsed >= t.wordAt ? "word" : elapsed >= t.letterAt ? "letter" : null);
+      if (elapsed >= off) { event = null; return; }   // past a word space: rest
+    } else {
+      let mark;
+      if (event.phase === "send") {
+        elapsed = Math.min(elapsed, event.length);
+        mark = event.mark;
+      } else {
+        mark = elapsed >= t.dahAt ? "-" : ".";
+      }
+      onFill.className = "fill " + (mark === "." ? "dot" : "dash");
+      onFill.style.width = Math.min(100, (elapsed / on) * 100) + "%";
+      light(mark);
+    }
+    frame = requestAnimationFrame(draw);
+  }
+
+  function show(e) {
+    cancelAnimationFrame(frame);
+    event = e.phase ? e : null;
+    if (!event) {
+      onFill.style.width = offFill.style.width = "0";
+      onFill.classList.remove("past");
+      light(null);
+      return;
+    }
+    if (event.phase === "gap") {
+      onFill.classList.add("past");       // keep the mark just made, dimmed
+      offFill.style.width = "0";
+    } else {
+      onFill.classList.remove("past");
+      offFill.style.width = "0";
+    }
+    draw();
+  }
+
+  build();
+  $("#opt-wpm").addEventListener("input", build);
+  $("#opt-fwpm").addEventListener("input", build);
+
+  return { show, build };
+})();
 
 $("#send").addEventListener("click", send);
 
@@ -554,6 +723,7 @@ function showInput() {
   const trayOpen = !$("#tray").hidden;
   $("#pad").hidden = trayOpen || mode !== "key";
   $("#type").hidden = trayOpen || mode !== "type";
+  $("#train").hidden = trayOpen || mode !== "key" || keyMode === "tap";
 }
 
 $("#tray-toggle").addEventListener("click", () => {
@@ -564,6 +734,30 @@ $("#tray-toggle").addEventListener("click", () => {
 });
 
 const outputFor = input => document.querySelector(`output[for="${input.id}"]`);
+
+/* settings are remembered on this device */
+const SETTINGS_KEY = "dot-dash:tx-settings";
+const settingInputs = () => document.querySelectorAll("#tray input[type=range], #tray select");
+
+function saveSettings() {
+  const saved = {};
+  for (const input of settingInputs()) saved[input.id] = input.value;
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(saved)); } catch { }
+}
+
+function loadSettings() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY)) ?? {}; } catch { }
+  for (const input of settingInputs()) {
+    if (saved[input.id] === undefined) continue;
+    if (input.tagName === "SELECT" && ![...input.options].some(o => o.value === saved[input.id])) continue;
+    input.value = saved[input.id];
+    const out = outputFor(input);
+    if (out) out.value = input.value;
+  }
+}
+
+$("#tray").addEventListener("change", saveSettings);
 
 for (const input of document.querySelectorAll("#tray input[type=range]")) {
   input.addEventListener("input", () => {
@@ -615,6 +809,10 @@ $("#clear-history").addEventListener("click", event => {
  * START
  * ============================================================
  */
+
+loadSettings();
+trainView.build();
+setKeyMode($("#opt-key").value);
 
 let savedMode = "key";
 try { savedMode = localStorage.getItem("dot-dash:tx-mode") ?? "key"; } catch { }
