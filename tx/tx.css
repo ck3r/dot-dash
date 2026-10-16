@@ -18,6 +18,17 @@
  * signal lamp's full-screen ghost text, and a prosign (sized to
  * fit the column).
  */
+/* a key lit while pressed, dimmed with the light level (--glow, 0.1 … 1) */
+.tx {
+  --key-lit: color-mix(in srgb, var(--paper) calc(var(--glow, 1) * 100%), var(--bakelite));
+}
+
+/* light: invert: the whole screen flips while the key is down
+   (dimmed with the light level) */
+html.inverted {
+  filter: invert(1) hue-rotate(180deg) brightness(var(--glow, 1));   /* light for dark; red stays red, blue blue */
+}
+
 .tx {
   --fs-xs: 0.72rem;
   --fs-s: 0.85rem;
@@ -73,6 +84,8 @@ body.tx {
 @media (hover: hover) {
   .tx .edge-toggle:hover,
   .tx .x:hover,
+  .tx .popup .close:hover,
+  .tx .share-menu .close:hover,
   .tx .tray-toggle:hover,
   .tx .quiet:hover,
   .tx .input-mode button:hover { color: var(--brass); }
@@ -97,6 +110,16 @@ body.tx {
   color: var(--graphite);
   font-weight: 400;
 }
+
+/* the name: brass to the pointer, like everything else (no fill) */
+.tx .tx-top .home:hover { background: transparent; color: var(--paper); }
+@media (hover: hover) {
+  .tx .tx-top .home:hover,
+  .tx .tx-top .home:hover span { color: var(--brass); }
+}
+
+/* the note on arrival, already seen this month: not drawn at all */
+.noticed #notice { display: none; }
 
 /*
  * The switch on the bottom edge of the message box. Drawn at
@@ -441,6 +464,14 @@ body.tx {
   gap: 0.8rem;
 }
 
+.edge-head {
+  align-self: flex-start;    /* the collapsed column's width, pinned left: */
+  width: 6.5ch;              /* the toggle doesn't move when the tree opens */
+  flex: none;
+  display: flex;
+  justify-content: center;
+}
+
 .edge-toggle {
   border: 0;
   padding: 0.1rem 0.3rem;
@@ -512,6 +543,40 @@ body.tx {
   text-decoration: none;
 }
 
+/* the parts are buttons (copy, say, why) and a link (cut): plain */
+.about button,
+.tx .about button:hover {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* a moment's word over the part tapped: "copied", "soon" */
+.about [data-flash] { position: relative; }
+.about [data-flash]::after {
+  content: attr(data-flash);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0.1rem 0.25rem;
+  background: var(--bakelite);
+  border: 1px solid var(--brass);
+  color: var(--brass);
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.local { cursor: pointer; }
+
 .about-main {
   display: flex;
   flex-direction: column;
@@ -540,6 +605,7 @@ body.tx {
 
 /* the phonetic name, down the column (a letter's first letter bold) */
 .about-name {
+  text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -625,8 +691,8 @@ body.tx {
 }
 
 .about-heard .about-label { font-size: var(--fs-s); line-height: 0.9; }
-.about-cut a,
-.about-heard a { color: var(--paper); font-weight: 700; }
+.about-cut b,
+.about-heard b { color: var(--paper); font-weight: 700; }
 
 /* (i): the full about on the reference page, at the foot of the
    column; its box is the collapsed column's width, pinned left, so
@@ -658,8 +724,11 @@ body.tx {
 
 @media (hover: hover) {
   .about a:hover,
-  .about a:hover b { color: var(--brass); }
-  .edge-foot .info:hover { border-color: var(--brass); color: var(--brass); }
+  .about a:hover b,
+  .tx .about button:hover,
+  .tx .about button:hover b,
+  .tx .about button:hover .stress { color: var(--brass); }
+  .about .about-marks:hover i { background: var(--brass); }
 }
 
 .field {
@@ -876,6 +945,24 @@ body[data-mode="type"] .entry.current .line:not(.empty-line) .caret {
 /* steady while keying; blinks again once you pause */
 .caret.steady { animation: none; }
 
+/* riding on the last letter: beside it, taking no room (so it never
+   wraps alone); on the Morse row keying, the letters row typing */
+.line .c { position: relative; }
+.caret.tail {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  margin-left: 0.4ch;
+}
+body[data-mode="type"] .entry.current .line .caret.tail {
+  margin-top: 0;
+  top: calc(1.05rem * 1.2);
+}
+
+/* playing: the caret holds still; keys put away: no caret at all */
+body.playing .caret { animation: none; }
+body.reading .caret { visibility: hidden; }
+
 /* the empty line: the caret waits in front of the hint */
 .caret.first {
   margin: 0 0.8ch 0 0;
@@ -948,7 +1035,7 @@ body[data-mode="type"] .entry.current .line:not(.empty-line) .caret {
 
 .send.pressed,
 .tx .send.pressed:hover {
-  background: var(--paper);
+  background: var(--key-lit);
   color: var(--bakelite);
 }
 
@@ -1369,30 +1456,66 @@ body:has(#train:not([hidden])) .pad {
   border-top: 1px dashed var(--wire);
   padding: 0.5rem 0 0.25rem;
   font-size: var(--fs-s);
+  /* the lists across the top, the faders under them, and the look
+     (color, invert) in a column of its own at the right */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.6rem 0.5rem;
+}
+
+.tray .switches { grid-column: 1; grid-row: 1; }
+.tray .faders   { grid-column: 1; grid-row: 2; }
+
+.flags {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.9rem;
+  padding-left: 0.5rem;
+  border-left: 1px dashed var(--wire);
+  color: var(--graphite);
+}
+
+.flags .flag {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+
+.flags .flag .check {
+  font-size: var(--fs-xs);
 }
 
 /*
  * faders: radio-panel style columns, value on top, label below,
  * grouped in pairs with the group's name underneath
  */
+/*
+ * The faders sit in even columns, one per slider (5 without
+ * vibrate). The lists above use the same measure: key centred over
+ * speed, sound ending just before the vol | pitch gap, wave starting
+ * at that gap, light starting at light. A list too wide for its
+ * place nudges the next one along rather than touching it.
+ */
+.tray {
+  --n: 6;
+  --g: 0.3rem;                                            /* between slider columns */
+  --c: calc((100% - (var(--n) - 1) * var(--g)) / var(--n)); /* one slider column */
+}
+.tray:has(#vibe-set[hidden]) { --n: 5; }
+
 .faders {
-  flex: 1;
   min-height: 140px;   /* sliders stay usable; a short phone scrolls the tray */
-  display: flex;
-  justify-content: space-around;
-  gap: 0.4rem;
+  display: grid;
+  grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+  column-gap: var(--g);
 }
-
-.group {
-  flex: 2;
-}
-
-.group:has(.fader:only-child) {
-  flex: 1;
-}
+.faders .group:has(.pair > .fader + .fader) { grid-column: span 2; }
 
 .group {
   display: flex;
@@ -1404,7 +1527,7 @@ body:has(#train:not([hidden])) .pad {
 .pair {
   flex: 1;
   display: flex;
-  gap: 0.4rem;
+  gap: var(--g);       /* the same as between groups: every slider evenly spaced */
 }
 
 .group-name {
@@ -1446,12 +1569,16 @@ body:has(#train:not([hidden])) .pad {
   cursor: pointer;
 }
 
-/* the choices: a row of name-over-value, wrapping two by two on narrow phones */
+/* the choices: lined up over the faders (see the columns above) */
 .switches {
   display: grid;
-  grid-template-columns: repeat(5, auto);
-  justify-content: space-between;
-  gap: 0.35rem 0.4rem;
+  /* key and sound (up to the vol | pitch gap) | wave (at least up to light) | light */
+  grid-template-columns:
+    calc(2 * var(--c) + var(--g))
+    calc(var(--c) + var(--g))
+    minmax(calc(var(--c) + 2 * var(--g)), max-content)
+    minmax(0, 1fr);
+  row-gap: 0.35rem;
   color: var(--graphite);
 }
 
@@ -1469,7 +1596,7 @@ body:has(#train:not([hidden])) .pad {
   font: inherit;
   font-size: var(--fs-xs);
   color: var(--paper);
-  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 5'%3E%3Cpath d='M.5.5 4 4 7.5.5' fill='none' stroke='%238c857a' stroke-width='1.2'/%3E%3C/svg%3E") no-repeat right 0.1rem center / 0.5rem;
+  background: transparent;
   border: 0;
   border-radius: 0;
   border-bottom: 1px dotted var(--graphite);
@@ -1478,22 +1605,43 @@ body:has(#train:not([hidden])) .pad {
 }
 
 /* color: the name, and [x] under it */
-.switches .flag {
-  cursor: pointer;
-}
-
-.switches .flag .check {
-  font-size: var(--fs-xs);
-  padding: 0.1rem 0;
-  border-bottom: 1px dotted transparent;   /* lines up with the lists */
-}
-
 .switches option {
   background: var(--bakelite);
+  color: var(--paper);           /* not the select's hover brass */
 }
 
 .switches select:disabled {
   color: var(--graphite);
+}
+
+/*
+ * farnsworth can't be faster than wpm: the track above wpm is out
+ * of reach, drawn as a dotted, greyed stretch the thumb tops out
+ * against. --f: how much of the travel is out of reach (tx.js);
+ * --r: the thumb's radius (its centre travels r … height − r).
+ */
+.fader .track {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  --f: 0;
+  --r: 8px;
+}
+.fader .track .cap {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 10px;
+  transform: translateX(-50%);
+  height: calc(var(--f) * (100% - 2 * var(--r)));
+  background:
+    repeating-linear-gradient(to bottom, var(--graphite) 0 2px, transparent 2px 5px) center / 2px 100% no-repeat,
+    var(--bakelite);
+  opacity: 0.8;
+  pointer-events: none;
 }
 
 /* not used by the current choice (the flashlight has no level) */
@@ -1501,9 +1649,99 @@ body:has(#train:not([hidden])) .pad {
   opacity: 0.38;
 }
 
-@media (max-width: 384px) {
-  .switches { grid-template-columns: repeat(3, auto); gap: 0.35rem 0.8rem; }
+.switches label { justify-self: start; margin-right: 0.6rem; }     /* their own width; soft room before the next */
+/* key centred over speed, sound against the vol | pitch gap; crowded, key gives way */
+.switches { container-type: inline-size; }
+.switches .lead {
+  --c: calc((100cqw - (var(--n) - 1) * var(--g)) / var(--n));   /* a slider column, measured on the row */
+  grid-column: 1 / 3;
+  display: grid;
+  grid-template-columns: minmax(min-content, calc(2 * var(--c) + var(--g))) max-content;
+  justify-content: space-between;
+  min-width: 0;
 }
+.switches .lead > label:first-child { justify-self: start; margin-right: 0; }
+.switches label:has(#opt-wave) { grid-column: 3; }                        /* wave, from that gap */
+.switches > label[data-needs="light"] { grid-column: 4; margin-right: 0; } /* light, from light */
+
+/* the lists' chevron: drawn, so it can turn brass with the rest */
+.switches label { position: relative; }
+.switches label:has(select)::after {
+  content: "";
+  position: absolute;
+  right: 0.2rem;
+  bottom: 0.55rem;
+  width: 0.28rem;
+  height: 0.28rem;
+  border-right: 1.2px solid var(--graphite);
+  border-bottom: 1.2px solid var(--graphite);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+/* ctrl (keys as paddles): beside key, caption over [ ] like a list;
+   touch screens have no Ctrl keys, so it isn't shown there */
+.switches .ctrl-flag {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.switches .ctrl-flag .check { font-size: var(--fs-xs); padding: 0.1rem 0; }
+/* (on touch screens and narrow ones, ctrl lives at the end of the
+   checkbox column instead: tx.js placeCtrl) */
+
+/* placed by placeSwitches() (tx.js): each list over its slider(s) */
+.switches.placed { display: block; position: relative; }
+.switches.placed .lead { display: contents; }
+.switches.placed label { position: absolute; top: 0; margin: 0; }
+
+/* narrow phones: no room to line up; two to a row */
+/*
+ * Narrow phones (384px and less): three rows, the tray scrolling
+ * if the sliders run past the bottom:
+ *
+ *   key      sound    wave
+ *   light    color  invert  pretty play  (ctrl)
+ *   │ │  │ │  │  │      the sliders, full width, full height
+ */
+@media (max-width: 384px) {
+  .tray {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: auto auto auto;
+    gap: 0.7rem 0.4rem;
+  }
+  .tray .switches,
+  .switches .lead { display: contents; }
+  .switches label,
+  .switches .lead > label:first-child { justify-self: start; align-self: start; margin: 0; }
+  .switches .lead > label:first-child  { grid-column: 1; grid-row: 1; }
+  .switches .lead > label:has(#opt-sound) { grid-column: 2; grid-row: 1; }
+  .switches label:has(#opt-wave)       { grid-column: 3; grid-row: 1; }
+  .switches > label[data-needs="light"] { grid-column: 1; grid-row: 2; }
+  .tray .flags {
+    grid-column: 2 / -1;
+    grid-row: 2;
+    align-self: end;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding-left: 0;
+    border-left: 0;
+  }
+  .tray .faders {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    min-height: 200px;     /* as tall as on bigger screens; the tray scrolls */
+  }
+  /* the captions under six slim columns ("strength" is the widest) */
+  .tray .fader span { letter-spacing: -0.06em; font-size: 0.66rem; }
+  .tray { overflow-x: clip; }
+}
+
+/* a checkbox's real input: inside its box, never past the edge */
+.flag .check input { left: 0; top: 0; }
 
 /*
  * A setting whose output (♪ ☼ ≋) is off: greyed, but still
@@ -1549,15 +1787,38 @@ body:has(#train:not([hidden])) .pad {
 }
 
 /* key up: over the side keys, reaching across the gap to the dit key's edge */
+/* time zero sits in the middle of the gap between the side keys and
+   the dit key, marked by an upright bar; each half reaches it */
+.train {
+  position: relative;
+}
+
 .train .seg.off {
   grid-column: 1;
-  margin-right: -6px;
+  margin-right: -3px;
   border-right: 0;
 }
 
-/* key down: the dit key's left edge to the dah key's right edge */
+/* key down: from time zero to the dah key's right edge */
 .train .seg.on {
   grid-column: 2 / span 2;
+  margin-left: -3px;
+  border-left: 0;
+}
+
+/* the note on arrival covers the train; its origin line pokes out above */
+.controls:has(#notice:not([hidden])) .train .origin { visibility: hidden; }
+
+.train .origin {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  left: 0;                 /* set from the keys (tx.js: the timing train) */
+  background: var(--graphite);
+  border-radius: 1px;
+  pointer-events: none;
 }
 
 .train .fill {
@@ -1683,13 +1944,13 @@ body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
 /* playback: the key that makes the sound, half-lit */
 .key.ghost,
 .key.ghost:hover {
-  background: color-mix(in srgb, var(--paper) 28%, var(--bakelite));
+  background: color-mix(in srgb, var(--paper) calc(var(--glow, 1) * 28%), var(--bakelite));
   border-color: var(--graphite);
 }
 
 .key.pressed,
 .key.pressed:hover {
-  background: var(--paper);
+  background: var(--key-lit);
   color: var(--bakelite);
 }
 
@@ -1842,7 +2103,7 @@ body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
 
 .kbd .pressed,
 .tx .kbd .pressed:hover {
-  background: var(--paper);
+  background: var(--key-lit);
   color: var(--bakelite);
 }
 
@@ -1909,7 +2170,9 @@ body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
 .tx .player .play:hover { width: var(--icon-box); }
 
 .popup .close,
-.share-menu .close { top: 0.1rem; right: 0.15rem; }
+.tx .popup .close:hover,
+.share-menu .close,
+.tx .share-menu .close:hover { top: 0.1rem; right: 0.15rem; }   /* hover too, or it jumps */
 
 .entry .x { align-self: flex-start; margin-top: -0.2rem; }
 
@@ -1949,3 +2212,188 @@ body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
   .control-row .divider { display: none; }
   .outputs { gap: 0; }
 }
+
+/* marks named in a popup's text take the dot / dash colours */
+.signal .popup .dot  { color: var(--dot); }
+.signal .popup .dash { color: var(--dash); }
+
+/* every (i) the same on hover: a brass ring, no fill (last, so it
+   wins over each ring's own look) */
+@media (hover: hover) {
+  .tx .info:hover,
+  .tx .edge-foot .info:hover,
+  .tx .privacy .info:hover,
+  .tx .notice .info:hover,
+  .tx .privacy-open[aria-expanded="true"]:hover {
+    background: transparent;
+    border-color: var(--brass);
+    color: var(--brass);
+  }
+}
+
+/*
+ * The eye, beyond the tape: in the about column and the counts,
+ * what it hides is a bar in the tape's colour, and takes no taps.
+ * (The whole tree stays as it is: a hint, and a way to learn it.)
+ */
+.tx { --bar: color-mix(in srgb, var(--paper) 80%, var(--bakelite)); }
+.redact,
+.redact * {
+  color: transparent !important;
+  pointer-events: none;
+  cursor: default;
+}
+.local .redact { background: var(--bar) !important; border: 0; border-radius: 1px; }
+
+/* the bars run the column's width, inside a little padding */
+.about-main { align-self: stretch; }
+.about-foot { align-self: stretch; }
+.about .redact { margin-left: 0.35rem; margin-right: 0.35rem; }
+.about-marks.redact i { align-self: stretch; }
+
+/* one shape for any name, the size of the tallest (NOVEMBER's
+   stair): its length gives nothing away */
+.about-name.redact,
+.about-prosign.redact {
+  display: block;
+  align-self: stretch;
+  width: auto;
+  height: calc(8 * 0.56em + 2 * 0.3em + 0.45em);
+  font-size: var(--fs-s);
+  background: var(--bar);
+  border-radius: 1px;
+}
+.about-name.redact > * { display: none; }
+
+/* the marks, the cut and ~: bars the column's full width */
+.about-marks.redact { align-self: stretch; gap: 0; }
+.about-marks.redact i { width: 100% !important; background: var(--bar) !important; }
+.about-cut.redact,
+.about-heard.redact { align-self: stretch; align-items: stretch; }
+.about-cut.redact b,
+.about-heard.redact b { display: block; background: var(--bar); border-radius: 1px; }
+.about-heard.redact b + b { margin-top: 0.2em; }
+.redact .about-label { color: var(--graphite) !important; text-align: center; }   /* the titles stay */
+
+/* the counts: the numbers go, the words stay */
+.stats .n.redact {
+  display: inline-block;
+  min-width: 2ch;
+  background: var(--bar);
+  border-radius: 1px;
+  line-height: 1.05;
+}
+
+/* the marks run on past the tree's edge: ⋮ after the last node shown */
+#tree { position: relative; }
+#tree .more {
+  position: absolute;
+  width: 0.2em;               /* three dots drawn, narrower than the glyph: */
+  height: 0.9em;              /* it fits in the box's padding */
+  transform: translate(0.25em, -50%);
+  font-size: inherit;
+  color: transparent;         /* the glyph is for copying; the dots are drawn */
+  background: radial-gradient(circle closest-side, var(--more, var(--paper)) 85%, transparent 100%) 0 0 / 0.2em 0.3em repeat-y;
+  pointer-events: none;
+}
+.signal #tree .more.dot  { --more: var(--dot); }
+.signal #tree .more.dash { --more: var(--dash); }
+
+/* the player, active (clicked or tabbed into): the keys are its own */
+.player { outline: 1px solid transparent; outline-offset: 4px; transition: outline-color 0.15s; }
+.player.active { outline-color: var(--brass); }
+/* active, the keys go to the whole player, not the focused button:
+   one frame, no ring inside it */
+.player.active :focus-visible { outline: none; }
+
+/* the (i) in the Z row's empty start: a ring, not a key */
+.kbd .kbd-info,
+.tx .kbd .kbd-info:hover {
+  justify-self: center;
+  align-self: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--graphite);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--graphite);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 1;
+  overflow: visible;
+}
+@media (hover: hover) {
+  .tx .kbd .kbd-info:hover { border-color: var(--brass); color: var(--brass); }
+}
+
+/*
+ * ============================================================
+ * ONE LANGUAGE FOR WHAT CAN BE TOUCHED
+ * ============================================================
+ *
+ *   grey     idle, or off
+ *   brass    under the pointer, or in focus: this will act
+ *   paper    on, or chosen
+ *
+ * Hover only where there's a real pointer (no sticky hover on a
+ * phone). A key held down gets a brass edge too, as bright as the
+ * light level (like the lit keys); hover and focus stay full brass
+ * so they can always be seen.
+ */
+@media (hover: hover) {
+  :root .tx :is(#paste, #share-toggle, .tray-toggle, .outputs button, .input-mode button,
+                .keys-toggle, .edge-toggle, .marker .eye, .player button, .entry .x,
+                .popup .close, .share-menu .close, .quiet, .popup .actions button,
+                .paste-bubble, #local button, .tape-head button):not(:disabled):hover {
+    color: var(--brass);
+    background: transparent;
+  }
+  :root .tx :is(.input-mode button, .popup .actions button, .paste-bubble):not(:disabled):hover {
+    border-color: var(--brass);
+  }
+  :root .tx .send:not(:disabled):hover {
+    border-color: var(--brass);
+    color: var(--brass);
+  }
+  /* the tree's letters: their colours at rest, brass to the pointer */
+  :root .tx #tree .lbl:not(.blank):hover { color: var(--brass); cursor: pointer; }
+  :root .tx #local button:not(:disabled):hover { color: var(--brass); }
+  /* the keys */
+  :root .tx #pad .key:hover,
+  :root .tx #kbd button[data-k]:hover { border-color: var(--brass); }
+  /* settings: the list (text, underline, chevron) and the [ ] */
+  :root .tx .switches label:has(select:not(:disabled)):hover select { color: var(--brass); border-bottom-color: var(--brass); }
+  :root .tx .switches label:has(select:not(:disabled)):hover::after { border-color: var(--brass); }
+  :root .tx .flag:hover .check::before { color: var(--brass); }
+}
+
+/* held down: a brass edge, as bright as the light level */
+.tx .key.pressed,
+.tx .kbd .pressed {
+  border-color: color-mix(in srgb, var(--brass) calc(var(--glow, 1) * 100%), var(--wire));
+}
+
+/* repeat, with nothing to play: greyed like play (its ×3 / ∞ too) */
+.tx .player .repeat:disabled,
+.tx .player .repeat:disabled:hover { color: var(--wire); cursor: default; }
+
+/* the about card: wider than the other popups, scrolling inside */
+.about-pop { width: min(34rem, calc(100vw - 1.5rem)); }
+.about-pop .about-card {
+  max-height: min(70vh, 34rem);
+  overflow: auto;
+  margin: 0;
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+}
+.about-pop .about-card a { color: var(--paper); text-decoration: none; }
+.about-pop .about-card a:hover { background: transparent; color: var(--brass); }
+.about-pop .about-more { margin: 0.6rem 0 0; font-size: var(--fs-xs); }
+.about-pop .about-more a { color: var(--graphite); text-decoration: none; }
+@media (hover: hover) { .about-pop .about-more a:hover { background: transparent; color: var(--brass); } }
+
+/* about, under the collapsed tree: the same room above and below the marks */
+.about { padding-top: 0; }
+.about-main { gap: 0.8rem; }

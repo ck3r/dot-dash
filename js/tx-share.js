@@ -70,7 +70,56 @@ export function gifLink(words, origin = location.origin) {
 /* a short, file-safe name from the text */
 export function fileName(words, ext) {
   const slug = plainText(words).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 32);
-  return `dot-da.sh${slug ? "-" + slug : ""}.${ext}`;
+  return `dot-dash${slug ? "_" + slug : ""}.${ext}`;   // no dot before the extension
+}
+
+/*
+ * The message as a shell script, named like the site: hello_dot-da.sh
+ * Run it in a terminal (sh hello_dot-da.sh) and it keys the message:
+ * the marks print as they're sent, with the letters after them, and
+ * it beeps through `play` (SoX) if that's installed, or the terminal
+ * bell if not. UNIT sets the speed: UNIT=0.06 sh hello_dot-da.sh
+ */
+export function scriptName(words) {
+  const slug = plainText(words).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 32);
+  return `${slug || "message"}_dot-da.sh`;
+}
+
+export function scriptFile(words, unitMs) {
+  const unit = (unitMs / 1000).toFixed(3);
+  const say = s => s.replace(/'/g, "'\\''");
+  const lines = [
+    "#!/bin/sh",
+    `# ${plainText(words)}`,
+    "# in Morse code, from dot-da.sh",
+    `# ${linkTo(words)}`,
+    "#",
+    `# run it:   sh ${scriptName(words)}`,
+    "# faster:   UNIT=0.06 sh …   (seconds per unit; this one was keyed at " + unit + ")",
+    "",
+    `UNIT=\${UNIT:-${unit}}`,
+    `t() { awk "BEGIN { print $UNIT * $1 }"; }`,
+    "U1=$(t 1); U2=$(t 2); U3=$(t 3); U4=$(t 4)",
+    "if command -v play >/dev/null 2>&1; then",
+    "  tone() { play -qn synth \"$1\" sine 600 2>/dev/null; }",
+    "else",
+    "  tone() { printf '\\a'; sleep \"$1\"; }",
+    "fi",
+    "dit() { printf '.'; tone \"$U1\"; sleep \"$U1\"; }",
+    "dah() { printf -- '-'; tone \"$U3\"; sleep \"$U1\"; }",
+    "letter() { printf '  %s\\n' \"$1\"; sleep \"$U2\"; }   # 3 units after a letter",
+    "word() { printf '/\\n'; sleep \"$U4\"; }                 # 7 after a word",
+    ""
+  ];
+  words.forEach((word, w) => {
+    if (w) lines.push("word");
+    for (const code of word) {
+      const marks = [...code].map(m => (m === "." ? "dit" : "dah")).join("; ");
+      lines.push(`${marks}; letter '${say(DECODE[code] ?? "?")}'`);
+    }
+  });
+  lines.push("");
+  return new Blob([lines.join("\n")], { type: "text/x-shellscript" });
 }
 
 export function textFile(words) {

@@ -30,10 +30,49 @@ import { createSound } from "./tx-sound.js";
 import { createPlayer, timeline } from "./tx-player.js";
 import * as share from "./tx-share.js";
 import { createOutputs, flashRate } from "./tx-outputs.js";
-import { PHONETIC, PROSIGNS_BY_CODE, splits } from "./overview.js";
+import { PHONETIC, PROSIGNS_BY_CODE, splits, renderCard } from "./overview.js";
 import { createTrace } from "./tx-trace.js";
 
 const $ = s => document.querySelector(s);
+
+/*
+ * ARRIVAL: the note over the keys (don't send anything private) is
+ * gone at the first touch, click or key press anywhere, and that
+ * first interaction does nothing else: no dit, no play, no menu.
+ * Its (i) is the one exception: the note goes and the details open.
+ * Registered first, so it's ahead of every other handler.
+ */
+{
+  const REST = ["pointerup", "click", "mouseup", "touchend", "keyup", "contextmenu"];
+  const eat = event => { event.preventDefault(); event.stopImmediatePropagation(); };
+  const stopEating = () => { for (const t of REST) window.removeEventListener(t, eat, true); };
+  /* seen in the last 30 days (see the <head>): it stays away */
+  const NOTICE_KEY = "dot-dash:tx-noticed";
+  if (document.documentElement.classList.contains("noticed")) $("#notice").hidden = true;
+  const first = event => {
+    const notice = $("#notice");
+    if (!notice || notice.hidden) return finish();
+    notice.hidden = true;
+    try { localStorage.setItem(NOTICE_KEY, String(Date.now())); } catch { }
+    try { sound.unlock(); } catch { }     // the first touch wakes the sound (browsers need one)
+    eat(event);
+    for (const t of REST) window.addEventListener(t, eat, { capture: true, once: true });
+    setTimeout(stopEating, 700);          // a drag gives no click: stop waiting for one
+    /* on touch, the swallowed release means no click comes at all:
+       the next press clears whatever is still waiting */
+    for (const t of ["pointerdown", "keydown"]) window.addEventListener(t, stopEating, { capture: true, once: true });
+    if (event.type === "pointerdown" && event.target.closest?.("#notice .privacy-open")) {
+      setTimeout(() => openPrivacy(true));  // after the handlers below are in place
+    }
+    finish();
+  };
+  const finish = () => {
+    window.removeEventListener("pointerdown", first, true);
+    window.removeEventListener("keydown", first, true);
+  };
+  window.addEventListener("pointerdown", first, true);
+  window.addEventListener("keydown", first, true);
+}
 
 const HISTORY_KEY = "dot-dash:tx-history";
 const HISTORY_MAX = 25;
@@ -219,7 +258,13 @@ function line(words, { path = "", slash = false, caret = false } = {}) {
     box.append(wEl);
   }
   if (slash) box.append(el("span", "slash", "/"));
-  if (caret) box.append(el("span", "caret"));
+  if (caret) {
+    /* the caret rides on the last letter, so it can never wrap onto
+       a line of its own; after a word break it stands alone */
+    const last = slash ? null : [...box.querySelectorAll(".c")].at(-1);
+    if (last) last.append(el("span", "caret tail"));
+    else box.append(el("span", "caret"));
+  }
   return box;
 }
 
@@ -276,13 +321,7 @@ function drawTape() {
     x.innerHTML = icon("x");
     x.type = "button";
     x.setAttribute("aria-label", "clear this message");
-    x.addEventListener("click", () => {
-      tokens = [];
-      took = [];
-      keyer.reset();
-      setTyped("");
-      update();
-    });
+    x.addEventListener("click", () => { clearCurrent(); update(); });
     li.append(x);
   }
   tape.append(li);
@@ -327,6 +366,22 @@ try {
   hidden = typeof saved === "boolean" ? saved : !!(saved && (saved.key || saved.type));
 } catch { }
 
+/* what the eye is hiding right now: "letters" (keying), "morse"
+   (typing), or null. The tree and the about column hide it too,
+   and a hidden part can't be tapped either (no copying, no links). */
+const hiding = () => (hidden ? (mode === "type" ? "morse" : "letters") : null);
+
+/* make a part hidden: a bar, out of reach of taps and the keyboard */
+function redact(e) {
+  e.classList.add("redact");
+  e.setAttribute("aria-hidden", "true");
+  e.tabIndex = -1;
+  if (e.tagName === "BUTTON") e.disabled = true;
+  if (e.tagName === "A") e.removeAttribute("href");
+  e.removeAttribute("title");
+  return e;
+}
+
 /* an icon from the sprite in tx/index.html */
 const icon = name => `<svg class="ico" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 
@@ -370,10 +425,21 @@ function markerColumn() {
  */
 const PEEK = 26;   // px of the previous message left showing
 
+/* the line can re-wrap with no keystroke (the field narrowing or
+   widening beside it): the marker follows on any change of size */
+const markerWatch = new ResizeObserver(() => {
+  const cur = $("#tape .current");
+  if (cur) placeMarker(cur);
+});
+
 function settleTape() {
   const tape = $("#tape");
   const cur = tape.querySelector(".current");
   placeMarker(cur);
+  markerWatch.disconnect();
+  markerWatch.observe(tape);
+  const line = cur.querySelector(".line");
+  if (line) markerWatch.observe(line);
   const prev = cur.previousElementSibling;
   const peek = prev ? Math.min(PEEK, prev.offsetHeight) : 0;
   tape.style.setProperty("--peek", peek + "px");
@@ -423,7 +489,9 @@ function placeMarker(cur) {
   if (line && caret && !line.classList.contains("empty-line")) {
     /* the top of the caret's row pair (in typing mode the caret
        sits one row down, on the letters) */
-    const slot = caret.getBoundingClientRect().top - (parseFloat(getComputedStyle(caret).marginTop) || 0);
+    const holder = caret.classList.contains("tail") ? caret.parentElement : null;   // riding on a letter
+    const slot = holder ? holder.getBoundingClientRect().top
+      : caret.getBoundingClientRect().top - (parseFloat(getComputedStyle(caret).marginTop) || 0);
     shift = Math.max(0, Math.round(slot - line.getBoundingClientRect().top));
   }
   marker.style.transform = shift ? `translateY(${shift}px)` : "";
@@ -467,9 +535,20 @@ function drawStats() {
   if (!codes.length) { left.textContent = right.textContent = ""; return; }
   const dits = codes.join("").split("").filter(s => s === ".").length;
   const dahs = codes.join("").length - dits;
-  const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
-  left.textContent = `${plural(codes.length, "char")}\n${plural(words.length, "word")}`;
-  right.textContent = `${plural(dits, "dit")}\n${plural(dahs, "dah")}`;
+  /* the counts, numbers apart: the eye hides the numbers for what it
+     hides (letters: chars and words; Morse: dits and dahs) */
+  const h = hiding();
+  const fill = (box, rows, secret) => {
+    box.textContent = "";
+    rows.forEach(([n, w], i) => {
+      if (i) box.append("\n");
+      const num = el("span", "n", String(n));
+      if (secret) num.classList.add("redact");
+      box.append(num, ` ${w}${n === 1 ? "" : "s"}`);
+    });
+  };
+  fill(left, [[codes.length, "char"], [words.length, "word"]], h === "letters");
+  fill(right, [[dits, "dit"], [dahs, "dah"]], h === "morse");
 }
 
 
@@ -542,6 +621,12 @@ function drawLocal(override) {
     return b;
   };
   row(child("."), "  ", child("-"));
+  /* letters hidden: every letter here is a bar, and the children
+     can't be tapped (tap the column to open the tree, as ever) */
+  if (hiding() === "letters") {
+    const letters = [box.children[0]?.firstElementChild, box.querySelector(".here"), ...box.querySelectorAll("button")];
+    for (const e of letters) if (e && e.textContent.trim() && e.textContent !== "_") redact(e);
+  }
   drawAbout(path);
 }
 
@@ -584,8 +669,10 @@ function extend(mark) {
  *     (i)      the full about, on the reference page (always
  *              there, even with the whole tree open)
  *
- * Everything links to that character's page on the reference
- * (a new tab, so the message you're keying stays put).
+ * Each part does its own thing: the marks copy, the name will say
+ * itself (recordings to come), the cut opens the reference tree in
+ * cut numbers, and ~ explains mishearing. Only (i) goes to the
+ * character's page (a new tab, so the message stays put).
  */
 /* the names in syllables, for the stair: each space starts a new
    stair; a "·" is a syllable break within one (not drawn) */
@@ -611,15 +698,6 @@ const SPOKEN_DIGITS = {
 
 const aboutHref = code => `/?/_${code}_`;
 
-function aboutLink(code, cls, title) {
-  const a = el("a", cls);
-  a.href = aboutHref(code);
-  a.target = "_blank";
-  a.rel = "noopener";
-  a.title = title;
-  return a;
-}
-
 let aboutCode = "";
 
 function drawAbout(code) {
@@ -631,8 +709,9 @@ function drawAbout(code) {
   /* (i), always at the foot of the column (tree open or not):
      this character's page, or the reference itself */
   const info = $("#tree-info");
+  const secret = hiding() === "letters";      // don't name the letter in the tooltip either
   info.href = code ? aboutHref(code) : "/";
-  info.title = code ? `everything about ${ch ?? code}` : "the reference: every character";
+  info.title = code && !secret ? `everything about ${ch ?? code}` : code ? "everything about this character" : "the reference: every character";
   info.setAttribute("aria-label", info.title);
   if (!code) return;
   if (box.hidden) return buildAbout(box, code, ch);
@@ -641,19 +720,37 @@ function drawAbout(code) {
   fitAbout();
 }
 
+/* a moment's word in the column ("copied", "soon"), over the part tapped */
+function flashWord(button, word) {
+  button.dataset.flash = word;
+  clearTimeout(button.flashTimer);
+  button.flashTimer = setTimeout(() => delete button.dataset.flash, 1200);
+}
+
 function buildAbout(box, code, ch) {
   box.textContent = "";
   /* the marks (always full size), and its name: the phonetic word
      stepped down the column by syllable, the stressed one bold,
      or the prosign, across */
-  const main = aboutLink(code, "about-main", ch ? `about ${ch}` : code);
-  const marks = el("span", "about-marks");
+  const main = el("span", "about-main");
+  const marks = el("button", "about-marks");
+  marks.type = "button";
+  marks.title = `copy ${code}`;
+  marks.setAttribute("aria-label", `copy the marks, ${code}`);
   for (const m of code) marks.append(el("i", m === "." ? "dot" : "dash"));
+  marks.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(code); flashWord(marks, "copied"); }
+    catch { flashWord(marks, "can't copy"); }
+  });
   main.append(marks);
   const spoken = ch && (PHONETIC[ch] ?? SPOKEN_DIGITS[ch]);
   const prosign = ch?.startsWith("<") ? ch : PROSIGNS_BY_CODE[code] ? `<${PROSIGNS_BY_CODE[code][0]}>` : null;
   if (spoken) {
-    const name = el("span", "about-name");
+    const name = el("button", "about-name");
+    name.type = "button";
+    name.title = `say ${spoken} (recordings coming soon)`;
+    name.setAttribute("aria-label", name.title);
+    name.addEventListener("click", () => flashWord(name, "soon"));
     /* each letter its own row; across, it steps one column per
        letter and back to the first at each syllable (the stair) */
     let i = 0;
@@ -693,30 +790,51 @@ function buildAbout(box, code, ch) {
      stands for (or stands in for it), then what it could be
      misheard as */
   const foot = el("span", "about-foot");
-  const stack = (cls, label, title, codes) => {
-    const s = el("span", cls);
-    s.title = title;
+  const stack = (s, label, codes) => {
     s.append(el("span", "about-label", label));
-    for (const c of codes) {
-      const a = aboutLink(c, "", `about ${DECODE[c]}`);
-      a.textContent = DECODE[c];
-      s.append(a);
-    }
+    for (const c of codes) s.append(el("b", "", DECODE[c]));
     foot.append(s);
+    return s;
+  };
+  /* the cut: the reference tree with cut numbers, at the short code */
+  const cutStack = (title, shown, short) => {
+    const a = el("a", "about-cut");
+    a.href = `/?/_${short}_#cut`;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.title = title + " (see cut numbers on the tree)";
+    return stack(a, "cut", [shown]);
   };
 
   /* cut numbers: T for 0, N for 9 … (the long digits, shortened) */
   const own = DECODE[code];
   const cutFor = CUT[code];                                     // this code is a cut: for that digit
   const cutCode = Object.keys(CUT).find(k => CUT[k] === own && k !== code);   // this digit's cut
-  if (cutFor && cutFor !== own) stack("about-cut", "cut", `also sent as a cut ${cutFor}`, [ENCODE[cutFor]]);
-  else if (cutCode) stack("about-cut", "cut", `often sent cut, as ${DECODE[cutCode]}`, [cutCode]);
+  if (cutFor && cutFor !== own) cutStack(`also sent as a cut ${cutFor}`, ENCODE[cutFor], code);
+  else if (cutCode) cutStack(`often sent cut, as ${DECODE[cutCode]}`, cutCode, cutCode);
 
+  /* ~: what the same marks could be heard as; tap for why */
   const alt = own ? splits(code) : [];
   if (alt.length) {
-    stack("about-heard", "~", "could be misheard as " + alt.slice(0, 6).map(p => p.map(c => DECODE[c]).join("")).join(", "), alt[0]);
+    const b = el("button", "about-heard");
+    b.type = "button";
+    b.title = "could be misheard as " + alt.slice(0, 6).map(p => p.map(c => DECODE[c]).join("")).join(", ") + " (why?)";
+    b.setAttribute("aria-haspopup", "dialog");
+    b.addEventListener("click", () => openHeard(true));
+    stack(b, "~", alt[0]);
   }
   if (foot.firstChild) box.append(foot);
+
+  /* the eye: what's hidden on the line is hidden (and inert) here too */
+  const h = hiding();
+  if (h === "morse") {
+    redact(marks);
+    const heard = box.querySelector(".about-heard");      // A ~ E T spells out ·−
+    if (heard) redact(heard);
+  }
+  if (h === "letters") {
+    for (const e of box.querySelectorAll(".about-name, .about-prosign, .about-cut, .about-heard")) redact(e);
+  }
 }
 
 /*
@@ -747,7 +865,6 @@ function fitAbout() {
 /* Expanded: the letters-only vertical tree, plus branches for
    anything else this message uses (numbers, symbols). */
 const tree = createTree($("#tree"), "vertical", { legend: false });   // the key sits above, at a fixed size
-let lastLetter = null;
 
 let treeOpen = false;
 
@@ -780,12 +897,44 @@ function drawTree() {
   if (path) {
     const shown = inTree(path);
     tree.handle({ type: "beat", path: shown });
-    /* off the end of the tree: light the way there, but no letter */
-    if (shown !== path) for (const s of $("#tree").querySelectorAll(".lbl.on")) s.classList.remove("on");
-  } else if (lastLetter && REAL.has(lastLetter)) {
-    tree.handle({ type: "letter", path: lastLetter });
+    /* off the end of the tree: light the way there, but no letter,
+       and a ⋮ after the last node: it carries on past here */
+    if (shown !== path) {
+      for (const s of $("#tree").querySelectorAll(".lbl.on")) s.classList.remove("on");
+      carriesOn(shown, path[shown.length]);
+    }
+  } else {
+    /* between letters (a space, a word break): the last letter keyed */
+    const last = wordsOf(tokens).flat().at(-1);
+    const shown = last && inTree(last);
+    if (shown) {
+      tree.handle({ type: "beat", path: shown });            // the way there, and the letter
+      if (shown !== last) {
+        for (const s of $("#tree").querySelectorAll(".lbl.on")) s.classList.remove("on");
+        carriesOn(shown, last[shown.length]);
+      }
+    }
   }
+  /* the eye leaves the whole tree alone: a hint to work from, and
+     a way to learn the tree */
   followNode();
+}
+
+/*
+ * ⋮ beside the deepest node shown, when the marks run on past the
+ * tree's edge (a long prosign): upright, so it fits in the padding
+ * and nothing re-scales; coloured as the path's next step would be.
+ */
+function carriesOn(code, next) {
+  const pre = $("#tree");
+  const node = pre.querySelector(`.lbl[data-code="${CSS.escape(code)}"]`);
+  if (!node) return;
+  const p = pre.getBoundingClientRect(), n = node.getBoundingClientRect();
+  const more = el("span", `more on ${next === "." ? "dot" : "dash"}`, "⋮");
+  more.setAttribute("aria-hidden", "true");
+  more.style.left = (n.right - p.left) + "px";
+  more.style.top = (n.top - p.top + n.height / 2) + "px";
+  pre.append(more);
 }
 
 /*
@@ -887,6 +1036,10 @@ function openTree(open) {
 }
 
 $("#tree-toggle").addEventListener("click", () => openTree(!treeOpen));
+/* a tap on the collapsed tree (not its two children) opens it too */
+$("#local").addEventListener("click", event => {
+  if (!event.target.closest("button")) openTree(true);
+});
 
 /*
  * Whenever the station changes size (settings tray opening or
@@ -926,7 +1079,6 @@ $("#tree").addEventListener("click", event => {
 
 function update() {
   const { word, path } = structure(tokens);
-  if (!path) lastLetter = word.at(-1) ?? null;
   /* the message changed under the player: stop it */
   if (playKey !== null && playKey !== messageKey()) stopPlayback();
   drawTape();
@@ -979,6 +1131,20 @@ const sound = createSound();
  * are shown but not sounded.
  */
 let tapBusyUntil = -Infinity;
+const tapTimers = new Set();
+
+/* the lamp follows a tapped or typed mark when it sounds */
+function signalLater(down, ms) {
+  const id = setTimeout(() => { tapTimers.delete(id); setSignal(down); }, ms);
+  tapTimers.add(id);
+}
+
+/* playback takes over: drop whatever taps are still queued */
+function cancelTaps() {
+  for (const id of tapTimers) clearTimeout(id);
+  tapTimers.clear();
+  tapBusyUntil = -Infinity;
+}
 
 function tapMark(m) {
   const t = timingNow();
@@ -988,8 +1154,8 @@ function tapMark(m) {
   if (start - now > 2000) return;
   tapBusyUntil = start + length;
   sound.mark((start - now) / 1000, length / 1000);
-  setTimeout(() => setSignal(true), start - now);
-  setTimeout(() => setSignal(false), start - now + length);
+  signalLater(true, start - now);
+  signalLater(false, start - now + length);
 }
 
 const LABELS = {
@@ -1005,7 +1171,7 @@ function setKeyMode(next) {
   keyMode = MODES.includes(next) ? next : "tap";
   keyer.setMode(keyMode);
   document.body.dataset.key = keyMode;
-  $("#opt-key").value = keyMode;
+  syncKeySelect();
   const [dit, dah] = LABELS[keyMode];
   $("#pad .key.dit span").textContent = dit;
   $("#pad .key.dah span").textContent = dah;
@@ -1013,7 +1179,31 @@ function setKeyMode(next) {
   showInput();
 }
 
-$("#opt-key").addEventListener("change", () => setKeyMode($("#opt-key").value));
+/*
+ * The key list also offers "off" (put the keys away) and "text"
+ * (the keyboard), the same switches as the chevron and .- / A in
+ * the control row, for anyone who looks for them here. The list
+ * always shows what's in front of you; the keyer is remembered.
+ */
+function syncKeySelect() {
+  const s = $("#opt-key");
+  s.dataset.last = keyMode;
+  s.value = inputAway ? "off" : mode === "type" ? "text" : keyMode;
+}
+
+$("#opt-key").addEventListener("change", () => {
+  const v = $("#opt-key").value;
+  if (v === "off") return putKeysAway(true);
+  if (v === "text") {
+    if (mode !== "type") setMode("type");
+    if (inputAway) putKeysAway(false);
+    return syncKeySelect();
+  }
+  setKeyMode(v);
+  if (mode !== "key") setMode("key");
+  if (inputAway) putKeysAway(false);
+  syncKeySelect();
+});
 
 
 /* press / release from a finger, mouse or hardware key */
@@ -1054,23 +1244,61 @@ for (const button of document.querySelectorAll("#pad .key")) {
   button.addEventListener("contextmenu", event => event.preventDefault());
 }
 
-/* a hardware keyboard works too:  .  -  space  /  backspace  enter
-   (in timed modes . and - are the paddles, or the key) */
-const KEYS = { ".": ".", "-": "-", " ": "letter", "/": "word", "Backspace": "undo" };
+/*
+ * A computer keyboard keys too (keying mode only; typing mode
+ * types). Paddle pairs, left = dit, right = dah, on whichever keys
+ * suit your hands or your adapter:
+ *
+ *   dit   .   [   A   1        (left Ctrl, with "ctrl keys" on)
+ *   dah   -   ]   D   3        (right Ctrl, likewise)
+ *
+ * The Ctrl keys are for the VBand USB paddle adapter, which sends
+ * them; they're off unless asked for, so Ctrl stays free for
+ * shortcuts (Ctrl+C would otherwise key a dit first).
+ *
+ *   space      letter space (straight key: the key itself)
+ *   /          word space
+ *   backspace  undo        enter   send        P   play / pause
+ *
+ * With the straight key, any of them is the one key.
+ */
+/* (the arrow keys belong to the player: see PLAYER KEYS) */
+const DIT_KEYS = new Set(["Period", "NumpadDecimal", "BracketLeft", "KeyA", "Digit1", "Numpad1"]);
+const DAH_KEYS = new Set(["Minus", "NumpadSubtract", "BracketRight", "KeyD", "Digit3", "Numpad3"]);
+const ctrlKeys = () => $("#opt-ctrl").checked;
 const padKey = act => document.querySelector(`#pad .key[data-act="${CSS.escape(act)}"]`);
+
+function actFor(event) {
+  const code = event.code;
+  const ctrl = ctrlKeys();
+  if (DIT_KEYS.has(code) || event.key === "." || (ctrl && code === "ControlLeft")) return ".";
+  if (DAH_KEYS.has(code) || event.key === "-" || (ctrl && code === "ControlRight")) return keyMode === "straight" ? "." : "-";
+  if (code === "Space") return keyMode === "straight" ? "." : "letter";
+  if (code === "Slash" || code === "NumpadDivide" || event.key === "/") return "word";
+  if (code === "Backspace") return "undo";
+  return null;
+}
+
+/* a modifier held for something else (Ctrl+R, ⌘C …) isn't keying,
+   unless it's a Ctrl key being used as a paddle */
+const isChord = event =>
+  event.metaKey || event.altKey || (event.ctrlKey && !/^Control/.test(event.code) && !ctrlPaddle.down);
+const ctrlPaddle = { down: false };
 
 document.addEventListener("keydown", event => {
   if (mode === "type" || event.target.closest?.("input, select, textarea")) return;
-  if (event.key === "Enter") { event.preventDefault(); send(); return; }
-  const act = KEYS[event.key];
-  if (!act || event.ctrlKey || event.metaKey || event.altKey) return;
+  if (event.key === "Enter" && !event.ctrlKey && !event.metaKey) { event.preventDefault(); send(); return; }
+  const act = actFor(event);
+  if (!act || isChord(event)) return;
+  if (/^Control/.test(event.code)) ctrlPaddle.down = true;
   event.preventDefault();
   if (event.repeat) return;
   keyDown(padKey(act));
 });
 
 document.addEventListener("keyup", event => {
-  const act = KEYS[event.key];
+  if (/^Control/.test(event.code)) ctrlPaddle.down = false;
+  const act = actFor(event);
   if (act) keyUp(padKey(act));
 });
 
@@ -1121,7 +1349,10 @@ const trainView = (() => {
     const dit = $("#pad .key.dit").getBoundingClientRect();
     const dah = $("#pad .key.dah").getBoundingClientRect();
     if (!dit.width) return;                       // pad not shown
-    ditShare = dah.width ? (dit.right - dit.left) / (dah.right - dit.left) : 1 / 3;
+    const zero = dit.left - 3;                    // time zero: the middle of the 6px gap
+    ditShare = dah.width ? (dit.right - zero) / (dah.right - zero) : 1 / 3;
+    const train = $("#train").getBoundingClientRect();
+    if (train.width) $("#train .origin").style.left = (zero - train.left) + "px";
   }
 
   /* where a time falls, as % of its half */
@@ -1293,6 +1524,7 @@ let mode = "key";
 let inputAway = false;
 
 function markModeButtons() {
+  syncKeySelect();
   for (const b of document.querySelectorAll(".input-mode button")) {
     b.setAttribute("aria-pressed", String(b.dataset.mode === mode));
   }
@@ -1381,8 +1613,8 @@ function soundLetter(code) {
   for (const m of code) {
     const length = (m === "." ? 1 : 3) * t.unit;
     sound.mark((start - now) / 1000, length / 1000);
-    setTimeout(() => setSignal(true), start - now);
-    setTimeout(() => setSignal(false), start - now + length);
+    signalLater(true, start - now);
+    signalLater(false, start - now + length);
     tapBusyUntil = start + length;
     start += length + t.unit;
   }
@@ -1492,9 +1724,27 @@ function buildKeyboard() {
       }
       rowEl.append(b);
     }
+    /* the empty start of the Z row: an (i) for the keys that hold more */
+    if (layout === "abc" && row.start === 4) {
+      const info = el("button", "info kbd-info", "i");
+      info.type = "button";
+      info.style.gridColumn = "1 / span 3";
+      info.style.gridRow = "1";            // placed last, but in the row's first line
+      info.title = "keys that hold more";
+      info.setAttribute("aria-label", info.title);
+      info.setAttribute("aria-haspopup", "dialog");
+      info.addEventListener("click", () => openHold(true));
+      rowEl.append(info);
+    }
     kbd.append(rowEl);
   }
 }
+
+function openHold(open) {
+  $("#hold-pop").hidden = !open;
+  if (open) $("#hold-pop .close").focus({ preventScroll: true });
+}
+$("#hold-pop .close").addEventListener("click", () => openHold(false));
 
 buildKeyboard();
 
@@ -1541,8 +1791,31 @@ function closeFan() {
   held?.fan?.remove();
 }
 
+/*
+ * A little forgiveness for fingers: a touch that lands in a gap or
+ * on an edge goes to the nearest key, and touches are read a few
+ * pixels higher (fingers land a little below where they aim). No
+ * guessing at words: Morse is full of callsigns and Q codes.
+ */
+const AIM_LIFT = 3;   // px
+
+function keyAt(event) {
+  const direct = event.target.closest("button[data-k]");
+  if (event.pointerType !== "touch") return direct;
+  if (event.target.closest(".kbd-info")) return null;
+  const x = event.clientX, y = event.clientY - AIM_LIFT;
+  let best = null, bestD = Infinity;
+  for (const b of $("#kbd").querySelectorAll("button[data-k]")) {
+    const r = b.getBoundingClientRect();
+    const dx = Math.max(r.left - x, 0, x - r.right), dy = Math.max(r.top - y, 0, y - r.bottom);
+    const d = dx * dx + dy * dy;
+    if (d < bestD) { bestD = d; best = b; }
+  }
+  return best;
+}
+
 $("#kbd").addEventListener("pointerdown", event => {
-  const b = event.target.closest("button[data-k]");
+  const b = keyAt(event);
   if (!b) return;
   event.preventDefault();
   b.setPointerCapture?.(event.pointerId);
@@ -1617,17 +1890,111 @@ function openTray(open) {
   $("#tray").hidden = !open;
   $("#tray-toggle").setAttribute("aria-expanded", String(open));
   showInput();
+  if (open) placeSwitches();
 }
+
+/*
+ * The lists over their sliders: key centred over speed, sound over
+ * vol, wave over pitch, light from the light column. Where two would
+ * touch, both give way a little (keeping a gap), the rest stay put.
+ * Narrow phones (two to a row, tx.css) skip this.
+ */
+const SWITCH_GAP = 8;
+const narrowTray = matchMedia("(max-width: 384px)");
+
+function placeSwitches() {
+  const row = $(".switches");
+  const all = ["#opt-key", "#opt-ctrl", "#opt-sound", "#opt-wave", "#opt-light"].map(id => $(id).closest("label"))
+    .filter(l => l.closest(".switches"));        // ctrl may be in the checkbox column
+  if (narrowTray.matches) {
+    row.classList.remove("placed");
+    row.style.height = "";
+    for (const l of all) l.style.left = "";
+    return;
+  }
+  if ($("#tray").hidden) return;
+  row.classList.add("placed");
+  const base = row.getBoundingClientRect().left;
+  const mid = id => { const b = $(id).getBoundingClientRect(); return b.left + b.width / 2 - base; };
+  /* key from the left edge, ctrl (when shown) right beside it */
+  const labels = all.filter(l => getComputedStyle(l).display !== "none");
+  const w = labels.map(l => l.offsetWidth);
+  const ideal = {
+    "opt-key": () => 0,
+    "opt-ctrl": () => 0,                       // pushed along by key below
+    "opt-sound": l => mid("#opt-vol") - l.offsetWidth / 2,
+    "opt-wave": l => mid("#opt-hz") - l.offsetWidth / 2,
+    "opt-light": () => $("#opt-glow").closest(".group").getBoundingClientRect().left - base
+  };
+  const x = labels.map(l => ideal[l.querySelector("select, input").id](l));
+  /* the far edge: the tray's (light may run over the empty top of
+     the color / invert column) */
+  const end = $("#tray").getBoundingClientRect().right - base;
+  /* settle: two too close share the nudge, half each, so every
+     list stays as near its slider as it can; and all stay in the row */
+  for (let round = 0; round < 24; round++) {
+    let moved = false;
+    for (let i = 0; i < x.length - 1; i++) {
+      const over = x[i] + w[i] + SWITCH_GAP - x[i + 1];
+      if (over > 0.5) {
+        /* key holds the left edge: the next one gives way alone */
+        if (i === 0) x[1] += over;
+        else { x[i] -= over / 2; x[i + 1] += over / 2; }
+        moved = true;
+      }
+    }
+    x[0] = Math.max(0, x[0]);
+    const z = x.length - 1;
+    x[z] = Math.min(x[z], end - w[z]);
+    if (!moved) break;
+  }
+  labels.forEach((l, i) => { l.style.left = Math.round(Math.max(0, x[i])) + "px"; });
+  row.style.height = Math.max(...labels.map(l => l.offsetHeight)) + "px";
+}
+
+/*
+ * ctrl (keys as paddles) sits beside key where there's a mouse and
+ * room; on touch screens (a keyer by USB is possible, but rare) and
+ * narrow ones, at the end of the checkbox column.
+ */
+const touchOnly = matchMedia("(hover: none) and (pointer: coarse)");
+function placeCtrl() {
+  const flag = $("#opt-ctrl").closest("label");
+  const inColumn = touchOnly.matches || narrowTray.matches;
+  if (inColumn && flag.parentElement !== $(".flags")) $(".flags").append(flag);
+  if (!inColumn && flag.parentElement !== $(".switches .lead")) $(".switches .lead > label").after(flag);
+  flag.style.left = "";
+}
+placeCtrl();
+touchOnly.addEventListener("change", () => { placeCtrl(); placeSwitches(); });
+
+new ResizeObserver(() => placeSwitches()).observe($("#tray"));
+narrowTray.addEventListener("change", () => { placeCtrl(); placeSwitches(); });
+document.fonts?.ready.then(placeSwitches);
 
 $("#tray-toggle").addEventListener("click", () => openTray($("#tray").hidden));
 
 /* a tap anywhere above the player closes the settings; the player
    (play, scrub, repeat) and the sound / light / vibration toggles
    stay usable, so changes can be tried out with the settings still open */
+let trayClosedAt = -Infinity;
 document.addEventListener("pointerdown", event => {
   if ($("#tray").hidden) return;
   if (event.target.closest("#tray, #tray-toggle, .player, .outputs")) return;
   openTray(false);
+  trayClosedAt = performance.now();
+});
+
+/*
+ * A tap in the message box puts the keys away, like tapping out of
+ * a text field; another brings them back (the chevron follows).
+ * Taps on things in the box that do something (a sent message to
+ * key again, ×, the eye, send, clear history) do just that.
+ */
+$(".field").addEventListener("click", event => {
+  if (event.target.closest("button, a, input, select, .entry.past .line, .tape-head, .paste-bubble")) return;
+  if (performance.now() - trayClosedAt < 600) return;     // that tap closed the settings
+  putKeysAway(!inputAway);
 });
 
 const outputFor = input => document.querySelector(`output[for="${input.id}"]`);
@@ -1638,7 +2005,7 @@ const settingInputs = () => document.querySelectorAll("#tray input[type=range], 
 
 function saveSettings() {
   const saved = {};
-  for (const input of settingInputs()) saved[input.id] = input.tagName === "SELECT" ? choice(input) : input.value;
+  for (const input of settingInputs()) saved[input.id] = input.id === "opt-key" ? keyMode : input.tagName === "SELECT" ? choice(input) : input.value;
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(saved)); } catch { }
 }
 
@@ -1655,6 +2022,14 @@ function loadSettings() {
 }
 
 $("#tray").addEventListener("change", saveSettings);
+
+/* the farnsworth track above wpm: out of reach, greyed (tx.css .cap) */
+function markFarnsCap() {
+  const wpm = $("#opt-wpm"), f = $("#opt-fwpm");
+  const out = (Number(f.max) - Number(wpm.value)) / (Number(f.max) - Number(f.min));
+  f.closest(".track").style.setProperty("--f", String(Math.max(0, Math.min(1, out))));
+}
+$("#opt-wpm").addEventListener("input", markFarnsCap);
 
 for (const input of document.querySelectorAll("#tray input[type=range]")) {
   input.addEventListener("input", () => {
@@ -1710,14 +2085,31 @@ async function wantTorch() {
   if (choice("#opt-light") !== "torch" || !outputOn("light")) return;
   if (!(await outputs.torchReady())) {
     toast("no flashlight available here");
-    $("#opt-light").value = "lamp";
+    $("#opt-light").value = "signal";
+    $("#opt-light").dataset.last = "signal";
+    setOutput("light", false);
     saveSettings();
   }
 }
+let lightBefore = null;
 $("#opt-light").addEventListener("change", () => {
   outputs.quiet();
   if (choice("#opt-light") !== "torch") outputs.releaseTorch();
   wantTorch();
+  /* invert flips the whole screen as you key: ask first, as the
+     signal lamp does (twice if your speed means more than 3 a second) */
+  const was = lightBefore;
+  lightBefore = choice("#opt-light");
+  if ($("#opt-light").value === "invert" && was !== "invert") {
+    const rate = 1000 / (2 * timingNow().unit);    // dits: one flash every two units
+    askLamp(rate, () => { }, {
+      invert: true,
+      cancel: () => {
+        $("#opt-light").value = was ?? "off";
+        $("#opt-light").dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    });
+  }
 });
 
 
@@ -1735,11 +2127,15 @@ function wantsLamp() {
   return outputOn("light") && choice("#opt-light") === "signal";
 }
 
-function askLamp(rate, go) {
-  lampPending = { go, fast: rate > SAFE_RATE, confirmedFast: false };
+function askLamp(rate, go, { invert = false, cancel = null } = {}) {
+  lampPending = { go, cancel, fast: rate > SAFE_RATE, confirmedFast: false };
+  $("#lamp-title").textContent = invert ? "invert" : "signal lamp";
+  $("#lamp-warn .what").textContent = invert
+    ? "Invert flips the whole screen, light for dark, every time the key is down."
+    : "The signal lamp flashes the whole screen with your message.";
   const fast = $("#lamp-warn .fast");
   fast.hidden = true;
-  $("#lamp-go").textContent = "start";
+  $("#lamp-go").textContent = invert ? "use it" : "start";
   $("#lamp-warn").hidden = false;
   $("#lamp-go").focus({ preventScroll: true });
   lampPending.rate = rate;
@@ -1765,7 +2161,9 @@ $("#lamp-go").addEventListener("click", () => {
 
 function cancelLamp() {
   $("#lamp-warn").hidden = true;
+  const cancel = lampPending?.cancel;
   lampPending = null;
+  cancel?.();
 }
 $("#lamp-cancel").addEventListener("click", cancelLamp);
 $("#lamp-warn .close").addEventListener("click", cancelLamp);
@@ -1784,12 +2182,8 @@ function closeLamp() {
   $("#lamp").classList.remove("on");
 }
 
-/* tap or Escape: stop and leave */
+/* tap or Escape (see ESCAPE): stop and leave */
 $("#lamp").addEventListener("click", () => { stopPlayback(); closeLamp(); });
-document.addEventListener("keydown", event => {
-  if (event.key === "Escape" && !$("#lamp").hidden) { stopPlayback(); closeLamp(); }
-  if (event.key === "Escape" && !$("#lamp-warn").hidden) cancelLamp();
-});
 
 
 /* output toggles (♪ ☼ ≋), remembered on this device */
@@ -1828,7 +2222,9 @@ function choice(select) {
   if (typeof select === "string") select = $(select);
   if (select.value !== "off") return select.value;
   const last = select.dataset.last;
-  return [...select.options].some(o => o.value === last && last !== "off") ? last : select.options[0].value;
+  const real = [...select.options].filter(o => o.value !== "off" && !o.disabled);
+  if (real.some(o => o.value === last)) return last;
+  return (real.find(o => o.defaultSelected) ?? real[0]).value;   // the list's default
 }
 
 function wake(event) {
@@ -1854,21 +2250,63 @@ $("#tray").addEventListener("focusin", wake, true);
   apply();
 }
 
+/* ctrl keys (the VBand adapter's paddles): remembered, off by default */
+{
+  const box = $("#opt-ctrl");
+  try { box.checked = localStorage.getItem("dot-dash:tx-ctrl-keys") === "1"; } catch { }
+  box.addEventListener("change", () => {
+    ctrlPaddle.down = false;
+    try { localStorage.setItem("dot-dash:tx-ctrl-keys", box.checked ? "1" : "0"); } catch { }
+  });
+}
+
+/* pretty play: remembered; switching it starts playback afresh */
+{
+  const box = $("#opt-pretty");
+  try { box.checked = localStorage.getItem("dot-dash:tx-pretty") === "1"; } catch { }
+  box.addEventListener("change", () => {
+    try { localStorage.setItem("dot-dash:tx-pretty", box.checked ? "1" : "0"); } catch { }
+    stopPlayback();
+  });
+}
+
+/* invert: the light theme (the same instrument printed on paper);
+   shared with the reference page */
+{
+  const box = $("#opt-theme");
+  box.checked = document.documentElement.classList.contains("light");
+  const apply = () => {
+    document.documentElement.classList.toggle("light", box.checked);
+    try { localStorage.setItem("dot-dash:theme", box.checked ? "light" : "dark"); } catch { }
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", box.checked ? "#ebe5d7" : "#1c1916");
+    trace.redraw();
+  };
+  box.addEventListener("change", apply);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", box.checked ? "#ebe5d7" : "#1c1916");
+}
+
 /* light level: dims the lamp's glow and the signal lamp (a web
    page can't dim the flashlight: it's on or off) */
 function applyGlow() {
-  document.body.style.setProperty("--glow", Number($("#opt-glow").value) / 100);
-  const torch = choice("#opt-light") === "torch";
-  $("#opt-glow").disabled = torch;
-  $("#opt-glow").closest(".fader").title = torch ? "the flashlight can only be on or off" : "";
+  document.documentElement.style.setProperty("--glow", Number($("#opt-glow").value) / 100);   // (the invert filter lives on the page root)
+  /* the level dims the lamp (always on), the lit keys and the screen
+     lights; a web page can't dim the flashlight itself */
+  const torch = choice("#opt-light") === "torch" && outputOn("light");
+  $("#opt-glow").closest(".fader").title = torch ? "the flashlight itself can only be on or off" : "";
 }
 $("#opt-glow").addEventListener("input", applyGlow);
+$("#opt-vibe").addEventListener("change", () => { if (outputOn("vibrate")) outputs.testBuzz(); });   // feel the new strength
 $("#opt-light").addEventListener("change", applyGlow);
 
 try {
   const saved = JSON.parse(localStorage.getItem(OUTPUTS_KEY)) ?? {};
   for (const [name, on] of Object.entries(saved)) {
     document.querySelector(`[data-out="${name}"]`)?.setAttribute("aria-pressed", String(on));
+  }
+  /* "lamp" used to be a light choice; it's always on now, so a saved
+     lamp means: no extra light */
+  if (JSON.parse(localStorage.getItem(SETTINGS_KEY))?.["opt-light"] === "lamp") {
+    document.querySelector('[data-out="light"]').setAttribute("aria-pressed", "false");
   }
 } catch { }
 
@@ -1886,6 +2324,10 @@ for (const b of document.querySelectorAll(".outputs button")) {
   b.addEventListener("click", () => {
     setOutput(b.dataset.out, !outputOn(b.dataset.out));
     if (b.dataset.out === "sound" && sound.enabled) preview();
+    /* vibration on: a short buzz now (inside the tap, which phones require) */
+    if (b.dataset.out === "vibrate" && outputOn("vibrate") && outputs.testBuzz() === false) {
+      toast("this browser won't vibrate");
+    }
   });
 }
 
@@ -1926,6 +2368,14 @@ $("#opt-wave").addEventListener("change", () => { applySound(); preview(); });
 $("#opt-hz").addEventListener("change", preview);
 $("#opt-vol").addEventListener("change", preview);
 
+/* the message on the board (not yet sent): gone */
+function clearCurrent() {
+  tokens = [];
+  took = [];
+  keyer.reset();
+  setTyped("");
+}
+
 /* clear history: tap twice (no pop-up dialogs) */
 let clearArmed = null;
 
@@ -1935,6 +2385,7 @@ function clearHistory() {
     clearArmed = null;
     history = [];
     saveHistory();
+    clearCurrent();            // the unsent message goes too: a clean board
     update();
     return;
   }
@@ -1977,12 +2428,23 @@ let endTimer = null;
 
 const messageKey = () => tokens.join("") + "|" + history.map(morseOf).join(",");
 
+/* pretty play: textbook timing, the keying's hesitations left out
+   (for playback, the trace and the saved .wav alike) */
+const pretty = () => $("#opt-pretty").checked;
+
+/* what share works on: the line being written, only (sent, it's
+   gone from here: the menu greys until there's a new one) */
+function shareable() {
+  const words = wordsOf(tokens);
+  return words.length ? { words, rec: pretty() ? [] : recOf(tokens, took), entry: "current" } : null;
+}
+
 function playable() {
   const words = wordsOf(tokens);
-  if (words.length) return { words, rec: recOf(tokens, took), entry: "current" };
+  if (words.length) return { words, rec: pretty() ? [] : recOf(tokens, took), entry: "current" };
   if (history.length) {
     const last = history[history.length - 1];
-    return { words: parse(morseOf(last)), rec: recOfEntry(last), entry: history.length - 1 };
+    return { words: parse(morseOf(last)), rec: pretty() ? [] : recOfEntry(last), entry: history.length - 1 };
   }
   return null;
 }
@@ -2048,9 +2510,12 @@ $("#seek").addEventListener("pointerdown", () => { if (!$("#seek").disabled) tra
 for (const type of ["pointerup", "pointercancel"]) window.addEventListener(type, () => trace.zoom(false));
 
 function playerControls() {
+  document.body.classList.toggle("playing", player.playing);   // the caret holds still
+  if (navigator.mediaSession) navigator.mediaSession.playbackState = player.playing ? "playing" : "paused";
   const can = !!playable();
   $("#play").disabled = !can;
   $("#seek").disabled = !can;
+  $("#repeat").disabled = !can;      // greyed until there's something to play
   const playIcon = player.playing ? "pause" : "play";
   if ($("#play").dataset.icon !== playIcon) {
     $("#play").dataset.icon = playIcon;
@@ -2088,6 +2553,7 @@ function togglePlay() {
   sound.unlock();
   if (player.playing) {
     player.pause();
+    setSignal(false);     // like lifting off the key: the lamp, screen and flashlight go dark
   } else {
     if (!load()) return;
     if (wantsLamp() && $("#lamp").hidden) {
@@ -2098,6 +2564,7 @@ function togglePlay() {
     }
     clearTimeout(endTimer);
     keyer.cancel();
+    cancelTaps();
     player.play();
     revealEntry();
   }
@@ -2155,7 +2622,7 @@ function showPlayback(state) {
   $("#seek").value = Math.round(state.position);
   trace.at(state.position);
   $("#time").textContent = clock(state.position) + "/" + clock(state.duration) + unitOf(state.duration);
-  setSignal(state.down);
+  setSignal(state.down && player.playing);   // paused (or scrubbing paused): the key is open, lights out
   ghostKeys(state.symbol);
   if (!$("#train").hidden) trainView.replay(state.between ? null : state.phase);
 
@@ -2218,6 +2685,7 @@ $("#seek").addEventListener("pointerdown", () => {
   load();
   resumeAfterSeek = player.playing;
   player.pause();
+  setSignal(false);
   playerControls();
 });
 $("#seek").addEventListener("input", () => {
@@ -2252,16 +2720,133 @@ function setRepeat(next) {
 $("#repeat").addEventListener("click", () => setRepeat(NEXT[repeatMode]));
 try {
   const saved = localStorage.getItem("dot-dash:tx-repeat");
-  setRepeat(saved === "1" ? "on" : saved ?? "off");   // "1" = the old on/off setting
-} catch { setRepeat("off"); }
+  setRepeat(saved === "1" ? "on" : saved ?? "three");   // "1" = the old on/off setting; new: ×3
+} catch { setRepeat("three"); }
 
-/* P plays / pauses (when not typing) */
-document.addEventListener("keydown", event => {
-  if (event.key !== "p" && event.key !== "P") return;
-  if (mode === "type" || event.target.closest?.("input, select, textarea")) return;
-  event.preventDefault();
-  togglePlay();
+/*
+ * ============================================================
+ * PLAYER KEYS
+ * ============================================================
+ *
+ *   Space        play / pause, while the player is in use (playing,
+ *                or paused part-way); otherwise it keys as before
+ *   K or P       play / pause
+ *   ← →          back / on a letter       Shift ← →, J L   a word
+ *   Home End     the start / the end
+ *   ↑ ↓          volume                   M                mute
+ *   0 – 9        0% – 90% of the way in, while the player is in use
+ *                (otherwise 1 and 3 are paddles, as before)
+ *
+ * Letters (K P J L M), Space and the numbers type instead while
+ * the text keyboard is out, unless the player is active (below).
+ */
+/* in use: playing, or loaded and not yet finished (paused, or
+   scrubbed back to the start); a finished message isn't, so Space
+   and the numbers go back to keying */
+const playerInUse = () =>
+  player.playing || (playKey !== null && player.position < player.duration);
+const playerKeysDown = new Set();
+
+/* where each letter and each word starts, in what play would play */
+function stops(byWord) {
+  const p = playable();
+  if (!p) return [];
+  const { letters } = timeline(p.words, timingNow(), p.rec);
+  if (!byWord) return letters.map(l => l.start);
+  const out = [];
+  let i = 0;
+  for (const word of p.words) { if (letters[i]) out.push(letters[i].start); i += word.length; }
+  return out;
+}
+
+function seekTo(ms) {
+  sound.unlock();
+  if (!load()) return;
+  clearTimeout(endTimer);
+  player.seek(Math.max(0, Math.min(ms, player.duration)));
+  playerControls();
+}
+
+/* a step back from just inside a letter goes to the one before, as players do */
+const STEP_GRACE = 250;
+function step(dir, byWord) {
+  if (!load()) return;
+  const at = player.position, marks = stops(byWord);
+  if (dir > 0) seekTo(marks.find(t => t > at + 1) ?? player.duration);
+  else seekTo([...marks].reverse().find(t => t < at - STEP_GRACE) ?? 0);
+}
+
+function nudgeVolume(by) {
+  const v = $("#opt-vol");
+  v.value = String(Math.max(Number(v.min), Math.min(Number(v.max), Number(v.value) + by)));
+  v.dispatchEvent(new Event("input", { bubbles: true }));
+  v.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+/*
+ * The player as an active region (as a video player takes the keys
+ * once you've clicked it): a tap or click anywhere in the player
+ * row, or tabbing into it, makes it active, outlined in brass.
+ * While it's active, every key is the player's: the keys above
+ * always work, and the rest do nothing (no keying, no typing, no
+ * cutting the playback short). A tap anywhere else, or Escape,
+ * lets go.
+ */
+let playerActive = false;
+const playerRow = $(".player");
+
+function setPlayerActive(on) {
+  playerActive = on;
+  playerRow.classList.toggle("active", on);
+}
+playerRow.addEventListener("pointerdown", () => setPlayerActive(true));
+playerRow.addEventListener("focusin", () => setPlayerActive(true));
+playerRow.addEventListener("focusout", event => {
+  if (!playerRow.contains(event.relatedTarget) && event.relatedTarget) setPlayerActive(false);
 });
+window.addEventListener("pointerdown", event => {
+  if (playerActive && !event.target.closest?.(".player, .seek-pop")) setPlayerActive(false);
+}, true);
+
+/* keys that are never the player's to take, even while it's active */
+const passesThrough = event =>
+  /^(Escape|Tab|F\d+|Media.*|Audio.*|Shift|Alt|Meta|Control|CapsLock|ContextMenu)$/.test(event.key);
+
+window.addEventListener("keydown", event => {
+  const swallow = () => { event.preventDefault(); event.stopPropagation(); playerKeysDown.add(event.code); };
+  if (event.ctrlKey || event.metaKey || event.altKey) {
+    if (playerActive && /^Control/.test(event.code) && !event.repeat) swallow();   // a Ctrl paddle doesn't key here
+    return;
+  }
+  if (event.target.closest?.("input, select, textarea") && event.target.id !== "seek") return;   // the scrub bar steps our way
+  const active = playerActive;
+  const typing = !active && mode === "type" && !inputAway;
+  const inUse = active || playerInUse();
+  const k = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+  const once = fn => () => { if (!event.repeat) fn(); };
+  let act = null;
+  if (event.code === "Space" && !typing && inUse) act = once(togglePlay);
+  else if ((k === "k" || k === "p") && !typing) act = once(togglePlay);
+  else if (k === "m" && !typing) act = once(() => $('[data-out="sound"]').click());
+  else if (k === "ArrowLeft" || k === "ArrowRight") act = () => step(k === "ArrowRight" ? 1 : -1, event.shiftKey);
+  else if ((k === "j" || k === "l") && !typing) act = () => step(k === "l" ? 1 : -1, true);
+  else if (k === "Home") act = () => seekTo(0);
+  else if (k === "End") act = () => seekTo(Infinity);
+  else if (k === "ArrowUp" || k === "ArrowDown") act = () => nudgeVolume(k === "ArrowUp" ? 5 : -5);
+  else if (/^[0-9]$/.test(k) && !typing && inUse) act = once(() => seekTo(player.duration * Number(k) / 10));
+  if (!act) {
+    if (active && !passesThrough(event)) swallow();   // active: nothing else gets through
+    return;
+  }
+  swallow();                   // the keyer and the text keyboard don't see it
+  act();
+}, true);
+
+/* and the key's release isn't the keyer's either */
+window.addEventListener("keyup", event => {
+  if (!playerKeysDown.delete(event.code)) return;
+  event.stopPropagation();
+}, true);
 
 /* a new speed changes the timeline */
 /* a new speed: the player re-times itself and carries on */
@@ -2292,7 +2877,7 @@ for (const id of ["#opt-wpm", "#opt-fwpm"]) {
 
 function pasteIn(raw) {
   if (!raw || !raw.trim()) return false;
-  const { words } = share.readPaste(raw);
+  const { words, morse } = share.readPaste(raw);
   if (!words.length) return false;
   keyer.cancel();
   const add = tokensOf(words);
@@ -2305,7 +2890,10 @@ function pasteIn(raw) {
   took.push(...add.map(() => null));
   lastInput = performance.now();
   setTyped(plainText(wordsOf(tokens)) ?? typed);
-  update();
+  /* switch to how it arrived: Morse to the key, text to the keyboard */
+  const want = morse ? "key" : "type";
+  if (want !== mode) setMode(want);
+  putKeysAway(true);   // the keys step aside: it's there to read or play
   return true;
 }
 
@@ -2331,7 +2919,7 @@ function openShare(open) {
   if (!open) return;
   /* it drops down from just under the share button */
   menu.style.setProperty("--share-top", Math.round($("#share-toggle").getBoundingClientRect().bottom + 8) + "px");
-  const p = playable();
+  const p = shareable();
   const words = p?.words ?? [];
   for (const b of menu.querySelectorAll("#share-copy button, .saves button, #share-native button")) b.disabled = !words.length;
   for (const b of menu.querySelectorAll("[data-soon]")) b.disabled = true;   // not ready yet
@@ -2350,13 +2938,7 @@ $("#share-toggle").addEventListener("click", event => {
 });
 $("#share .close").addEventListener("click", () => openShare(false));
 
-/* close on a tap outside, or Escape */
-document.addEventListener("pointerdown", event => {
-  if (!menu.hidden && !menu.contains(event.target) && event.target !== $("#share-toggle") && !event.target.closest("#privacy-pop")) openShare(false);
-});
-document.addEventListener("keydown", event => {
-  if (event.key === "Escape" && !menu.hidden) openShare(false);
-});
+/* Escape closes it (see ESCAPE); so does a tap outside (see "a tap outside a popup") */
 
 async function copy(text, what) {
   try {
@@ -2370,7 +2952,7 @@ async function copy(text, what) {
 menu.addEventListener("click", async event => {
   const b = event.target.closest("button[data-do]");
   if (!b || b.disabled) return;
-  const p = playable();
+  const p = shareable();
   const words = p?.words ?? [];
   switch (b.dataset.do) {
     case "copy-morse": return copy(share.morseText(words), "the Morse");
@@ -2379,6 +2961,9 @@ menu.addEventListener("click", async event => {
     case "save-txt":
       share.save(share.textFile(words), share.fileName(words, "txt"));
       return note("saved .txt");
+    case "save-sh":
+      share.save(share.scriptFile(words, timingNow().unit), share.scriptName(words));
+      return note("saved the script");
     case "save-wav": {
       note("rendering…");
       const blob = await share.renderWav({
@@ -2501,6 +3086,39 @@ function openPrivacy(open) {
   }
 }
 
+/* ~ misheard: why the same marks can be other letters */
+function openHeard(open) {
+  $("#heard-pop").hidden = !open;
+  if (open) $("#heard-pop .close").focus({ preventScroll: true });
+}
+$("#heard-pop .close").addEventListener("click", () => openHeard(false));
+
+/* (i) in the tree column: the character's card, here; the full page is a link in it */
+function openAbout(code) {
+  const pop = $("#about-pop");
+  if (!code) { pop.hidden = true; return; }
+  renderCard($("#about-card"), code);
+  $("#about-title").textContent = `about ${DECODE[code] ?? code}`;
+  $("#about-full").href = aboutHref(code);
+  $("#about-card").scrollTop = $("#about-card").scrollLeft = 0;
+  pop.hidden = false;
+  $("#about-pop .close").focus({ preventScroll: true });
+}
+$("#tree-info").addEventListener("click", event => {
+  /* a plain tap opens the card; a middle click or ⌘/Ctrl-click still opens the page */
+  if (!aboutCode || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) return;
+  event.preventDefault();
+  openAbout(aboutCode);
+});
+$("#about-pop .close").addEventListener("click", () => openAbout(null));
+/* a character in the card: its own card */
+$("#about-card").addEventListener("click", event => {
+  const a = event.target.closest("a[data-code]");
+  if (!a) return;
+  event.preventDefault();
+  openAbout(a.dataset.code);
+});
+
 /* clear history from here too: tap twice, like at the top of the history */
 let popupArmed = null;
 
@@ -2510,8 +3128,9 @@ function resetPopupClear() {
   const b = $("#privacy-clear");
   const n = history.length;
   b.classList.remove("armed");
-  b.disabled = !n;
-  b.textContent = n ? `clear history (${n} message${n === 1 ? "" : "s"})` : "no history to clear";
+  b.disabled = !n && !tokens.length;
+  b.textContent = n ? `clear history (${n} message${n === 1 ? "" : "s"})`
+    : tokens.length ? "clear history (unsent message)" : "no history to clear";
 }
 
 $("#privacy-clear").addEventListener("click", () => {
@@ -2521,6 +3140,7 @@ $("#privacy-clear").addEventListener("click", () => {
     popupArmed = null;
     history = [];
     saveHistory();
+    clearCurrent();
     update();
     b.classList.remove("armed");
     b.disabled = true;
@@ -2536,35 +3156,103 @@ for (const b of document.querySelectorAll(".privacy-open")) {
   b.addEventListener("click", () => openPrivacy($("#privacy-pop").hidden));
 }
 $("#privacy-pop .close").addEventListener("click", () => openPrivacy(false));
-document.addEventListener("pointerdown", event => {
-  if ($("#privacy-pop").hidden || event.target.closest("#privacy-pop, .privacy-open")) return;
-  openPrivacy(false);
-});
 
 /*
- * The note over the keys on arrival: gone at the first tap
- * anywhere. A tap on the note itself is only that (it doesn't
- * key); its (i) opens the details.
+ * A tap outside a popup (share, privacy) only closes it: nothing
+ * underneath keys, plays or opens. Caught on the way down, before
+ * anything else sees it, and the release and click that follow
+ * are swallowed too. The privacy popup sits over the share menu,
+ * so a tap on the menu closes just the privacy popup.
  */
 {
-  const notice = $("#notice");
-  const dismiss = event => {
-    if (notice.hidden) return;
-    notice.hidden = true;
-    document.removeEventListener("pointerdown", dismiss, true);
-    document.removeEventListener("keydown", dismiss, true);
-    if (event?.type === "pointerdown" && notice.contains(event.target)) {
-      event.preventDefault();
-      event.stopPropagation();
-      if (event.target.closest(".privacy-open")) openPrivacy(true);   // the note goes; the details open
-    }
+  let eating = null;
+  const eat = event => { event.preventDefault(); event.stopPropagation(); };
+  const REST = ["pointerup", "click", "mouseup", "touchend"];
+  const stopEating = () => {
+    clearTimeout(eating);
+    for (const t of REST) window.removeEventListener(t, eat, { capture: true });
   };
-  document.addEventListener("pointerdown", dismiss, true);
-  document.addEventListener("keydown", dismiss, true);
+  const eatRest = () => {
+    for (const t of REST) window.addEventListener(t, eat, { capture: true, once: true });
+    /* a drag, or a key that holds back its click, gives no click: stop waiting */
+    eating = setTimeout(stopEating, 700);
+  };
+  window.addEventListener("pointerdown", event => {
+    stopEating();              // a new tap: whatever the last one left behind goes
+    const privacy = $("#privacy-pop"), heard = $("#heard-pop"), hold = $("#hold-pop"), about = $("#about-pop");
+    let closed = false;
+    if (!about.hidden) { if (!about.contains(event.target)) { openAbout(null); closed = true; } }
+    else if (!hold.hidden) { if (!hold.contains(event.target)) { openHold(false); closed = true; } }
+    else if (!heard.hidden) { if (!heard.contains(event.target)) { openHeard(false); closed = true; } }
+    else if (!privacy.hidden && !privacy.contains(event.target)) { openPrivacy(false); closed = true; }
+    else if (privacy.hidden && !menu.hidden && !menu.contains(event.target)) { openShare(false); closed = true; }
+    if (!closed) return;
+    eat(event);
+    eatRest();
+  }, true);
 }
-document.addEventListener("keydown", event => {
-  if (event.key === "Escape" && !$("#privacy-pop").hidden) openPrivacy(false);
-});
+
+/* (the note over the keys on arrival: see ARRIVAL, at the top) */
+
+
+/*
+ * ============================================================
+ * MEDIA KEYS
+ * ============================================================
+ *
+ * A keyboard's (or headset's) play / pause and stop keys work the
+ * player, through the media session where the browser offers one.
+ * Volume up / down / mute stay the system's: the tone follows the
+ * system volume already, and catching them too would do it twice.
+ */
+{
+  const play = () => { if (!player.playing) togglePlay(); };
+  const pause = () => { if (player.playing) togglePlay(); };
+  const acts = { MediaPlayPause: togglePlay, MediaPlay: play, MediaPause: pause, MediaStop: stopPlayback };
+  window.addEventListener("keydown", event => {
+    const act = acts[event.key];
+    if (!act || event.repeat) return;
+    event.preventDefault();
+    act();
+  });
+  const session = navigator.mediaSession;
+  if (session) {
+    for (const [name, fn] of [["play", play], ["pause", pause], ["stop", stopPlayback]]) {
+      try { session.setActionHandler(name, fn); } catch { /* not offered here */ }
+    }
+  }
+}
+
+/*
+ * ============================================================
+ * ESCAPE
+ * ============================================================
+ *
+ * One press, one thing: it closes whatever's on top (the lamp's
+ * warning, the lamp, the privacy popup, the share menu, the paste
+ * bubble, the note on arrival); then lets go of an active player;
+ * with nothing else, it shows or hides the keys, like the chevron.
+ */
+window.addEventListener("keydown", event => {
+  if (event.key !== "Escape" || event.repeat || isChord(event)) return;
+  const open = sel => !$(sel).hidden;
+  if (open("#notice")) return;                                    // its own handler dismisses it
+  if (open("#lamp-warn")) cancelLamp();
+  else if (open("#lamp")) { stopPlayback(); closeLamp(); }
+  else if (open("#privacy-pop")) openPrivacy(false);
+  else if (open("#heard-pop")) openHeard(false);
+  else if (open("#hold-pop")) openHold(false);
+  else if (open("#about-pop")) openAbout(null);
+  else if (open("#share")) openShare(false);
+  else if (open("#paste-bubble")) hideBubble();
+  else if (playerActive) setPlayerActive(false);                   // let go of the player first
+  else {
+    putKeysAway(!inputAway);
+    if (inputAway) document.activeElement?.blur?.();             // the typing field lets go too
+  }
+  event.preventDefault();
+  event.stopPropagation();
+}, true);
 
 
 /*
@@ -2574,9 +3262,11 @@ document.addEventListener("keydown", event => {
  */
 
 loadSettings();
+markFarnsCap();
 applySound();
 applyOutputs();
 applyGlow();
+lightBefore = choice("#opt-light");
 trainView.build();
 setKeyMode($("#opt-key").value);
 

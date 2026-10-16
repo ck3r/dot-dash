@@ -297,7 +297,16 @@ $("#replay").addEventListener("click", () => {
 });
 
 
+/*
+ * #cut (the transmit page's "cut" link): the tree with cut numbers,
+ * for this visit only (the remembered setting is left alone), in view
+ */
+const cutView = location.hash === "#cut";
+if (cutView) $("#opt-numbers").value = "cut";
+
 show(morse.parse(getPayload()));
+
+if (cutView) requestAnimationFrame(() => $(".tree-frame").scrollIntoView({ block: "start" }));
 
 
 /* installable, and usable offline (see /sw.js) */

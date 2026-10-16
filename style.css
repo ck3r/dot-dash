@@ -1,3 +1,27 @@
+/*
+ * A bundled monospace, last before the system's generic one: a
+ * small subset of JetBrains Mono (SIL OFL 1.1, fonts/OFL.txt) with
+ * the letters, the tree's pipes, the blocks and the arrows. Phones
+ * with none of the fonts named before it (Android, mostly) would
+ * otherwise draw pipes and blocks from fonts of other widths, and
+ * the tree would come apart. Where Menlo or Consolas exist, it's
+ * never downloaded.
+ */
+@font-face {
+  font-family: "dot-dash mono";
+  src: url("fonts/dot-dash-mono-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "dot-dash mono";
+  src: url("fonts/dot-dash-mono-Bold.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ============================================================
  * dot-da.sh — bakelite & brass
  * ============================================================
@@ -25,9 +49,30 @@
   --sym:  #e2604f;
   --dim:  #4a443c;
 
-  --mono: Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace;
+  --mono: Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", "dot-dash mono", monospace;
 
   color-scheme: dark;
+}
+
+/*
+ * The light theme ("invert" in /tx settings): the same instrument
+ * printed on paper. Kept after the dark palette above (the preview
+ * card's worker reads the first one).
+ */
+:root.light {
+  --bakelite: #ebe5d7;
+  --paper:    #1f1b17;
+  --graphite: #6d665b;
+  --wire:     #c2baab;
+  --brass:    #9a6a12;
+
+  --dot:  #c4412e;
+  --dash: #2b69ad;
+  --num:  #2b69ad;
+  --sym:  #c4412e;
+  --dim:  #c2baab;
+
+  color-scheme: light;
 }
 
 * {
@@ -644,3 +689,10 @@ button:hover {
     transition: none;
   }
 }
+
+/* opened at the tree (#cut): a little room above its label */
+.tree-frame { scroll-margin-top: 0.75rem; }
+
+/* a signal drawn as shapes, not block characters (fonts draw those
+   at different heights and widths): one character wide per unit */
+.bar .on { background: var(--paper); }

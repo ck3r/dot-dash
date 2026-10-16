@@ -135,7 +135,7 @@ export function createTrace({ canvas, pop, popCanvas, thumb, colors, unit }) {
       pctx.fillRect(a, mid - tall / 2, b - a, tall);
     }
     /* the letters, centred under their marks */
-    pctx.font = `700 ${Math.round(h * 0.3)}px ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace`;
+    pctx.font = `700 ${Math.round(h * 0.3)}px Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", "dot-dash mono", monospace`;
     pctx.textAlign = "center";
     pctx.textBaseline = "alphabetic";
     for (const l of m.letters) {

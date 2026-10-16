@@ -14,6 +14,9 @@
   <title>dot-da.sh / tx</title>
 
   <link rel="icon" type="image/svg+xml" href="../switch.svg">
+  <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }
+  /* the note on arrival: seen in the last 30 days, it stays away (before paint, no flash) */
+  try { if (Date.now() - Number(localStorage.getItem("dot-dash:tx-noticed") || 0) < 30 * 864e5) document.documentElement.classList.add("noticed"); } catch { }</script>
   <link rel="stylesheet" href="../style.css">
   <link rel="stylesheet" href="tx.css">
 </head>
@@ -96,6 +99,7 @@
     <div class="rows saves">
       <span class="lead">save</span>
       <button type="button" data-do="save-txt">.txt</button>
+      <button type="button" data-do="save-sh" title="the message as a script you can run in a terminal">.sh</button>
       <button type="button" data-do="save-wav">.wav</button>
       <button type="button" data-do="save-gif" id="save-gif">.gif</button>
     </div>
@@ -130,7 +134,7 @@
   <section id="lamp-warn" class="popup" role="alertdialog" aria-labelledby="lamp-title" hidden>
     <span class="frame-label" id="lamp-title">signal lamp</span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
-    <p>The signal lamp flashes the whole screen with your message.</p>
+    <p class="what">The signal lamp flashes the whole screen with your message.</p>
     <p class="warn">If flashing light could affect you (for example
     photosensitive epilepsy), please don't use it.</p>
     <p class="fast" hidden></p>
@@ -160,8 +164,9 @@
     <!-- the tree: a magnified view of where you are; >< opens the
          whole tree in the left half, the message moves to the right -->
     <aside class="tree-edge" aria-label="the Morse tree">
-      <button type="button" id="tree-toggle" class="edge-toggle" aria-expanded="false" title="show the whole tree"><svg class="ico" aria-hidden="true"><use href="#i-in"/></svg></button>
-      <div id="local" class="local"></div>
+      <!-- the toggle and the (i) stay put when the tree opens -->
+      <div class="edge-head"><button type="button" id="tree-toggle" class="edge-toggle" aria-expanded="false" title="show the whole tree"><svg class="ico" aria-hidden="true"><use href="#i-in"/></svg></button></div>
+      <div id="local" class="local" title="show the whole tree"></div>
       <!-- the letter that's showing: its marks, its phonetic name, what
            it could be misheard as, and a link to its page on the reference -->
       <div id="about" class="about"></div>
@@ -194,6 +199,45 @@
 
 
 
+  <!-- (i) in the tree column: everything about the character (× / tap outside / Escape);
+       its characters open their own card here; the full page is a link away -->
+  <section id="about-pop" class="popup about-pop" role="dialog" aria-labelledby="about-title" hidden>
+    <span class="frame-label" id="about-title">about</span>
+    <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+    <pre id="about-card" class="overview about-card"></pre>
+    <p class="about-more"><a id="about-full" href="/" target="_blank" rel="noopener">the full page, with the whole tree ↗</a></p>
+  </section>
+
+  <!-- (i) on the text keyboard: the keys that hold more (× / tap outside / Escape) -->
+  <section id="hold-pop" class="popup" role="dialog" aria-labelledby="hold-title" hidden>
+    <span class="frame-label" id="hold-title">hold for more</span>
+    <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+    <p>A key with a mark in its corner holds more: press and hold,
+    slide onto one, and let go. A quick tap is just the letter.</p>
+    <p>What it holds are the letter's descendants in the Morse tree:
+    the numbers and symbols whose code starts with the letter's.
+    V <span class="dot">···</span><span class="dash">−</span> holds
+    3 <span class="dot">···</span><span class="dash">−−</span>;
+    O <span class="dash">−−−</span> holds 8, 9, 0 and the colon.</p>
+    <p>Everything is on the 123 keys too.</p>
+  </section>
+
+  <!-- ~ in the about column: why marks get misheard (× / tap outside / Escape) -->
+  <section id="heard-pop" class="popup" role="dialog" aria-labelledby="heard-title" hidden>
+    <span class="frame-label" id="heard-title">misheard</span>
+    <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+    <p>Morse is two marks and time. A dit is one beat, a dah three;
+    the quiet inside a letter is one beat, between letters three,
+    between words seven.</p>
+    <p>Hands aren't metronomes. Stretch the gap inside a letter and it
+    splits: A <span class="dot">·</span><span class="dash">−</span>
+    is heard as E <span class="dot">·</span> T <span class="dash">−</span>.
+    Rush the gap between letters and they run together the other way.</p>
+    <p>So ears learn whole letters and words by their rhythm, and lean
+    on context; when it still doesn't make sense, ask again (AGN, or ?).
+    The <b>~</b> shows what the same marks could become, cut differently.</p>
+  </section>
+
   <!-- the details, in a small popup (× / tap outside / Escape to close) -->
   <section id="privacy-pop" class="popup" role="dialog" aria-labelledby="privacy-title" hidden>
     <span class="frame-label" id="privacy-title">privacy</span>
@@ -224,13 +268,13 @@
 
     <!-- playback: the current line (or, if it's empty, the last message sent) -->
     <div class="player">
-      <button type="button" id="play" class="play" aria-label="play" title="play (P)"><svg class="ico" aria-hidden="true"><use href="#i-play"/></svg></button>
+      <button type="button" id="play" class="play" aria-label="play" title="play / pause (K; Space while playing)"><svg class="ico" aria-hidden="true"><use href="#i-play"/></svg></button>
       <span id="time" class="time">0.0s</span>
       <!-- the scrub bar draws the message's signal (js/tx-trace.js);
            hold it for a magnified pop-out around the playhead -->
       <span class="seek-wrap">
         <canvas class="trace" aria-hidden="true"></canvas>
-        <input type="range" id="seek" class="seek" min="0" max="0" step="1" value="0" aria-label="position">
+        <input type="range" id="seek" class="seek" min="0" max="0" step="1" value="0" aria-label="position" title="← → a letter, Shift or J L a word, Home End, 0–9 while playing">
       </span>
       <div class="seek-pop" hidden aria-hidden="true"><canvas></canvas></div>
       <button type="button" id="repeat" class="repeat" aria-pressed="false" aria-label="repeat" title="repeat"><svg class="ico" aria-hidden="true"><use href="#i-repeat"/></svg></button>
@@ -277,81 +321,103 @@
     <section id="tray" class="tray" hidden>
       <!--
         what first, then how much: the choices across the top, the
-        faders under them, roughly under their lists (sound under
-        sound and wave, light under light). A setting whose output is
-        off is greyed; touching it switches that output on.
+        faders under them; the look (color, invert) in a column at the
+        right. A setting whose output is off is greyed; touching it
+        switches that output on. The light level is never greyed: the
+        lamp (the glow round the message while the key is down) is
+        always on, and the level dims it.
       -->
       <div class="switches">
+        <!-- key and sound share the room up to the vol | pitch gap -->
+        <div class="lead">
         <label>key
           <select id="opt-key">
-            <option value="tap">tap</option>
+            <option value="off">off</option>
+            <option value="tap" selected>tap</option>
             <option value="straight">straight</option>
             <option value="bug">bug</option>
             <option value="iambic-a">iambic A</option>
             <option value="iambic-b">iambic B</option>
             <option value="ultimatic">ultimatic</option>
+            <option value="text">text</option>
           </select>
+        </label>
+        <!-- Ctrl keys as paddles (a VBand USB adapter); not on touch screens -->
+        <label class="flag ctrl-flag" title="left / right Ctrl key dit / dah, for a VBand USB paddle adapter (off: Ctrl stays free for shortcuts)">ctrl
+          <span class="check"><input type="checkbox" id="opt-ctrl"></span>
         </label>
         <label data-needs="sound">sound
           <select id="opt-sound">
-            <option value="tone">tone</option>
+            <option value="off">off</option>
+            <option value="tone" selected>tone</option>
             <option value="sounder">sounder</option>
             <option value="voice" disabled title="coming soon">voice</option>
-            <option value="off">off</option>
           </select>
         </label>
+        </div>
         <label data-needs="sound">wave
           <select id="opt-wave">
-            <option value="sine">sine</option>
-            <option value="triangle">triangle</option>
-            <option value="square">square</option>
             <option value="off">off</option>
+            <option value="sine" selected>sine</option>
+            <option value="triangle" title="triangle">tri</option>
+            <option value="square">square</option>
+            <option value="sawtooth" title="sawtooth">saw</option>
           </select>
         </label>
         <label data-needs="light">light
           <select id="opt-light">
-            <option value="lamp">lamp</option>
-            <option value="signal">signal lamp</option>
-            <option value="torch" id="torch-choice">flashlight</option>
             <option value="off">off</option>
+            <option value="signal" selected>signal lamp</option>
+            <option value="invert">invert lamp</option>
+            <option value="torch" id="torch-choice">flashlight</option>
           </select>
         </label>
-        <!-- dot red / dash blue: shared with the reference page -->
+      </div>
+
+      <!-- the look, in a column of its own: red / blue marks, and the
+           light (inverted) theme. Both shared with the reference page. -->
+      <div class="flags">
         <label class="flag">color
           <span class="check"><input type="checkbox" id="opt-color" checked></span>
+        </label>
+        <label class="flag">invert
+          <span class="check"><input type="checkbox" id="opt-theme"></span>
+        </label>
+        <label class="flag" title="play back in textbook timing, not as it was keyed">pretty<br>play
+          <span class="check"><input type="checkbox" id="opt-pretty"></span>
         </label>
       </div>
 
       <div class="faders">
         <div class="group">
           <div class="pair">
-            <label class="fader"><output for="opt-wpm">5</output>
-              <input type="range" id="opt-wpm" min="5" max="40" value="5"><span>wpm</span></label>
-            <label class="fader"><output for="opt-fwpm">5</output>
-              <input type="range" id="opt-fwpm" min="5" max="40" value="5"><span>farns.</span></label>
+            <label class="fader"><output for="opt-wpm">10</output>
+              <input type="range" id="opt-wpm" min="5" max="40" value="10"><span>wpm</span></label>
+            <label class="fader"><output for="opt-fwpm">10</output>
+              <span class="track"><input type="range" id="opt-fwpm" min="5" max="40" value="10"><i class="cap" aria-hidden="true"></i></span><span>farns.</span></label>
           </div>
           <span class="group-name">speed</span>
         </div>
         <div class="group" data-needs="sound">
           <div class="pair">
-            <label class="fader"><output for="opt-vol">60</output>
-              <input type="range" id="opt-vol" min="0" max="100" value="60"><span>vol</span></label>
+            <label class="fader"><output for="opt-vol">50</output>
+              <input type="range" id="opt-vol" min="0" max="100" value="50"><span>vol</span></label>
             <label class="fader"><output for="opt-hz">600</output>
               <input type="range" id="opt-hz" min="300" max="1000" step="10" value="600"><span>pitch</span></label>
           </div>
           <span class="group-name">sound</span>
         </div>
-        <div class="group" data-needs="light">
+        <div class="group">
           <div class="pair">
-            <label class="fader"><output for="opt-glow">100</output>
-              <input type="range" id="opt-glow" min="10" max="100" step="5" value="100"><span>level</span></label>
+            <label class="fader"><output for="opt-glow">50</output>
+              <input type="range" id="opt-glow" min="10" max="100" step="5" value="50"><span>level</span></label>
           </div>
           <span class="group-name">light</span>
         </div>
         <div class="group" id="vibe-set" data-needs="vibrate" hidden>
           <div class="pair">
-            <label class="fader"><output for="opt-vibe">60</output>
-              <input type="range" id="opt-vibe" min="0" max="100" value="60"><span>strength</span></label>
+            <label class="fader"><output for="opt-vibe">50</output>
+              <input type="range" id="opt-vibe" min="0" max="100" value="50"><span>strength</span></label>
           </div>
           <span class="group-name">vibrate</span>
         </div>
@@ -372,15 +438,16 @@
     <div id="train" class="train" hidden aria-hidden="true">
       <div class="seg off"><div class="fill"></div><div class="ticks"></div></div>
       <div class="seg on"><div class="fill"></div><div class="ticks"></div></div>
+      <span class="origin" aria-hidden="true"></span>
     </div>
 
     <!-- keyer pad: ↶ ˽ / | dit | dah  (labels follow the key setting) -->
     <div id="pad" class="pad">
-      <button type="button" class="key side" data-act="undo" aria-label="undo">↶</button>
-      <button type="button" class="key side" data-act="letter" aria-label="letter space">˽</button>
-      <button type="button" class="key side" data-act="word" aria-label="word space">/</button>
-      <button type="button" class="key dit" data-act="." aria-label="dit"><b>.</b><span>dit</span></button>
-      <button type="button" class="key dah" data-act="-" aria-label="dah"><b>-</b><span>dah</span></button>
+      <button type="button" class="key side" data-act="undo" aria-label="undo" title="undo (backspace)">↶</button>
+      <button type="button" class="key side" data-act="letter" aria-label="letter space" title="letter space (space)">˽</button>
+      <button type="button" class="key side" data-act="word" aria-label="word space" title="word space (/)">/</button>
+      <button type="button" class="key dit" data-act="." aria-label="dit" title="dit: . [ A 1 (left Ctrl with ctrl keys on)"><b>.</b><span>dit</span></button>
+      <button type="button" class="key dah" data-act="-" aria-label="dah" title="dah: - ] D 3 (right Ctrl with ctrl keys on)"><b>-</b><span>dah</span></button>
     </div>
 
     <!--

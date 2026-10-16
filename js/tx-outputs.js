@@ -8,12 +8,15 @@
  * its own exact scheduling; these follow the signal as it
  * happens.
  *
- * Light, picked in settings:
- *   lamp         the switch's LED + a brass glow round the message
- *                area. Never the whole screen: safe at any speed.
+ * Always: the lamp, the switch's LED and a brass glow round the
+ * message area (never the whole screen: safe at any speed).
+ *
+ * Light (☼), one of, picked in settings:
  *   signal lamp  full screen, for playback (see tx.js: it asks
  *                first, and twice if it would flash faster than
  *                3 times a second)
+ *   invert       the whole screen flips while the key is down (asks
+ *                first, like the signal lamp)
  *   flashlight   the phone's torch (Android Chrome only: it goes
  *                through the camera, so it asks for camera access)
  *
@@ -24,32 +27,51 @@
  */
 
 const PULSE = 20;        // ms per on/off cycle when pulsing
-const LONG = 60000;      // "until told to stop" (a held key)
+const REISSUE = 900;     // ms: a held key re-sends the buzz this often
 
-
+/*
+ * Chrome on Android keeps a vibration pattern to 99 entries of at
+ * most 10 s each, and cuts a longer one short (or drops it), so a
+ * held key is buzzed in short stretches, re-sent while it's held.
+ */
 export function createOutputs({ settings, lampTarget, overlay }) {
   let down = false;
 
   /* ---------- vibration ---------- */
 
-  function buzzPattern(length) {
+  function buzzPattern() {
     const { strength } = settings();
-    if (strength >= 95) return [length];
-    const on = Math.max(4, Math.round(PULSE * strength / 100));
-    const off = PULSE - on;
+    if (strength >= 95) return [REISSUE + 200];
+    const on = Math.max(6, Math.round(PULSE * strength / 100));
+    const off = Math.max(4, PULSE - on);
     const pattern = [];
-    for (let t = 0; t < length; t += PULSE) pattern.push(on, off);
+    for (let t = 0; t < REISSUE + 200 && pattern.length < 96; t += on + off) pattern.push(on, off);
     return pattern;
   }
 
   let buzzing = false;
+  let again = 0;
 
   function vibrate(on) {
     if (!("vibrate" in navigator)) return;
     if (on && !settings().vibrate) return;
     if (!on && !buzzing) return;                    // nothing to stop
     buzzing = on;
-    try { navigator.vibrate(on ? buzzPattern(LONG) : 0); } catch { }
+    clearInterval(again);
+    try {
+      if (on) {
+        navigator.vibrate(buzzPattern());
+        again = setInterval(() => { try { navigator.vibrate(buzzPattern()); } catch { } }, REISSUE);
+      } else {
+        navigator.vibrate(0);
+      }
+    } catch { }
+  }
+
+  /* a short buzz to feel the setting (call it from a tap) */
+  function testBuzz() {
+    if (!("vibrate" in navigator)) return false;
+    try { return navigator.vibrate(buzzPattern().slice(0, 12)); } catch { return false; }
   }
 
   /* ---------- flashlight ---------- */
@@ -92,12 +114,13 @@ export function createOutputs({ settings, lampTarget, overlay }) {
     if (next === down) return;
     down = next;
     const s = settings();
+    lampTarget.classList.toggle("lit", down);          // the lamp: always
     if (s.light) {
       if (s.lightMode === "torch") torch(down);
+      else if (s.lightMode === "invert") document.documentElement.classList.toggle("inverted", down);
       else if (overlay.isOpen()) overlay.flash(down);
-      else lampTarget.classList.toggle("lit", down);
     } else {
-      lampTarget.classList.remove("lit");
+      document.documentElement.classList.remove("inverted");
     }
     vibrate(down);
   }
@@ -106,12 +129,13 @@ export function createOutputs({ settings, lampTarget, overlay }) {
   function quiet() {
     down = false;
     lampTarget.classList.remove("lit");
+    document.documentElement.classList.remove("inverted");
     overlay.flash(false);
     torch(false);
     vibrate(false);
   }
 
-  return { signal, quiet, torchReady, releaseTorch, get down() { return down; } };
+  return { signal, quiet, torchReady, releaseTorch, testBuzz, get down() { return down; } };
 }
 
 

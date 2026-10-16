@@ -35,7 +35,7 @@
 
 const RISE = 0.0015;        // setTargetAtTime constant: ~5 ms to full
 const TONE_LEVEL = 0.5;     // headroom under the master volume
-const WAVE_LEVEL = { sine: 1, triangle: 1, square: 0.55 };   // square is louder for the same peak
+const WAVE_LEVEL = { sine: 1, triangle: 1, square: 0.55, sawtooth: 0.6 };   // square and sawtooth are louder for the same peak
 
 export function createSound(options = {}) {
   let ctx = options.context ?? null;
