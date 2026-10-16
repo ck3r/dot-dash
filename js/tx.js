@@ -2940,6 +2940,39 @@ $("#share .close").addEventListener("click", () => openShare(false));
 
 /* Escape closes it (see ESCAPE); so does a tap outside (see "a tap outside a popup") */
 
+/*
+ * A wait (the .wav rendering, the .gif being made): a small lamp in
+ * the share menu keys the wait prosign, ·−··· (AS), at 20 wpm, over
+ * and over, until it's done.
+ */
+const WAIT_CODE = ".-...";
+let waitTimer = null;
+
+function waitLamp(on) {
+  clearTimeout(waitTimer);
+  const box = $("#share-note");
+  clearTimeout(note.timer);
+  if (!on) { box.textContent = ""; return; }
+  box.textContent = "";
+  const lamp = el("span", "wait-lamp");
+  box.append(lamp, el("span", "wait-label", " AS  wait…"));
+  const unit = 1200 / 20;
+  const steps = [];                                   // [lit, ms] pairs
+  [...WAIT_CODE].forEach((m, i) => {
+    if (i) steps.push([false, unit]);
+    steps.push([true, (m === "." ? 1 : 3) * unit]);
+  });
+  steps.push([false, 7 * unit]);                      // a word space, then again
+  let i = 0;
+  const next = () => {
+    const [lit, ms] = steps[i % steps.length];
+    lamp.classList.toggle("lit", lit);
+    i++;
+    waitTimer = setTimeout(next, ms);
+  };
+  next();
+}
+
 async function copy(text, what) {
   try {
     await navigator.clipboard.writeText(text);
@@ -2965,7 +2998,7 @@ menu.addEventListener("click", async event => {
       share.save(share.scriptFile(words, timingNow().unit), share.scriptName(words));
       return note("saved the script");
     case "save-wav": {
-      note("rendering…");
+      waitLamp(true);
       const blob = await share.renderWav({
         words, rec: p.rec, timing: timingNow(),
         kind: choice("#opt-sound"),
@@ -2973,17 +3006,24 @@ menu.addEventListener("click", async event => {
         pitch: Number($("#opt-hz").value),
         volume: Number($("#opt-vol").value) / 100
       });
+      waitLamp(false);
       share.save(blob, share.fileName(words, "wav"));
       return note("saved .wav");
     }
     case "save-gif": {
-      const a = document.createElement("a");
-      a.href = share.gifLink(words);
-      a.download = share.fileName(words, "gif");
-      document.body.append(a);
-      a.click();
-      a.remove();
-      return note("saving .gif");
+      /* fetched here (it's made on the server), so the wait shows */
+      waitLamp(true);
+      try {
+        const r = await fetch(share.gifLink(words));
+        if (!r.ok) throw new Error(r.status);
+        const blob = await r.blob();
+        waitLamp(false);
+        share.save(blob, share.fileName(words, "gif"));
+        return note("saved .gif");
+      } catch {
+        waitLamp(false);
+        return note("couldn't make the .gif");
+      }
     }
     case "share":
       try {

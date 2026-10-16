@@ -82,6 +82,9 @@ function drawTrees() {
   trees[1].setLayout(branchy ? "branchesV" : "vertical");
   model = currentModel();
   trees.forEach(tree => tree.render(model, compactMode()));
+  for (const s of document.querySelectorAll(".tree-frame .tree .lbl[data-code]")) {
+    if (s.dataset.code) s.dataset.cost = String(morse.cost(s.dataset.code));
+  }
   updateStatus();
 }
 
@@ -102,6 +105,20 @@ for (const [id, key] of [["#opt-style", "style"], ["#opt-numbers", "numbers"], [
 $("#opt-letters").addEventListener("change", drawTrees);
 $("#opt-symbols").addEventListener("change", drawTrees);
 $("#opt-prune").addEventListener("change", drawTrees);
+
+/* weights: each character's cost in units, beside it in the tree
+   (drawn by the CSS from data-cost; it takes no room, so the tree's
+   layout doesn't change) */
+{
+  const box = $("#opt-weights");
+  try { box.checked = localStorage.getItem("dot-dash:weights") === "1"; } catch { }
+  const apply = () => {
+    for (const t of document.querySelectorAll(".tree-frame .tree")) t.classList.toggle("weights", box.checked);
+    try { localStorage.setItem("dot-dash:weights", box.checked ? "1" : "0"); } catch { }
+  };
+  box.addEventListener("change", apply);
+  apply();
+}
 
 /* re-check the fit when the window changes size */
 let resizeTimer = null;
