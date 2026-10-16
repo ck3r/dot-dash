@@ -7,7 +7,26 @@
  * controls and keyer pad pinned at the bottom, under the thumb.
  */
 
+/*
+ * Four type sizes, and only four (1rem = 15px):
+ *   xs  0.72rem  fine print: labels, notes, stats, the time
+ *   s   0.85rem  controls and menus; the phonetic names
+ *   m   1.05rem  the message, the tree, the keyboard's letters
+ *   l   1.3rem   the side keys (↶ ˽ /)
+ * Not type, so not on the scale: icons (svg), the pad's big dot
+ * and dash, keycap Morse labels (sized to fit their key), the
+ * signal lamp's full-screen ghost text, and a prosign (sized to
+ * fit the column).
+ */
+.tx {
+  --fs-xs: 0.72rem;
+  --fs-s: 0.85rem;
+  --fs-m: 1.05rem;
+  --fs-l: 1.3rem;
+}
+
 body.tx {
+  font-size: var(--fs-m);
   /* one height for the input area, whichever is showing (keyer
      pad + timing bar, keyboard, or settings), so switching between
      them never squeezes the message above */
@@ -47,7 +66,7 @@ body.tx {
 }
 
 .tx .send:hover {
-  background: var(--bakelite);
+  background: color-mix(in srgb, var(--paper) 4%, var(--bakelite));
   color: var(--paper);
 }
 
@@ -57,7 +76,6 @@ body.tx {
   .tx .tray-toggle:hover,
   .tx .quiet:hover,
   .tx .input-mode button:hover { color: var(--brass); }
-  .tx .send:not(:disabled):hover { border-color: var(--brass); color: var(--brass); }
 }
 
 
@@ -69,8 +87,63 @@ body.tx {
   align-items: center;
 }
 
-.tx-top .logo {
-  font-size: 1rem;
+.tx-top .home {
+  font-size: var(--fs-m);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.tx-top .home span {
+  color: var(--graphite);
+  font-weight: 400;
+}
+
+/*
+ * The switch on the bottom edge of the message box. Drawn at
+ * 30 px wide; the hinge's centre is (5.6, 21.7) inside it, and
+ * sits exactly on the border line. A strip of background under
+ * the lever cuts the border: open, there's a gap; closed, the
+ * lever fills it.
+ */
+.station {
+  position: relative;
+}
+
+.station .switch {
+  position: absolute;
+  z-index: 3;
+  top: calc(100% + 0.5px);
+  left: calc(50% - 15px);
+  width: 30px;
+  height: 32.5px;
+  margin-top: -21.7px;
+  color: var(--paper);
+  pointer-events: none;
+}
+
+.station .switch svg {
+  position: relative;
+  width: 30px;
+  height: 32.5px;
+  overflow: visible;
+}
+
+.station .switch::before {
+  content: "";
+  position: absolute;
+  left: 1px;
+  width: 28px;              /* ends where the closed lever does */
+  top: calc(21.7px - 2.5px);
+  height: 4px;              /* the border, and the lit border's outer ring */
+  background: var(--bakelite);
+}
+
+/* under the player: settings ⌃ on the left, the actions on the right */
+.control-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1ch;
 }
 
 .top-right {
@@ -79,13 +152,29 @@ body.tx {
   gap: 1.2ch;
 }
 
+.control-row .actions {
+  display: flex;
+  align-items: center;
+  gap: 0.8ch;
+}
+
+.control-row .divider {
+  color: var(--wire);
+}
+
+@media (max-width: 359px) {
+  .control-row .actions { gap: 0.4ch; }
+  .control-row .input-mode button,
+  .tx .control-row .input-mode button:hover { padding: 0.15rem 0.35rem; }
+}
+
 .share-toggle,
 .tx .share-toggle:hover {
   border: 0;
   padding: 0.15rem 0.2rem;
   color: var(--graphite);
   background: transparent;
-  font-size: 0.85rem;
+  font-size: var(--fs-s);
 }
 
 .share-toggle[aria-expanded="true"],
@@ -101,7 +190,7 @@ body.tx {
 .share-menu {
   position: fixed;
   z-index: 10;
-  top: 3rem;
+  top: var(--share-top, 3rem);   /* set on open: just under the share button */
   right: max(0.75rem, calc((100vw - 520px) / 2 + 0.75rem));
   width: min(20rem, calc(100vw - 1.5rem));
   padding: 1rem 0.9rem 0.7rem;
@@ -111,7 +200,7 @@ body.tx {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  font-size: 0.85rem;
+  font-size: var(--fs-s);
 }
 
 .share-menu .frame-label {
@@ -177,6 +266,94 @@ body.tx {
   padding: 0.25rem 0.6rem;
 }
 
+/* ---------- light ---------- */
+
+/* lamp: a brass glow round the message area while the key is closed */
+/* --glow: the light level from settings, 0.1 … 1 */
+.station.lit {
+  --lit: color-mix(in srgb, var(--brass) calc(var(--glow, 1) * 100%), var(--wire));
+  border-color: var(--lit);
+  box-shadow:
+    0 0 0 1px var(--lit),
+    0 0 18px color-mix(in srgb, var(--brass) calc(var(--glow, 1) * 45%), transparent),
+    inset 0 0 28px color-mix(in srgb, var(--brass) calc(var(--glow, 1) * 18%), transparent);
+}
+
+/* signal lamp: the whole screen, dark ↔ paper */
+.lamp {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2rem 1.25rem;
+  background: var(--bakelite);
+  color: color-mix(in srgb, var(--paper) 16%, var(--bakelite));    /* ghost text, barely there */
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.lamp.on {
+  --lit: color-mix(in srgb, var(--paper) calc(var(--glow, 1) * 100%), var(--bakelite));
+  background: var(--lit);
+  color: color-mix(in srgb, var(--bakelite) 14%, var(--lit));
+}
+
+.lamp .ghost {
+  text-align: center;
+  overflow: hidden;
+}
+
+.lamp .ghost-morse {
+  font-size: clamp(1.4rem, 7vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1.3;
+  word-spacing: 0.4em;
+  overflow-wrap: anywhere;
+}
+
+.lamp .ghost-text {
+  margin-top: 1rem;
+  font-size: clamp(1rem, 5vw, 1.6rem);
+  letter-spacing: 0.3em;
+}
+
+.lamp .lamp-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+  text-align: center;
+  font-size: var(--fs-xs);
+}
+
+.popup .warn {
+  color: var(--brass);
+}
+
+.popup .fast {
+  color: var(--dot);
+}
+
+.popup .actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+}
+
+.popup .actions button,
+.tx .popup .actions button:hover {
+  background: transparent;
+}
+
+#lamp-go,
+.tx #lamp-go:hover {
+  border-color: var(--paper);
+  color: var(--paper);
+}
+
 /* the long-press bubble */
 .paste-bubble,
 .tx .paste-bubble:hover {
@@ -187,7 +364,7 @@ body.tx {
   border: 1px solid var(--paper);
   background: var(--paper);
   color: var(--bakelite);
-  font-size: 0.85rem;
+  font-size: var(--fs-s);
 }
 
 .paste-bubble::after {          /* the little pointer underneath */
@@ -211,14 +388,14 @@ body.tx {
   border: 1px solid var(--wire);
   background: var(--bakelite);
   color: var(--brass);
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   white-space: nowrap;
 }
 
 .share-note {
   min-height: 1.2em;
   color: var(--brass);
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
 }
 
 .input-mode {
@@ -241,6 +418,7 @@ body.tx {
   border-color: var(--paper);
   color: var(--paper);
 }
+
 
 
 /* ---------- station: tree edge + field ---------- */
@@ -267,7 +445,7 @@ body.tx {
   border: 0;
   padding: 0.1rem 0.3rem;
   color: var(--graphite);
-  font-size: 0.85rem;
+  font-size: var(--fs-s);
   letter-spacing: -0.1em;
 }
 
@@ -279,7 +457,7 @@ body.tx {
  *                        R   W      children (tap = dit / dah)
  */
 .local {
-  font-size: 15px;
+  font-size: var(--fs-m);
   line-height: 1.25;
   white-space: pre;
   text-align: center;
@@ -308,6 +486,181 @@ body.tx {
 
 .signal .local .dot  { color: var(--dot); }
 .signal .local .dash { color: var(--dash); }
+
+/*
+ * About, under the collapsed tree:
+ *   marks, then the name (one fixed size, --fs-s),
+ *   and at the foot, stacked up from the bottom: cut, misheard as.
+ */
+.about {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding-top: 0.1rem;
+  font-size: var(--fs-m);
+  line-height: 1.15;
+  text-align: center;
+}
+
+.about a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.about-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* the marks, one per row, drawn as the keys draw them */
+.about-marks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3em;
+}
+
+.about-marks i {
+  display: block;
+  height: 0.42em;
+  width: 0.42em;
+  background: var(--paper);
+}
+
+.about-marks i.dash { width: 1.3em; }
+.signal .about-marks i.dot  { background: var(--dot); }
+.signal .about-marks i.dash { background: var(--dash); }
+
+/* the phonetic name, down the column (a letter's first letter bold) */
+.about-name {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--graphite);
+  font-size: var(--fs-s);
+}
+
+.about-name b {
+  color: var(--paper);
+  
+}
+
+/*
+ * The name as a stair, like the old charts: each syllable steps
+ * down and across, centred on the column, with a little more room
+ * between syllables so their letters never touch:
+ *        U
+ *       N
+ *        I
+ *      F
+ *       O
+ *        R
+ *         M
+ * --dx: place across its syllable (centred), --row: letter number,
+ * --syl: syllable number.
+ */
+.about-name.stair {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: calc(var(--rows) * 0.56em + (var(--syls) - 1) * 0.3em + 0.45em);
+}
+
+.about-name.stair > * {
+  position: absolute;
+  left: calc(50% + var(--dx) * 0.72em);
+  top: calc(var(--row) * 0.56em + var(--syl) * 0.3em);
+  transform: translateX(-50%);
+  line-height: 1;
+}
+
+
+/* where the stress falls (AL·fa, ho·TEL): brighter and bold */
+.about-name .stress { color: var(--paper); font-weight: 700; }
+
+/* short screens: the name on one line, small */
+.about-name.flat {
+  flex-direction: row;
+  align-items: baseline;
+  font-size: var(--fs-xs);
+  letter-spacing: -0.02em;
+}
+
+/* a prosign: across, greyed, as big as the column allows */
+.about-prosign {
+  color: var(--graphite);
+  white-space: nowrap;
+  letter-spacing: -0.02em;
+}
+
+/* the foot: cut, then misheard as, sitting on the bottom */
+.about-foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;             /* cut sits right on top of ~ */
+  padding-bottom: 0;
+}
+
+.about-cut,
+.about-heard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: var(--fs-s);
+}
+
+.about-label {
+  color: var(--graphite);
+  font-size: var(--fs-xs);
+  line-height: 1.2;
+}
+
+.about-heard .about-label { font-size: var(--fs-s); line-height: 0.9; }
+.about-cut a,
+.about-heard a { color: var(--paper); font-weight: 700; }
+
+/* (i): the full about on the reference page, at the foot of the
+   column; its box is the collapsed column's width, pinned left, so
+   it doesn't move when the tree opens */
+.edge-foot {
+  margin-top: auto;
+  align-self: flex-start;
+  width: 6.5ch;
+  display: flex;
+  justify-content: center;
+}
+
+.edge-foot .info {
+  margin-bottom: 0.2rem;
+  text-decoration: none;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border: 1px solid var(--graphite);
+  border-radius: 50%;
+  color: var(--graphite);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 1;
+}
+
+@media (hover: hover) {
+  .about a:hover,
+  .about a:hover b { color: var(--brass); }
+  .edge-foot .info:hover { border-color: var(--brass); color: var(--brass); }
+}
 
 .field {
   position: relative;
@@ -355,7 +708,7 @@ body.tx {
 .tx .tape-head button:hover {
   border: 0;
   padding: 0.1rem 0.4rem;
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   color: var(--graphite);
   background: transparent;
 }
@@ -394,11 +747,11 @@ body[data-mode="type"] .entry.current .empty-line {
 
 /* the current line's marker: one slot per row (> and the eye) */
 .entry .marker.two {
-  width: 1.8ch;
+  width: var(--icon);
   display: grid;
   grid-template-rows: repeat(2, calc(1.05rem * 1.2));
   align-items: center;
-  justify-items: start;
+  justify-items: center;     /* > and the eye share a centre line */
 }
 
 .marker .eye,
@@ -406,17 +759,23 @@ body[data-mode="type"] .entry.current .empty-line {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 1.7ch;
+  width: var(--icon);       /* the icon size, centred under (or over) the > */
   height: 100%;
+  font: inherit;
   padding: 0;
   border: 0;
   background: transparent;
   color: var(--graphite);
 }
 
+/* small to look at, roomy to tap */
+.marker .eye { position: relative; }
+.marker .eye::after { content: ""; position: absolute; inset: -4px -10px; }
+
 .marker .eye svg {
   width: 100%;
   height: auto;
+  stroke: none;
 }
 
 .marker .eye[aria-pressed="true"] {
@@ -427,8 +786,8 @@ body[data-mode="type"] .entry.current .empty-line {
  * Hidden row: each word becomes a bar the width of the word
  * (the slashes between words stay visible).
  */
-.tape.hide-p .line .w,
-.tape.hide-m .line .w {
+.tape.hide-p .line .c,
+.tape.hide-m .line .c {
   position: relative;
 }
 
@@ -438,20 +797,27 @@ body[data-mode="type"] .entry.current .empty-line {
   color: transparent !important;
 }
 
-.tape.hide-p .line .w::after,
-.tape.hide-m .line .w::after {
+/* a bar per letter, running on across the gap to the next letter
+   of the same word: one solid bar per word, even when a long word
+   wraps onto another line */
+.tape.hide-p .line .c::after,
+.tape.hide-m .line .c::after {
   content: "";
   position: absolute;
   left: -0.25ch;
   right: -0.25ch;
   height: 0.95em;
-  border-radius: 2px;
   background: color-mix(in srgb, var(--paper) 80%, var(--bakelite));
   pointer-events: none;
 }
 
-.tape.hide-p .line .w::after { bottom: 0.12em; }   /* the letters row */
-.tape.hide-m .line .w::after { top: 0.15em; }      /* the Morse row */
+.tape.hide-p .line .c:not(:last-child)::after,
+.tape.hide-m .line .c:not(:last-child)::after {
+  right: -1.45ch;    /* across the 1.4ch gap to the next letter */
+}
+
+.tape.hide-p .line .c::after { bottom: 0.12em; }   /* the letters row */
+.tape.hide-m .line .c::after { top: 0.15em; }      /* the Morse row */
 
 body[data-mode="type"] .entry.current .line:not(.empty-line) .caret {
   margin-top: calc(1.05rem * 1.2);
@@ -464,7 +830,7 @@ body[data-mode="type"] .entry.current .line:not(.empty-line) .caret {
   flex-wrap: wrap;
   align-items: flex-start;
   gap: 0.6rem 0;
-  font-size: 1.05rem;
+  font-size: var(--fs-m);
   line-height: 1.2;
 }
 
@@ -528,7 +894,7 @@ body[data-mode="type"] .entry.current .line:not(.empty-line) .caret {
   align-items: center;
   gap: 1ch;
   padding: 0.3rem 0.6rem 0.45rem;
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   color: var(--graphite);
   border-top: 1px dashed var(--wire);
 }
@@ -541,6 +907,7 @@ body[data-mode="type"] .entry.current .line:not(.empty-line) .caret {
 
 #stats-morse {
   text-align: right;
+  padding-right: 3rem;     /* clear of the send button in the corner */
 }
 
 .outputs {
@@ -553,7 +920,7 @@ body[data-mode="type"] .entry.current .line:not(.empty-line) .caret {
   border: 0;
   padding: 0.05rem 0.35rem;
   color: var(--wire);
-  font-size: 0.95rem;
+  font-size: var(--fs-s);
 }
 
 .outputs button[aria-pressed="true"],
@@ -563,26 +930,33 @@ body[data-mode="type"] .entry.current .line:not(.empty-line) .caret {
 
 .send {
   position: absolute;
-  left: 50%;
+  right: 0.9rem;     /* the switch has the middle of the edge now */
   bottom: -1.15rem;
-  transform: translateX(-50%);
   width: 2.3rem;
   height: 2.3rem;
   padding: 0;
   border-radius: 50%;
-  background: var(--bakelite);
+  /* a key like the others: the same faint tint and rule, lit
+     while it's pressed (opaque, since it sits on the border) */
+  border: 1px solid var(--wire);
+  background: color-mix(in srgb, var(--paper) 4%, var(--bakelite));
+  color: var(--paper);
   font-weight: 700;
   z-index: 3;
+  touch-action: manipulation;
 }
 
-.send:disabled {
-  border-color: var(--wire);
+.send.pressed,
+.tx .send.pressed:hover {
+  background: var(--paper);
+  color: var(--bakelite);
+}
+
+.send:disabled,
+.tx .send:disabled:hover {
+  background: var(--bakelite);
   color: var(--wire);
   cursor: default;
-}
-
-.send:disabled:hover {
-  background: var(--bakelite);
 }
 
 
@@ -604,7 +978,7 @@ body.tree-open .tree-edge {
 .tree-legend {
   flex: none;
   text-align: center;
-  font-size: 0.68rem;
+  font-size: var(--fs-xs);
   letter-spacing: 0.02em;
   padding-bottom: 0.4rem;
 }
@@ -639,16 +1013,68 @@ body:has(#train:not([hidden])) .pad {
 
 /* ---------- privacy note ---------- */
 
-.privacy {
-  margin-top: 1rem;   /* room for the send button */
-  font-size: 0.72rem;
+/* not ready yet (the spoken .wav, until the recordings are in) */
+.share-menu button[data-soon],
+.tx .share-menu button[data-soon]:hover {
+  color: var(--wire);
+  cursor: default;
+}
+
+.share-menu button[data-soon] .peek { color: var(--wire); }
+
+/* in the share menu, under everything */
+.share-menu .privacy {
+  margin-top: 0.2rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--wire);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
   color: var(--graphite);
+}
+
+/*
+ * On arrival: the same note over the keys (the input area), until
+ * the first tap.
+ */
+.controls {
+  position: relative;
+}
+
+.notice {
+  position: absolute;
+  z-index: 6;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--input-h);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--wire);
+  background: var(--bakelite);
+  color: var(--paper);
+  font-size: var(--fs-s);
+  line-height: 1.6;
   text-align: center;
+  cursor: pointer;
+}
+
+.notice-foot {
+  display: flex;
+  align-items: center;
+  gap: 1ch;
+  font-size: var(--fs-xs);
+  color: var(--graphite);
 }
 
 /* the small (i): a ringed letter, drawn so it looks the same everywhere */
 .privacy .info,
-.tx .privacy .info:hover {
+.tx .privacy .info:hover,
+.notice .info,
+.tx .notice .info:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -660,14 +1086,14 @@ body:has(#train:not([hidden])) .pad {
   border-radius: 50%;
   background: transparent;
   color: var(--graphite);
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   line-height: 1;
   vertical-align: -0.2em;
 }
 
-.privacy .info[aria-expanded="true"],
-.tx .privacy .info[aria-expanded="true"]:hover {
+.privacy-open[aria-expanded="true"],
+.tx .privacy-open[aria-expanded="true"]:hover {
   border-color: var(--paper);
   color: var(--paper);
 }
@@ -684,7 +1110,7 @@ body:has(#train:not([hidden])) .pad {
   border: 1px solid var(--graphite);
   background: var(--bakelite);
   box-shadow: 0 0 0 100vmax color-mix(in srgb, var(--bakelite) 60%, transparent);
-  font-size: 0.82rem;
+  font-size: var(--fs-s);
   line-height: 1.45;
 }
 
@@ -726,7 +1152,7 @@ body:has(#train:not([hidden])) .pad {
   padding: 0.2rem 0.4rem;
   background: transparent;
   color: var(--graphite);
-  font-size: 1rem;
+  font-size: var(--fs-s);
 }
 
 
@@ -737,6 +1163,7 @@ body:has(#train:not([hidden])) .pad {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
+  margin-top: 1.5rem;   /* room for the send button and the switch, below the box */
 }
 
 .player {
@@ -753,7 +1180,7 @@ body:has(#train:not([hidden])) .pad {
 .player .play {
   min-width: 2.2ch;
   color: var(--paper);
-  font-size: 1rem;
+  font-size: var(--fs-s);
 }
 
 .player .play:disabled {
@@ -771,7 +1198,7 @@ body:has(#train:not([hidden])) .pad {
   position: absolute;
   right: -0.35ch;
   top: -0.35em;
-  font-size: 0.6rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   color: var(--brass);
 }
@@ -782,7 +1209,54 @@ body:has(#train:not([hidden])) .pad {
 .tx .player .repeat[aria-pressed="true"]:hover { color: var(--paper); }
 
 /* the scrub bar: a hairline with a paper knob */
+/* the scrub bar: the signal drawn underneath, the range on top */
+.player {
+  position: relative;
+}
+
+.seek-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.seek-wrap .trace {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 14px;
+  width: 100%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* held: the magnified view, above the playhead */
+.seek-pop {
+  position: absolute;
+  z-index: 8;
+  bottom: calc(100% + 6px);
+  width: 9.5rem;
+  height: 3.4rem;
+  padding: 0.25rem;
+  border: 1px solid var(--graphite);
+  background: var(--bakelite);
+  pointer-events: none;
+}
+
+.seek-pop canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* the window's edges fade, so cut-off letters don't jar */
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 14%, #000 86%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 14%, #000 86%, transparent);
+}
+
 .seek {
+  position: relative;
   flex: 1;
   min-width: 0;
   height: 1.4rem;               /* a comfortable target; the line is thin */
@@ -793,25 +1267,28 @@ body:has(#train:not([hidden])) .pad {
   touch-action: none;
 }
 
-.seek::-webkit-slider-runnable-track { height: 1px; background: var(--graphite); }
-.seek::-moz-range-track              { height: 1px; background: var(--graphite); }
+/* the line is drawn by the trace; the range keeps only its playhead,
+   a rounded column (keep its width in step with THUMB in tx.js) */
+.seek::-webkit-slider-runnable-track { height: 1px; background: transparent; }
+.seek::-moz-range-track              { height: 1px; background: transparent; }
 
+/* the playhead: brass, so it stands apart from the played signal */
 .seek::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 11px;
-  height: 11px;
-  margin-top: -5px;
+  width: 4px;
+  height: 18px;
+  margin-top: -8.5px;
   border: 0;
-  border-radius: 50%;
-  background: var(--paper);
+  border-radius: 2px;
+  background: var(--brass);
 }
 
 .seek::-moz-range-thumb {
-  width: 11px;
-  height: 11px;
+  width: 4px;
+  height: 18px;
   border: 0;
-  border-radius: 50%;
-  background: var(--paper);
+  border-radius: 2px;
+  background: var(--brass);
 }
 
 .seek:disabled::-webkit-slider-thumb { background: var(--wire); }
@@ -824,8 +1301,8 @@ body:has(#train:not([hidden])) .pad {
  */
 .player button,
 .tx .player button:hover,
-.player .outputs button,
-.tx .player .outputs button:hover {
+.outputs button,
+.tx .outputs button:hover {
   flex: none;
   width: 2ch;
   padding: 0;
@@ -837,14 +1314,9 @@ body:has(#train:not([hidden])) .pad {
   width: 2.4ch;   /* room for ❚❚ */
 }
 
-/* separates the player from the output toggles */
-.player .divider {
-  color: var(--wire);
-}
-
 .player .time {
   flex: none;     /* its width is set for the longest reading, below */
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   color: var(--graphite);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -876,10 +1348,9 @@ body:has(#train:not([hidden])) .pad {
 }
 
 .tray-toggle {
-  align-self: flex-start;
   border: 0;
   padding: 0;
-  font-size: 0.8rem;
+  font-size: var(--fs-s);
   color: var(--graphite);
 }
 
@@ -897,7 +1368,7 @@ body:has(#train:not([hidden])) .pad {
   overflow-y: auto;
   border-top: 1px dashed var(--wire);
   padding: 0.5rem 0 0.25rem;
-  font-size: 0.8rem;
+  font-size: var(--fs-s);
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
@@ -909,7 +1380,7 @@ body:has(#train:not([hidden])) .pad {
  */
 .faders {
   flex: 1;
-  min-height: 150px;
+  min-height: 140px;   /* sliders stay usable; a short phone scrolls the tray */
   display: flex;
   justify-content: space-around;
   gap: 0.4rem;
@@ -941,7 +1412,7 @@ body:has(#train:not([hidden])) .pad {
   color: var(--graphite);
   border-top: 1px solid var(--wire);
   padding-top: 0.15rem;
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
 }
 
 .fader {
@@ -955,12 +1426,12 @@ body:has(#train:not([hidden])) .pad {
 
 .fader output {
   color: var(--paper);
-  font-size: 0.85rem;
+  font-size: var(--fs-s);
 }
 
 .fader span {
   color: var(--graphite);
-  font-size: 0.68rem;
+  font-size: var(--fs-xs);
   white-space: nowrap;
 }
 
@@ -975,59 +1446,118 @@ body:has(#train:not([hidden])) .pad {
   cursor: pointer;
 }
 
+/* the choices: a row of name-over-value, wrapping two by two on narrow phones */
 .switches {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(5, auto);
   justify-content: space-between;
-  gap: 0.4rem 1rem;
+  gap: 0.35rem 0.4rem;
   color: var(--graphite);
 }
 
-.switches select {
-  font: inherit;
-  color: var(--paper);
-  background: var(--bakelite);
-  border: 0;
-  border-bottom: 1px dotted var(--graphite);
-  margin-left: 0.4ch;
+.switches label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  font-size: var(--fs-xs);
 }
 
-.tray .note {
-  color: var(--brass);
-  font-size: 0.72rem;
+/* our own small chevron (the browser's is wide): room for "color" */
+.switches select {
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  font-size: var(--fs-xs);
+  color: var(--paper);
+  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 5'%3E%3Cpath d='M.5.5 4 4 7.5.5' fill='none' stroke='%238c857a' stroke-width='1.2'/%3E%3C/svg%3E") no-repeat right 0.1rem center / 0.5rem;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px dotted var(--graphite);
+  padding: 0.1rem 0.75rem 0.1rem 0;
+  cursor: pointer;
+}
+
+/* color: the name, and [x] under it */
+.switches .flag {
+  cursor: pointer;
+}
+
+.switches .flag .check {
+  font-size: var(--fs-xs);
+  padding: 0.1rem 0;
+  border-bottom: 1px dotted transparent;   /* lines up with the lists */
+}
+
+.switches option {
+  background: var(--bakelite);
+}
+
+.switches select:disabled {
+  color: var(--graphite);
+}
+
+/* not used by the current choice (the flashlight has no level) */
+.fader:has(input:disabled) {
+  opacity: 0.38;
+}
+
+@media (max-width: 384px) {
+  .switches { grid-template-columns: repeat(3, auto); gap: 0.35rem 0.8rem; }
+}
+
+/*
+ * A setting whose output (♪ ☼ ≋) is off: greyed, but still
+ * touchable. Touching it switches the output on.
+ */
+.tray [data-needs] {
+  transition: opacity 0.15s linear, filter 0.15s linear;
+}
+
+.tray .idle {
+  opacity: 0.38;
+  filter: grayscale(1);
 }
 
 .quiet {
   align-self: flex-start;
   border-color: var(--wire);
   color: var(--graphite);
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   padding: 0.2rem 0.6rem;
 }
 
 
 /* ---------- timing train ---------- */
 
+/* side keys | dit | dah: shared by the pad and the bar above it */
+.tx { --pad-cols: 1fr 1.7fr 2.4fr; }
+
 .train {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  font-size: 0.75rem;
+  display: grid;
+  grid-template-columns: var(--pad-cols);   /* the pad's columns, so it lines up with the keys */
+  column-gap: 6px;
+  font-size: var(--fs-xs);
   color: var(--graphite);
 }
 
-
 .train .seg {
   position: relative;
-  flex: 1 1 0;      /* JS sets flex-grow to each half's length in ms */
   min-width: 0;
   height: 1.6rem;
   border: 1px solid var(--wire);
   overflow: hidden;
 }
 
+/* key up: over the side keys, reaching across the gap to the dit key's edge */
 .train .seg.off {
-  border-left: 0;
+  grid-column: 1;
+  margin-right: -6px;
+  border-right: 0;
+}
+
+/* key down: the dit key's left edge to the dah key's right edge */
+.train .seg.on {
+  grid-column: 2 / span 2;
 }
 
 .train .fill {
@@ -1037,32 +1567,35 @@ body:has(#train:not([hidden])) .pad {
   background: color-mix(in srgb, var(--paper) 22%, var(--bakelite));
 }
 
+.train .seg.off .fill { inset: 0 0 0 auto; }   /* key up grows leftward */
+
 .signal .train .fill.dot  { background: color-mix(in srgb, var(--dot) 55%, var(--bakelite)); }
 .signal .train .fill.dash { background: color-mix(in srgb, var(--dash) 55%, var(--bakelite)); }
 .train .fill.past         { opacity: 0.4; }   /* the last mark, kept while you wait */
 
-/* a tick: a dotted line through the bar with its symbol beside it */
+/* a tick: a dotted line through the bar with its symbol on the
+   side it ends (key down: left of the line; key up: right of it) */
 .train .tick {
   position: absolute;
   top: 0;
   bottom: 0;
-  border-left: 1px dotted var(--wire);
-  padding-left: 0.4ch;
   display: flex;
   align-items: center;
   color: var(--wire);              /* greyed out until it's what you'd get */
-  font-size: 0.9rem;
+  font-size: var(--fs-s);
   font-weight: 700;
   pointer-events: none;
   transition: color 0.05s linear;
 }
 
-.train .tick.split {
-  border-left: 1px solid var(--brass);
-  padding: 0;
-}
+.train .seg.on .tick  { border-right: 1px dotted var(--wire); padding-right: 0.4ch; }
+.train .seg.off .tick { border-left: 1px dotted var(--wire);  padding-left: 0.4ch; }
 
-.train .tick.lit                 { color: var(--paper); border-left-color: var(--graphite); }
+/* where one call turns into the next (dit → dah, ˽ → /) */
+.train .seg.on .tick.split  { padding: 0; border-right: 1px solid var(--brass); }
+.train .seg.off .tick.split { padding: 0; border-left: 1px solid var(--brass); }
+
+.train .tick.lit                 { color: var(--paper); border-color: var(--graphite); }
 
 /* playback: where the ideal length ends (a bright notch top and bottom) */
 .train .ideal {
@@ -1093,7 +1626,7 @@ body:has(#train:not([hidden])) .pad {
 
 .pad {
   display: grid;
-  grid-template-columns: 1fr 1.7fr 2.4fr;
+  grid-template-columns: var(--pad-cols);
   grid-template-rows: repeat(3, 1fr);
   gap: 6px;
   height: var(--input-h);
@@ -1107,7 +1640,7 @@ body:has(#train:not([hidden])) .pad {
   background: color-mix(in srgb, var(--paper) 4%, var(--bakelite));
   color: var(--paper);
   padding: 0;
-  font-size: 1.3rem;
+  font-size: var(--fs-l);
   touch-action: none;   /* a press is a press, never a scroll */
 }
 
@@ -1136,7 +1669,7 @@ body:has(#train:not([hidden])) .pad {
 }
 
 .key span {
-  font-size: 0.85rem;
+  font-size: var(--fs-s);
   color: var(--graphite);
 }
 
@@ -1213,7 +1746,7 @@ body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
 }
 
 .kbd b {
-  font-size: 1rem;
+  font-size: var(--fs-m);
   line-height: 1;
 }
 
@@ -1230,7 +1763,7 @@ body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
 .signal .kbd small .dash { color: var(--dash); }
 
 .kbd .k-layout b {
-  font-size: 0.8rem;
+  font-size: var(--fs-s);
 }
 
 /* keys that hold digits / symbols (long-press): a tick in the corner */
@@ -1284,7 +1817,7 @@ body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
 }
 
 .fan .item b {
-  font-size: 1.15rem;
+  font-size: var(--fs-m);
   line-height: 1;
 }
 
@@ -1321,3 +1854,98 @@ body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
 
 /* the caret keeps its blink under reduced motion: it's a state
    (ready / keying), not movement, as in any text editor */
+
+
+/*
+ * ============================================================
+ * ICONS
+ * ============================================================
+ *
+ * Every tappable symbol that isn't a framed button: chevrons,
+ * close and remove ×, the eye, play / pause, repeat, ♪ ☼ ≋,
+ * the tree's >< and the (i). One drawn size (--icon), centred in
+ * a roomier box to tap.
+ */
+.tx { --icon: 1.2rem; --icon-box: 1.9rem; }
+
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+.tx .frame-label { font-size: var(--fs-s); }
+
+.ico {
+  display: block;
+  flex: none;
+  width: var(--icon);
+  height: var(--icon);
+  overflow: visible;
+}
+
+.edge-toggle,
+.tx .edge-toggle:hover,
+.entry .x,
+.tx .entry .x:hover,
+.popup .close,
+.tx .popup .close:hover,
+.share-menu .close,
+.tx .share-menu .close:hover,
+.player button,
+.tx .player button:hover,
+.outputs button,
+.tx .outputs button:hover,
+.keys-toggle,
+.tx .keys-toggle:hover {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-box);
+  height: var(--icon-box);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  letter-spacing: 0;
+}
+
+.player .play,
+.tx .player .play:hover { width: var(--icon-box); }
+
+.popup .close,
+.share-menu .close { top: 0.1rem; right: 0.15rem; }
+
+.entry .x { align-self: flex-start; margin-top: -0.2rem; }
+
+/* settings and keys: a chevron that points the way it'll go */
+.tray-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4ch;
+}
+
+.tray-toggle .chev,
+.keys-toggle .chev {
+  transition: transform 0.15s;
+}
+
+.tray-toggle[aria-expanded="true"] .chev,
+.keys-toggle[aria-expanded="true"] .chev {
+  transform: rotate(180deg);
+}
+
+.keys-toggle,
+.tx .keys-toggle:hover {
+  color: var(--graphite);
+}
+
+/* the (i) at the foot of the tree: a ring the icon size */
+.edge-foot .info {
+  width: var(--icon);
+  height: var(--icon);
+  font-size: var(--fs-xs);
+}
+
+/* the narrowest phones: a tighter row of controls */
+@media (max-width: 359px) {
+  .tx { --icon-box: 1.6rem; }
+  .control-row .actions { gap: 0.2ch; }
+  .control-row .divider { display: none; }
+  .outputs { gap: 0; }
+}

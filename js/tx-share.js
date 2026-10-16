@@ -94,7 +94,7 @@ export function save(blob, name) {
  * code (tone or sounder, pitch, volume) and the same timeline
  * as playback, so it's your keyed timing when there is one.
  */
-export async function renderWav({ words, rec, timing, kind, pitch, volume }) {
+export async function renderWav({ words, rec, timing, kind, wave = "sine", pitch, volume }) {
   const rate = 44100;
   const line = timeline(words, timing, rec);
   const lead = 0.25, tail = 0.5;
@@ -104,6 +104,7 @@ export async function renderWav({ words, rec, timing, kind, pitch, volume }) {
 
   const sound = createSound({ context: ctx });
   sound.setKind(kind);
+  sound.setWave(wave);
   sound.setPitch(pitch);
   sound.setVolume(volume);
   for (const m of line.marks) sound.mark(lead + m.start / 1000, (m.end - m.start) / 1000);

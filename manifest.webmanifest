@@ -1,0 +1,20 @@
+{
+  "name": "dot-da.sh",
+  "short_name": "dot-da.sh",
+  "description": "Key, type and play Morse code.",
+  "id": "/tx/",
+  "start_url": "/tx/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#1c1916",
+  "theme_color": "#1c1916",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Transmit", "url": "/tx/", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Reference", "short_name": "Reference", "url": "/", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

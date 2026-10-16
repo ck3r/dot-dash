@@ -26,7 +26,7 @@ import { CUT } from "./tree.js";
 /* English letter frequency, most common first (from the project notes) */
 const FREQUENCY = "ETAOINSHRDLCUMWFGYPBVKJXQZ";
 
-const PHONETIC = {
+export const PHONETIC = {
   A: "Alfa", B: "Bravo", C: "Charlie", D: "Delta", E: "Echo", F: "Foxtrot",
   G: "Golf", H: "Hotel", I: "India", J: "Juliett", K: "Kilo", L: "Lima",
   M: "Mike", N: "November", O: "Oscar", P: "Papa", Q: "Quebec", R: "Romeo",
@@ -41,7 +41,7 @@ const PHONETIC = {
  *
  *   code      prosign  sent as  meaning                  also
  */
-const PROSIGNS_BY_CODE = {
+export const PROSIGNS_BY_CODE = {
   "...---...": ["SOS", "S O S", "distress"],
   "...-.-":    ["SK",  "S K",   "end of contact"],
   "........":  ["HH",  "H H",   "error"],
@@ -118,7 +118,7 @@ function ordinal(n) {
  * (what you'd hear if the gaps inside it came out too long).
  */
 
-function splits(code) {
+export function splits(code) {
   const out = [];
   (function walk(rest, parts) {
     if (!rest) {

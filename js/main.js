@@ -298,3 +298,9 @@ $("#replay").addEventListener("click", () => {
 
 
 show(morse.parse(getPayload()));
+
+
+/* installable, and usable offline (see /sw.js) */
+if ("serviceWorker" in navigator) {
+  addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => { }));
+}

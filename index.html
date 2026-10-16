@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#1c1916">
+  <!-- installable: add to home screen (see sw.js) -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="dot-da.sh">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <title>dot-da.sh</title>
 
   <link id="favicon" rel="icon" type="image/svg+xml" href="switch.svg">
@@ -122,52 +128,52 @@
   <h2>Letters</h2>
   <div class="group-row morse-letters">
     <ul class="col-left">
-    <li><a href="/?/.-"><span class="code">.-</span><span class="label">A</span></a></li>
-    <li><a href="/?/-..."><span class="code">-...</span><span class="label">B</span></a></li>
-    <li><a href="/?/-.-."><span class="code">-.-.</span><span class="label">C</span></a></li>
-    <li><a href="/?/-.."><span class="code">-..</span><span class="label">D</span></a></li>
-    <li><a href="/?/."><span class="code">.</span><span class="label">E</span></a></li>
-    <li><a href="/?/..-."><span class="code">..-.</span><span class="label">F</span></a></li>
-    <li><a href="/?/--."><span class="code">--.</span><span class="label">G</span></a></li>
-    <li><a href="/?/...."><span class="code">....</span><span class="label">H</span></a></li>
-    <li><a href="/?/.."><span class="code">..</span><span class="label">I</span></a></li>
-    <li><a href="/?/.---"><span class="code">.---</span><span class="label">J</span></a></li>
-    <li><a href="/?/-.-"><span class="code">-.-</span><span class="label">K</span></a></li>
-    <li><a href="/?/.-.."><span class="code">.-..</span><span class="label">L</span></a></li>
-    <li><a href="/?/--"><span class="code">--</span><span class="label">M</span></a></li>
+    <li><a href="/?/.-"><span class="code">.-</span><span class="say">Alfa</span><span class="label">A</span></a></li>
+    <li><a href="/?/-..."><span class="code">-...</span><span class="say">Bravo</span><span class="label">B</span></a></li>
+    <li><a href="/?/-.-."><span class="code">-.-.</span><span class="say">Charlie</span><span class="label">C</span></a></li>
+    <li><a href="/?/-.."><span class="code">-..</span><span class="say">Delta</span><span class="label">D</span></a></li>
+    <li><a href="/?/."><span class="code">.</span><span class="say">Echo</span><span class="label">E</span></a></li>
+    <li><a href="/?/..-."><span class="code">..-.</span><span class="say">Foxtrot</span><span class="label">F</span></a></li>
+    <li><a href="/?/--."><span class="code">--.</span><span class="say">Golf</span><span class="label">G</span></a></li>
+    <li><a href="/?/...."><span class="code">....</span><span class="say">Hotel</span><span class="label">H</span></a></li>
+    <li><a href="/?/.."><span class="code">..</span><span class="say">India</span><span class="label">I</span></a></li>
+    <li><a href="/?/.---"><span class="code">.---</span><span class="say">Juliett</span><span class="label">J</span></a></li>
+    <li><a href="/?/-.-"><span class="code">-.-</span><span class="say">Kilo</span><span class="label">K</span></a></li>
+    <li><a href="/?/.-.."><span class="code">.-..</span><span class="say">Lima</span><span class="label">L</span></a></li>
+    <li><a href="/?/--"><span class="code">--</span><span class="say">Mike</span><span class="label">M</span></a></li>
     </ul>
     <ul class="col-right">
-    <li><a href="/?/-."><span class="label">N</span><span class="code">-.</span></a></li>
-    <li><a href="/?/---"><span class="label">O</span><span class="code">---</span></a></li>
-    <li><a href="/?/.--."><span class="label">P</span><span class="code">.--.</span></a></li>
-    <li><a href="/?/--.-"><span class="label">Q</span><span class="code">--.-</span></a></li>
-    <li><a href="/?/.-."><span class="label">R</span><span class="code">.-.</span></a></li>
-    <li><a href="/?/..."><span class="label">S</span><span class="code">...</span></a></li>
-    <li><a href="/?/-"><span class="label">T</span><span class="code">-</span></a></li>
-    <li><a href="/?/..-"><span class="label">U</span><span class="code">..-</span></a></li>
-    <li><a href="/?/...-"><span class="label">V</span><span class="code">...-</span></a></li>
-    <li><a href="/?/.--"><span class="label">W</span><span class="code">.--</span></a></li>
-    <li><a href="/?/-..-"><span class="label">X</span><span class="code">-..-</span></a></li>
-    <li><a href="/?/-.--"><span class="label">Y</span><span class="code">-.--</span></a></li>
-    <li><a href="/?/--.."><span class="label">Z</span><span class="code">--..</span></a></li>
+    <li><a href="/?/-."><span class="label">N</span><span class="say">November</span><span class="code">-.</span></a></li>
+    <li><a href="/?/---"><span class="label">O</span><span class="say">Oscar</span><span class="code">---</span></a></li>
+    <li><a href="/?/.--."><span class="label">P</span><span class="say">Papa</span><span class="code">.--.</span></a></li>
+    <li><a href="/?/--.-"><span class="label">Q</span><span class="say">Quebec</span><span class="code">--.-</span></a></li>
+    <li><a href="/?/.-."><span class="label">R</span><span class="say">Romeo</span><span class="code">.-.</span></a></li>
+    <li><a href="/?/..."><span class="label">S</span><span class="say">Sierra</span><span class="code">...</span></a></li>
+    <li><a href="/?/-"><span class="label">T</span><span class="say">Tango</span><span class="code">-</span></a></li>
+    <li><a href="/?/..-"><span class="label">U</span><span class="say">Uniform</span><span class="code">..-</span></a></li>
+    <li><a href="/?/...-"><span class="label">V</span><span class="say">Victor</span><span class="code">...-</span></a></li>
+    <li><a href="/?/.--"><span class="label">W</span><span class="say">Whiskey</span><span class="code">.--</span></a></li>
+    <li><a href="/?/-..-"><span class="label">X</span><span class="say">X-ray</span><span class="code">-..-</span></a></li>
+    <li><a href="/?/-.--"><span class="label">Y</span><span class="say">Yankee</span><span class="code">-.--</span></a></li>
+    <li><a href="/?/--.."><span class="label">Z</span><span class="say">Zulu</span><span class="code">--..</span></a></li>
     </ul>
   </div>
 
   <h2>Numbers</h2>
   <div class="group-row morse-numbers">
     <ul class="col-left">
-    <li><a href="/?/-----"><span class="code">-----</span><span class="label">0</span></a></li>
-    <li><a href="/?/.----"><span class="code">.----</span><span class="label">1</span></a></li>
-    <li><a href="/?/..---"><span class="code">..---</span><span class="label">2</span></a></li>
-    <li><a href="/?/...--"><span class="code">...--</span><span class="label">3</span></a></li>
-    <li><a href="/?/....-"><span class="code">....-</span><span class="label">4</span></a></li>
+    <li><a href="/?/-----"><span class="code">-----</span><span class="say">Zero</span><span class="label">0</span></a></li>
+    <li><a href="/?/.----"><span class="code">.----</span><span class="say">Wun</span><span class="label">1</span></a></li>
+    <li><a href="/?/..---"><span class="code">..---</span><span class="say">Too</span><span class="label">2</span></a></li>
+    <li><a href="/?/...--"><span class="code">...--</span><span class="say">Tree</span><span class="label">3</span></a></li>
+    <li><a href="/?/....-"><span class="code">....-</span><span class="say">Fower</span><span class="label">4</span></a></li>
     </ul>
     <ul class="col-right">
-    <li><a href="/?/....."><span class="label">5</span><span class="code">.....</span></a></li>
-    <li><a href="/?/-...."><span class="label">6</span><span class="code">-....</span></a></li>
-    <li><a href="/?/--..."><span class="label">7</span><span class="code">--...</span></a></li>
-    <li><a href="/?/---.."><span class="label">8</span><span class="code">---..</span></a></li>
-    <li><a href="/?/----."><span class="label">9</span><span class="code">----.</span></a></li>
+    <li><a href="/?/....."><span class="label">5</span><span class="say">Fife</span><span class="code">.....</span></a></li>
+    <li><a href="/?/-...."><span class="label">6</span><span class="say">Six</span><span class="code">-....</span></a></li>
+    <li><a href="/?/--..."><span class="label">7</span><span class="say">Seven</span><span class="code">--...</span></a></li>
+    <li><a href="/?/---.."><span class="label">8</span><span class="say">Ait</span><span class="code">---..</span></a></li>
+    <li><a href="/?/----."><span class="label">9</span><span class="say">Niner</span><span class="code">----.</span></a></li>
     </ul>
   </div>
 

@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#1c1916">
+  <!-- installable: add to home screen (see sw.js) -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="dot-da.sh">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <title>dot-da.sh / tx</title>
 
   <link rel="icon" type="image/svg+xml" href="../switch.svg">
@@ -36,24 +42,33 @@
 
 <body class="tx signal">
 
-  <header class="tx-top">
-    <a href="/" class="logo" aria-label="dot-da.sh home">
-      <svg viewBox="0 0 73 79" width="23" height="25" aria-hidden="true" fill="none">
-        <circle cx="13.66" cy="52.81" r="7" stroke="currentColor" stroke-width="6"/>
-        <rect class="arm" x="16.02" y="47.22" width="56" height="7" rx="3.5" fill="currentColor"/>
-        <circle class="led" cx="13.66" cy="52.81" r="3.6"/>
-      </svg>
-      <span>tx</span>
-    </a>
+  <!--
+    icons: every tappable symbol that isn't a framed button is drawn
+    from these, at one size (--icon in tx.css), so they match on every
+    phone (font symbols like ♪ ☼ ⟲ vary a lot between fonts)
+  -->
+  <svg class="sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-play" viewBox="0 0 24 24"><path d="M7 4.5 19 12 7 19.5Z"/></symbol>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-pause" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M6.5 5h3.5v14H6.5zM14 5h3.5v14H14z"/></symbol>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-repeat" viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.05-4.95"/><path d="M19.5 4v4.5H15"/></symbol>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-sound" viewBox="0 0 24 24"><path d="M14 17.5V4.5c1.5 1.5 4.5 2.5 4.5 6"/><ellipse fill="currentColor" stroke="none" cx="10.5" cy="17.5" rx="3.5" ry="2.8" transform="rotate(-20 10.5 17.5)"/></symbol>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-light" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.8"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></symbol>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-vibrate" viewBox="0 0 24 24"><path d="M3 7.5c3-2.6 6 2.6 9 0s6 2.6 9 0M3 12c3-2.6 6 2.6 9 0s6 2.6 9 0M3 16.5c3-2.6 6 2.6 9 0s6 2.6 9 0"/></symbol>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-chev" viewBox="0 0 24 24"><path d="M6 14.5 12 8.5l6 6"/></symbol>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-x" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-in" viewBox="0 0 24 24"><path d="M4 7l5 5-5 5M20 7l-5 5 5 5"/></symbol>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-out" viewBox="0 0 24 24"><path d="M9 7l-5 5 5 5M15 7l5 5-5 5"/></symbol>
+    </defs>
+  </svg>
 
+  <header class="tx-top">
+    <a href="/" class="home" aria-label="dot-da.sh home">dot-da.sh<span>/tx</span></a>
+
+    <!-- what to do with the message (later: the profile icon goes at the far right) -->
     <div class="top-right">
       <button type="button" id="paste" class="share-toggle" title="paste into the message (or long-press the message)">paste</button>
       <button type="button" id="share-toggle" class="share-toggle" aria-expanded="false" aria-controls="share">share</button>
-      <div class="input-mode" role="group" aria-label="input">
-        <button type="button" data-mode="key" aria-pressed="true" title="key Morse">.-</button>
-        <span aria-hidden="true">⇄</span>
-        <button type="button" data-mode="type" aria-pressed="false" title="type text">A</button>
-      </div>
     </div>
   </header>
 
@@ -72,7 +87,7 @@
   -->
   <section id="share" class="share-menu" hidden aria-label="share">
     <span class="frame-label">share</span>
-    <button type="button" class="close" aria-label="close">×</button>
+    <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
     <div class="rows" id="share-copy">
       <button type="button" data-do="copy-morse"><span>copy morse</span><span class="peek" data-peek="morse"></span></button>
       <button type="button" data-do="copy-text"><span>copy text</span><span class="peek" data-peek="text"></span></button>
@@ -84,10 +99,45 @@
       <button type="button" data-do="save-wav">.wav</button>
       <button type="button" data-do="save-gif" id="save-gif">.gif</button>
     </div>
+    <!-- the message read out in the phonetic alphabet: waiting on the recordings -->
+    <div class="rows" id="share-voice">
+      <button type="button" data-do="save-voice" data-soon disabled title="coming soon"><span>save spoken .wav</span><span class="peek">soon</span></button>
+    </div>
     <div class="rows" id="share-native" hidden>
       <button type="button" data-do="share"><span>share…</span></button>
     </div>
     <p class="share-note" id="share-note" aria-live="polite"></p>
+    <p class="privacy">
+      Morse is an encoding, not encryption.<br>Don't send anything private.
+      <button type="button" class="info privacy-open" aria-label="more about privacy"
+              aria-expanded="false" aria-controls="privacy-pop">i</button>
+    </p>
+  </section>
+
+  <!--
+    signal lamp: playback, full screen, the whole page flashing
+    with each mark (the message faint on top). Tap / Esc to stop.
+  -->
+  <div id="lamp" class="lamp" hidden role="button" tabindex="0" aria-label="signal lamp: tap to stop">
+    <div class="ghost">
+      <p class="ghost-morse"></p>
+      <p class="ghost-text"></p>
+    </div>
+    <p class="lamp-hint">tap anywhere to stop</p>
+  </div>
+
+  <!-- asked before the signal lamp starts (and twice if it's fast) -->
+  <section id="lamp-warn" class="popup" role="alertdialog" aria-labelledby="lamp-title" hidden>
+    <span class="frame-label" id="lamp-title">signal lamp</span>
+    <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+    <p>The signal lamp flashes the whole screen with your message.</p>
+    <p class="warn">If flashing light could affect you (for example
+    photosensitive epilepsy), please don't use it.</p>
+    <p class="fast" hidden></p>
+    <div class="actions">
+      <button type="button" id="lamp-go" class="quiet">start</button>
+      <button type="button" id="lamp-cancel" class="quiet">cancel</button>
+    </div>
   </section>
 
   <!-- long-press the message: a paste bubble, like a text field's -->
@@ -97,16 +147,33 @@
 
   <main class="station">
 
+    <!-- the switch sits ON the box's bottom edge, like the preview card:
+         open, the lever lifts and leaves a gap; closed, it drops into the line -->
+    <span class="logo switch" aria-hidden="true">
+      <svg viewBox="0 0 73 79" fill="none">
+        <circle cx="13.66" cy="52.81" r="7" stroke="currentColor" stroke-width="6"/>
+        <rect class="arm" x="16.02" y="47.22" width="56" height="7" rx="3.5" fill="currentColor"/>
+        <circle class="led" cx="13.66" cy="52.81" r="3.6"/>
+      </svg>
+    </span>
+
     <!-- the tree: a magnified view of where you are; >< opens the
          whole tree in the left half, the message moves to the right -->
     <aside class="tree-edge" aria-label="the Morse tree">
-      <button type="button" id="tree-toggle" class="edge-toggle" aria-expanded="false" title="show the whole tree">&gt;&lt;</button>
+      <button type="button" id="tree-toggle" class="edge-toggle" aria-expanded="false" title="show the whole tree"><svg class="ico" aria-hidden="true"><use href="#i-in"/></svg></button>
       <div id="local" class="local"></div>
+      <!-- the letter that's showing: its marks, its phonetic name, what
+           it could be misheard as, and a link to its page on the reference -->
+      <div id="about" class="about"></div>
       <div id="tree-box" class="tree-box" hidden>
         <p class="tree-legend" aria-hidden="true"><span class="dot">↑DOT</span> <span class="dash">↓DASH</span></p>
         <div id="tree-scroll" class="tree-scroll">
           <pre id="tree" class="tree" aria-label="Morse tree"></pre>
         </div>
+      </div>
+      <!-- (i): same spot whether the tree is collapsed or open -->
+      <div class="edge-foot">
+        <a id="tree-info" class="info" href="/" target="_blank" rel="noopener">i</a>
       </div>
     </aside>
 
@@ -126,16 +193,11 @@
   </main>
 
 
-  <p class="privacy">
-    Morse is an encoding, not encryption.<br>Don't send anything private.
-    <button type="button" id="privacy-info" class="info" aria-label="more about privacy"
-            aria-expanded="false" aria-controls="privacy-pop">i</button>
-  </p>
 
   <!-- the details, in a small popup (× / tap outside / Escape to close) -->
   <section id="privacy-pop" class="popup" role="dialog" aria-labelledby="privacy-title" hidden>
     <span class="frame-label" id="privacy-title">privacy</span>
-    <button type="button" class="close" aria-label="close">×</button>
+    <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
     <p>Morse is an encoding, not encryption: anyone who knows it,
     or pastes it into a decoder, can read your message.</p>
     <p>Shared links show the message decoded in their previews.</p>
@@ -147,26 +209,63 @@
 
   <div class="controls">
 
-    <!-- playback: the current line (or, if it's empty, the last message sent) -->
-    <div class="player">
-      <button type="button" id="play" class="play" aria-label="play" title="play (P)">▷</button>
-      <span id="time" class="time">0.0s</span>
-      <input type="range" id="seek" class="seek" min="0" max="0" step="1" value="0" aria-label="position">
-      <button type="button" id="repeat" class="repeat" aria-pressed="false" aria-label="repeat" title="repeat">⟲</button>
-      <span class="divider" aria-hidden="true">│</span>
-      <span class="outputs" role="group" aria-label="outputs">
-        <button type="button" data-out="sound" aria-pressed="true" title="sound">♪</button>
-        <button type="button" data-out="light" aria-pressed="false" title="light">☼</button>
-        <button type="button" data-out="vibrate" aria-pressed="false" title="vibration">≋</button>
-      </span>
+    <!--
+      on arrival: the privacy note sits over the keys until the first
+      tap anywhere (that tap doesn't key). It lives in share after that.
+    -->
+    <div id="notice" class="notice" role="note">
+      <p>Morse is an encoding, not encryption.<br>Don't send anything private.</p>
+      <p class="notice-foot">
+        <button type="button" class="info privacy-open" aria-label="more about privacy"
+                aria-expanded="false" aria-controls="privacy-pop">i</button>
+        <span>tap anywhere to start</span>
+      </p>
     </div>
 
-    <button type="button" id="tray-toggle" class="tray-toggle" aria-expanded="false" aria-controls="tray">
-      <span class="chev">⌃</span> settings
-    </button>
+    <!-- playback: the current line (or, if it's empty, the last message sent) -->
+    <div class="player">
+      <button type="button" id="play" class="play" aria-label="play" title="play (P)"><svg class="ico" aria-hidden="true"><use href="#i-play"/></svg></button>
+      <span id="time" class="time">0.0s</span>
+      <!-- the scrub bar draws the message's signal (js/tx-trace.js);
+           hold it for a magnified pop-out around the playhead -->
+      <span class="seek-wrap">
+        <canvas class="trace" aria-hidden="true"></canvas>
+        <input type="range" id="seek" class="seek" min="0" max="0" step="1" value="0" aria-label="position">
+      </span>
+      <div class="seek-pop" hidden aria-hidden="true"><canvas></canvas></div>
+      <button type="button" id="repeat" class="repeat" aria-pressed="false" aria-label="repeat" title="repeat"><svg class="ico" aria-hidden="true"><use href="#i-repeat"/></svg></button>
+    </div>
 
     <!--
-      settings: laid out now, wired up in later steps.
+      under the player, in thumb's reach:
+
+        ⌃ settings              ♪ ☼ ≋ │ [.-] ⇄ [A]
+
+      the outputs sit by the settings they grey out; the input mode
+      (key Morse / type text) right above the pad or keyboard it swaps
+    -->
+    <div class="control-row">
+      <button type="button" id="tray-toggle" class="tray-toggle" aria-expanded="false" aria-controls="tray">
+        <svg class="ico chev" aria-hidden="true"><use href="#i-chev"/></svg> settings
+      </button>
+      <div class="actions">
+        <span class="outputs" role="group" aria-label="outputs">
+          <button type="button" data-out="sound" aria-pressed="true" title="sound"><svg class="ico" aria-hidden="true"><use href="#i-sound"/></svg></button>
+          <button type="button" data-out="light" aria-pressed="false" title="light"><svg class="ico" aria-hidden="true"><use href="#i-light"/></svg></button>
+          <button type="button" data-out="vibrate" aria-pressed="false" title="vibration"><svg class="ico" aria-hidden="true"><use href="#i-vibrate"/></svg></button>
+        </span>
+        <span class="divider" aria-hidden="true">│</span>
+        <div class="input-mode" role="group" aria-label="input">
+          <button type="button" data-mode="key" aria-pressed="true" title="key Morse">.-</button>
+          <span aria-hidden="true">⇄</span>
+          <button type="button" data-mode="type" aria-pressed="false" title="type text">A</button>
+        </div>
+        <button type="button" id="keys-toggle" class="keys-toggle" aria-expanded="true" aria-controls="pad type" title="hide the keys (read mode)"><svg class="ico chev" aria-hidden="true"><use href="#i-chev"/></svg></button>
+      </div>
+    </div>
+
+    <!--
+      settings
 
         20     20      600   60     60      ← value on top
         ┃      ┃       ┃     ┃      ┃
@@ -176,34 +275,12 @@
        └─ speed ─┘   └─ sound ─┘  vibrate
     -->
     <section id="tray" class="tray" hidden>
-      <div class="faders">
-        <div class="group">
-          <div class="pair">
-            <label class="fader"><output for="opt-wpm">5</output>
-              <input type="range" id="opt-wpm" min="5" max="40" value="5"><span>wpm</span></label>
-            <label class="fader"><output for="opt-fwpm">5</output>
-              <input type="range" id="opt-fwpm" min="5" max="40" value="5"><span>farns.</span></label>
-          </div>
-          <span class="group-name">speed</span>
-        </div>
-        <div class="group">
-          <div class="pair">
-            <label class="fader"><output for="opt-hz">600</output>
-              <input type="range" id="opt-hz" min="300" max="1000" step="10" value="600"><span>pitch</span></label>
-            <label class="fader"><output for="opt-vol">60</output>
-              <input type="range" id="opt-vol" min="0" max="100" value="60"><span>vol</span></label>
-          </div>
-          <span class="group-name">sound</span>
-        </div>
-        <div class="group" id="vibe-set" hidden>
-          <div class="pair">
-            <label class="fader"><output for="opt-vibe">60</output>
-              <input type="range" id="opt-vibe" min="0" max="100" value="60"><span>strength</span></label>
-          </div>
-          <span class="group-name">vibrate</span>
-        </div>
-      </div>
-
+      <!--
+        what first, then how much: the choices across the top, the
+        faders under them, roughly under their lists (sound under
+        sound and wave, light under light). A setting whose output is
+        off is greyed; touching it switches that output on.
+      -->
       <div class="switches">
         <label>key
           <select id="opt-key">
@@ -215,36 +292,86 @@
             <option value="ultimatic">ultimatic</option>
           </select>
         </label>
-        <label>sound
+        <label data-needs="sound">sound
           <select id="opt-sound">
             <option value="tone">tone</option>
             <option value="sounder">sounder</option>
+            <option value="voice" disabled title="coming soon">voice</option>
+            <option value="off">off</option>
           </select>
         </label>
-        <label>light
+        <label data-needs="sound">wave
+          <select id="opt-wave">
+            <option value="sine">sine</option>
+            <option value="triangle">triangle</option>
+            <option value="square">square</option>
+            <option value="off">off</option>
+          </select>
+        </label>
+        <label data-needs="light">light
           <select id="opt-light">
             <option value="lamp">lamp</option>
             <option value="signal">signal lamp</option>
-            <option value="torch" id="torch-choice" hidden>flashlight</option>
+            <option value="torch" id="torch-choice">flashlight</option>
+            <option value="off">off</option>
           </select>
+        </label>
+        <!-- dot red / dash blue: shared with the reference page -->
+        <label class="flag">color
+          <span class="check"><input type="checkbox" id="opt-color" checked></span>
         </label>
       </div>
 
-      <p class="note">sound, light and vibration aren't wired yet.</p>
+      <div class="faders">
+        <div class="group">
+          <div class="pair">
+            <label class="fader"><output for="opt-wpm">5</output>
+              <input type="range" id="opt-wpm" min="5" max="40" value="5"><span>wpm</span></label>
+            <label class="fader"><output for="opt-fwpm">5</output>
+              <input type="range" id="opt-fwpm" min="5" max="40" value="5"><span>farns.</span></label>
+          </div>
+          <span class="group-name">speed</span>
+        </div>
+        <div class="group" data-needs="sound">
+          <div class="pair">
+            <label class="fader"><output for="opt-vol">60</output>
+              <input type="range" id="opt-vol" min="0" max="100" value="60"><span>vol</span></label>
+            <label class="fader"><output for="opt-hz">600</output>
+              <input type="range" id="opt-hz" min="300" max="1000" step="10" value="600"><span>pitch</span></label>
+          </div>
+          <span class="group-name">sound</span>
+        </div>
+        <div class="group" data-needs="light">
+          <div class="pair">
+            <label class="fader"><output for="opt-glow">100</output>
+              <input type="range" id="opt-glow" min="10" max="100" step="5" value="100"><span>level</span></label>
+          </div>
+          <span class="group-name">light</span>
+        </div>
+        <div class="group" id="vibe-set" data-needs="vibrate" hidden>
+          <div class="pair">
+            <label class="fader"><output for="opt-vibe">60</output>
+              <input type="range" id="opt-vibe" min="0" max="100" value="60"><span>strength</span></label>
+          </div>
+          <span class="group-name">vibrate</span>
+        </div>
+      </div>
     </section>
 
 
     <!--
-      timing train (timed keying). Both halves always shown, each
-      as wide as its share of real time:
+      timing train (timed keying), lined up with the keys below:
+      time starts at the dit key's left edge. Key down runs right
+      (a full dit at the dit key's edge, a full dah at the dah
+      key's); key up runs left (the word gap at the far edge).
 
-        ├──.──┃──-──┤├─────˽──────/──┤
-            key held          key up
-      The half in use fills; the symbol you'd get right now lights.
+        ├/──┃─˽─┃──┼────.┃────┃────-┤
+          key up    │     key down
+      The side in use fills; the call you'd get right now lights.
     -->
     <div id="train" class="train" hidden aria-hidden="true">
-      <div class="seg on"><div class="fill"></div><div class="ticks"></div></div>
       <div class="seg off"><div class="fill"></div><div class="ticks"></div></div>
+      <div class="seg on"><div class="fill"></div><div class="ticks"></div></div>
     </div>
 
     <!-- keyer pad: ↶ ˽ / | dit | dah  (labels follow the key setting) -->

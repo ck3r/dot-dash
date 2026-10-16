@@ -472,8 +472,9 @@ export function vertical(model) {
     const hasDot = isUnit(dot);
     const hasDash = isUnit(dash);
 
-    /* the "──" leading in is the parent's arm (root: a stub) */
-    const lead = parent === "" ? part("bar", "") : part("arm", parent);
+    /* the "──" into the fork belongs to the step OUT of this node,
+       so it lights in the colour of the next mark (like the fork) */
+    const lead = part("bar", parent);
 
     put(g, y - 1, c - 2, ".", part("mark", dot));
     put(g, y - 1, c - 1, model.label(dot).ch, label(model, dot));
@@ -687,7 +688,7 @@ const LEGEND = {
 };
 
 
-export function createTree(element, initialLayout) {
+export function createTree(element, initialLayout, { legend: showLegend = true } = {}) {
   let layout = initialLayout;
   let spans = [];
   let lit = [];
@@ -721,17 +722,19 @@ export function createTree(element, initialLayout) {
     lit = [];
     landed = [];
 
-    /* legend line */
-    const [dot, mid, dash] = LEGEND[layout];
-    const legend = dot + mid + dash;
-    const pad = !VERTICAL.has(layout)
-      ? " ".repeat(Math.max(0, Math.floor((width - legend.length) / 2)))
-      : "";
-    element.append(pad);
-    element.append(span(dot, "legend dot"));
-    element.append(mid);
-    element.append(span(dash, "legend dash"));
-    element.append("\n\n");
+    /* legend line (unless the page draws its own) */
+    if (showLegend) {
+      const [dot, mid, dash] = LEGEND[layout];
+      const legend = dot + mid + dash;
+      const pad = !VERTICAL.has(layout)
+        ? " ".repeat(Math.max(0, Math.floor((width - legend.length) / 2)))
+        : "";
+      element.append(pad);
+      element.append(span(dot, "legend dot"));
+      element.append(mid);
+      element.append(span(dash, "legend dash"));
+      element.append("\n\n");
+    }
 
     /* rows: merge neighbouring cells that share an owner */
     for (const row of g) {

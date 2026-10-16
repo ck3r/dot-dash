@@ -514,6 +514,7 @@ button:hover {
 .morse-code li a {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   gap: 1ch;
   padding: 0 0.5ch;
   text-decoration: none;
@@ -536,9 +537,28 @@ button:hover {
   color: inherit;
 }
 
+/* the phonetic name, greyed, beside its character (on the inner
+   side, so the codes stay at the outer edges) */
+.morse-code .say {
+  color: var(--graphite);
+  opacity: 0.75;
+  font-size: 0.78em;
+  white-space: nowrap;
+}
+
+.morse-code .col-left .say  { margin-left: auto; }
+.morse-code .col-right .say { margin-right: auto; }
+
 /* wing effect: codes at the outer edge of each column */
 .morse-code .col-left .code {
   text-align: right;
+}
+
+/* the narrowest phones: tighter, so both wings and their names fit */
+@media (max-width: 360px) {
+  .morse-code .group-row { gap: 0.75rem !important; }
+  .morse-code li a { gap: 0.6ch; padding: 0; }
+  .morse-code .say { font-size: 0.68em; letter-spacing: -0.02em; }
 }
 
 /*

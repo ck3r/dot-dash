@@ -23,12 +23,15 @@
  * (lossless: prosigns and codes with no letter survive).
  */
 
-import { DECODE, ENCODE, TREE, encode, parse, format, cost } from "./morse.js";
-import { createTree, buildModel } from "./tree.js";
+import { DECODE, ENCODE, TREE, encode, parse, format } from "./morse.js";
+import { createTree, buildModel, CUT } from "./tree.js";
 import { createKeyer, timing, MODES } from "./tx-keyer.js";
 import { createSound } from "./tx-sound.js";
 import { createPlayer, timeline } from "./tx-player.js";
 import * as share from "./tx-share.js";
+import { createOutputs, flashRate } from "./tx-outputs.js";
+import { PHONETIC, PROSIGNS_BY_CODE, splits } from "./overview.js";
+import { createTrace } from "./tx-trace.js";
 
 const $ = s => document.querySelector(s);
 
@@ -116,6 +119,7 @@ function tokensOf(words) {
 
 function press(act, timing = null) {
   lastInput = performance.now();
+  if (act === "." || act === "-" || act === "undo") localCleared = false;
   if (timing) timing.unit = Math.round(timingNow().unit * 10) / 10;   // the speed it was keyed at
   const last = tokens[tokens.length - 1];
   switch (act) {
@@ -151,6 +155,7 @@ function send() {
   tokens = [];
   took = [];
   setTyped("");
+  trace.rest();
   update();
 }
 
@@ -239,7 +244,8 @@ function drawTape() {
     l.title = "tap to key it again";
     l.addEventListener("click", () => recall(i));
     li.append(l);
-    const x = el("button", "x", "x");
+    const x = el("button", "x");
+    x.innerHTML = icon("x");
     x.type = "button";
     x.setAttribute("aria-label", "remove from history");
     x.addEventListener("click", () => {
@@ -266,7 +272,8 @@ function drawTape() {
   } else {
     const words = word.length || path ? [...done, word] : done;
     li.append(line(words, { path, slash, caret: true }));
-    const x = el("button", "x", "x");
+    const x = el("button", "x");
+    x.innerHTML = icon("x");
     x.type = "button";
     x.setAttribute("aria-label", "clear this message");
     x.addEventListener("click", () => {
@@ -320,8 +327,11 @@ try {
   hidden = typeof saved === "boolean" ? saved : !!(saved && (saved.key || saved.type));
 } catch { }
 
-const EYE_OPEN = `<svg viewBox="0 0 24 16" aria-hidden="true"><path d="M1.5 8C5.5 2.5 18.5 2.5 22.5 8C18.5 13.5 5.5 13.5 1.5 8Z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="8" r="2.8" fill="currentColor"/></svg>`;
-const EYE_SHUT = `<svg viewBox="0 0 24 16" aria-hidden="true"><path d="M1.5 6C5.5 11.5 18.5 11.5 22.5 6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 9.8 5 12.6M12 11.1v3.1M17.5 9.8 19 12.6" stroke="currentColor" stroke-width="1.4"/></svg>`;
+/* an icon from the sprite in tx/index.html */
+const icon = name => `<svg class="ico" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+
+const EYE_OPEN = `<svg class="ico eye-ico" viewBox="0 0 24 16" aria-hidden="true"><path d="M1.5 8C5.5 2.5 18.5 2.5 22.5 8C18.5 13.5 5.5 13.5 1.5 8Z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="8" r="2.8" fill="currentColor"/></svg>`;
+const EYE_SHUT = `<svg class="ico eye-ico" viewBox="0 0 24 16" aria-hidden="true"><path d="M1.5 6C5.5 11.5 18.5 11.5 22.5 6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 9.8 5 12.6M12 11.1v3.1M17.5 9.8 19 12.6" stroke="currentColor" stroke-width="1.4"/></svg>`;
 
 function markerColumn() {
   const col = el("span", "marker two");
@@ -363,23 +373,62 @@ const PEEK = 26;   // px of the previous message left showing
 function settleTape() {
   const tape = $("#tape");
   const cur = tape.querySelector(".current");
+  placeMarker(cur);
   const prev = cur.previousElementSibling;
   const peek = prev ? Math.min(PEEK, prev.offsetHeight) : 0;
   tape.style.setProperty("--peek", peek + "px");
   const padBottom = parseFloat(getComputedStyle(tape).paddingBottom) || 0;
+
+  /* read mode: no keys, so let the history fill the space above */
+  if (document.body.classList.contains("reading")) {
+    cur.style.minHeight = "";
+    tape.scrollTop = tape.scrollHeight;
+    fadeTape();
+    return;
+  }
+
   cur.style.minHeight = Math.max(0, tape.clientHeight - peek - padBottom) + "px";
   tape.scrollTop = cur.offsetTop - peek;
 
-  /* a long message: follow the caret down instead */
+  /* a long message: follow the caret down instead, keeping its
+     whole line in view (both rows, with the > and the eye) */
   const caret = cur.querySelector(".caret");
   if (caret) {
-    const bottom = caret.offsetTop + caret.offsetHeight + 12;
+    const marker = cur.querySelector(".marker");
+    const top = tape.getBoundingClientRect().top - tape.scrollTop;
+    const lowest = Math.max(caret.getBoundingClientRect().bottom, marker?.getBoundingClientRect().bottom ?? 0);
+    const bottom = lowest - top + 8;
     if (bottom > tape.scrollTop + tape.clientHeight) tape.scrollTop = bottom - tape.clientHeight;
   }
   fadeTape();
 }
 
-/* fade the top edge while there's history above the view */
+/*
+ * The > and the eye ride beside the caret: a message that wraps
+ * onto more lines takes them down with it, so they never scroll
+ * out of view while you write.
+ *
+ *     .-- --- .-. .-.. -..        (earlier lines)
+ *      W   O   R   L   D
+ *   >  .-. ▌                      ← the line the caret is on
+ *   👁  R
+ */
+function placeMarker(cur) {
+  const marker = cur.querySelector(".marker");
+  const line = cur.querySelector(".line");
+  const caret = cur.querySelector(".caret");
+  if (!marker) return;
+  let shift = 0;
+  /* nothing written yet: the hint already lines up with the marker */
+  if (line && caret && !line.classList.contains("empty-line")) {
+    /* the top of the caret's row pair (in typing mode the caret
+       sits one row down, on the letters) */
+    const slot = caret.getBoundingClientRect().top - (parseFloat(getComputedStyle(caret).marginTop) || 0);
+    shift = Math.max(0, Math.round(slot - line.getBoundingClientRect().top));
+  }
+  marker.style.transform = shift ? `translateY(${shift}px)` : "";
+}
+
 /* fade the top edge only while there's history above the view */
 function fadeTape() {
   const tape = $("#tape");
@@ -407,11 +456,9 @@ function plainText(words) {
 
 
 /*
- * stats:  chars        dits · dahs
- *         words              time
- * Time counts each letter's cost (marks, gaps and its trailing
- * letter space) plus the longer word spaces, in units; seconds
- * at the speed setting (one unit = 1.2 s / wpm).
+ * stats:  chars                 dits
+ *         words                 dahs
+ * (how long it takes is the player's: its readout, by the play button)
  */
 function drawStats() {
   const words = wordsOf(tokens);
@@ -420,15 +467,9 @@ function drawStats() {
   if (!codes.length) { left.textContent = right.textContent = ""; return; }
   const dits = codes.join("").split("").filter(s => s === ".").length;
   const dahs = codes.join("").length - dits;
-  /* marks and the gaps inside letters at letter speed; the gaps
-     between letters and words as stretched by Farnsworth */
-  const t = timingNow();
-  const inside = codes.reduce((n, c) => n + cost(c) - 3, 0);   // cost() = marks + inner gaps + 3
-  const ms = inside * t.unit + (codes.length - words.length) * t.letter + (words.length - 1) * t.word + t.letter;
-  const seconds = ms / 1000;
   const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
   left.textContent = `${plural(codes.length, "char")}\n${plural(words.length, "word")}`;
-  right.textContent = `${plural(dits, "dit")} · ${plural(dahs, "dah")}\n${seconds.toFixed(1)} s`;
+  right.textContent = `${plural(dits, "dit")}\n${plural(dahs, "dah")}`;
 }
 
 
@@ -454,8 +495,26 @@ function treeChar(code) {
   return ch && ch !== "*" ? ch : "_";
 }
 
+/*
+ * What the collapsed tree (and the about below it) shows: the
+ * letter being keyed, or else the last letter keyed, so it stays
+ * up while you think. Pressing a space (˽ or /) yourself clears
+ * it; a pause doesn't. Undo walks back through what came before.
+ */
+let localCleared = false;
+
+function focusCode() {
+  const { path } = structure(tokens);
+  if (path) return path;
+  if (localCleared) return "";
+  return wordsOf(tokens).flat().at(-1) ?? "";
+}
+
+/* the last letter is showing, finished: tapping a child extends it */
+const showingDone = () => !structure(tokens).path && !localCleared && wordsOf(tokens).length > 0;
+
 function drawLocal(override) {
-  const path = override ?? structure(tokens).path;
+  const path = override ?? focusCode();
   const box = $("#local");
   box.textContent = "";
   const row = (...parts) => {
@@ -479,10 +538,210 @@ function drawLocal(override) {
     const b = el("button", side(mark), treeChar(path + mark));
     b.type = "button";
     b.setAttribute("aria-label", mark === "." ? "dit" : "dah");
-    b.addEventListener("click", () => press(mark));
+    b.addEventListener("click", () => extend(mark));
     return b;
   };
   row(child("."), "  ", child("-"));
+  drawAbout(path);
+}
+
+/* a child of what's showing: key that mark onto it (a finished
+   letter is reopened: R from A, not a new E) */
+function extend(mark) {
+  if (player.playing) stopPlayback();
+  if (mode === "type") {
+    const code = (showingDone() ? wordsOf(tokens).flat().at(-1) : "") + mark;
+    const ch = DECODE[code];
+    if (!ch || ch.startsWith("<")) return;
+    return retype((showingDone() ? typed.slice(0, -1) : typed) + ch);
+  }
+  if (showingDone()) {
+    while (tokens.length && (tokens.at(-1) === " " || tokens.at(-1) === "/")) { tokens.pop(); took.pop(); }
+  }
+  keyer.cancel();
+  press(mark);
+}
+
+/*
+ * ============================================================
+ * ABOUT (under the collapsed tree)
+ * ============================================================
+ *
+ * The rest of the column, for the letter that's showing:
+ *
+ *     ▪        its marks, one per row
+ *     ▬
+ *
+ *     A        its phonetic name, first letter bold
+ *     L
+ *     F
+ *     A
+ *
+ *     ~        what the same marks could be heard as, with the
+ *     E        gaps inside it too long
+ *     T
+ *
+ *     (i)      the full about, on the reference page (always
+ *              there, even with the whole tree open)
+ *
+ * Everything links to that character's page on the reference
+ * (a new tab, so the message you're keying stays put).
+ */
+/* the names in syllables, for the stair: each space starts a new
+   stair; a "·" is a syllable break within one (not drawn) */
+const SYLLABLES = {
+  A: "AL FA", B: "BRA VO", C: "CHAR LIE", D: "DEL TA", E: "ECH O", F: "FOX TROT",
+  G: "GOLF", H: "HO TEL", I: "IN DI A", J: "JU LI ETT", K: "KI LO", L: "LI MA",
+  M: "MIKE", N: "NO VEM BER", O: "OS CAR", P: "PA PA", Q: "QUE BEC", R: "RO ME O",
+  S: "SI ER RA", T: "TAN GO", U: "U·NI FORM", V: "VIC TOR", W: "WHIS KEY",
+  X: "X RAY", Y: "YAN KEE", Z: "ZU LU",
+  0: "ZE RO", 1: "WUN", 2: "TOO", 3: "TREE", 4: "FOW ER", 5: "FIFE",
+  6: "SIX", 7: "SEV EN", 8: "AIT", 9: "NIN ER"
+};
+
+/* the stressed syllable(s), from the official ICAO / ITU spellings
+   (AL fah, hoh TELL, no VEM ber, JEW lee ETT …); the first when
+   not listed */
+const STRESS = { H: [1], J: [0, 2], N: [1], P: [1], Q: [1], S: [1] };
+
+const SPOKEN_DIGITS = {
+  0: "Zero", 1: "Wun", 2: "Too", 3: "Tree", 4: "Fower",
+  5: "Fife", 6: "Six", 7: "Seven", 8: "Ait", 9: "Niner"
+};
+
+const aboutHref = code => `/?/_${code}_`;
+
+function aboutLink(code, cls, title) {
+  const a = el("a", cls);
+  a.href = aboutHref(code);
+  a.target = "_blank";
+  a.rel = "noopener";
+  a.title = title;
+  return a;
+}
+
+let aboutCode = "";
+
+function drawAbout(code) {
+  aboutCode = code;
+  const box = $("#about");
+  box.textContent = "";
+  const ch = code ? DECODE[code] : null;
+
+  /* (i), always at the foot of the column (tree open or not):
+     this character's page, or the reference itself */
+  const info = $("#tree-info");
+  info.href = code ? aboutHref(code) : "/";
+  info.title = code ? `everything about ${ch ?? code}` : "the reference: every character";
+  info.setAttribute("aria-label", info.title);
+  if (!code) return;
+  if (box.hidden) return buildAbout(box, code, ch);
+
+  buildAbout(box, code, ch);
+  fitAbout();
+}
+
+function buildAbout(box, code, ch) {
+  box.textContent = "";
+  /* the marks (always full size), and its name: the phonetic word
+     stepped down the column by syllable, the stressed one bold,
+     or the prosign, across */
+  const main = aboutLink(code, "about-main", ch ? `about ${ch}` : code);
+  const marks = el("span", "about-marks");
+  for (const m of code) marks.append(el("i", m === "." ? "dot" : "dash"));
+  main.append(marks);
+  const spoken = ch && (PHONETIC[ch] ?? SPOKEN_DIGITS[ch]);
+  const prosign = ch?.startsWith("<") ? ch : PROSIGNS_BY_CODE[code] ? `<${PROSIGNS_BY_CODE[code][0]}>` : null;
+  if (spoken) {
+    const name = el("span", "about-name");
+    /* each letter its own row; across, it steps one column per
+       letter and back to the first at each syllable (the stair) */
+    let i = 0;
+    const syllables = (SYLLABLES[ch] ?? spoken.toUpperCase()).split(" ");
+    /* a group is one stair; a "·" inside it is a syllable break that
+       isn't drawn (U·NI FORM: two stairs, three syllables, U stressed) */
+    const stressed = STRESS[ch] ?? [0];
+    let syl = 0;
+    syllables.forEach((group, gi) => {
+      const letters = group.replaceAll("·", "");
+      let k = 0;
+      for (const c of group) {
+        if (c === "·") { syl++; continue; }      // a break, not drawn: the bold shows it
+        /* only the stressed syllable stands out (the letter itself is
+           shown big in the tree, just above) */
+        const e = el("span", stressed.includes(syl) ? "stress" : "", c);
+        e.style.setProperty("--dx", String(k++ - (letters.length - 1) / 2));   // centred on the column
+        e.style.setProperty("--row", String(i));
+        e.style.setProperty("--syl", String(gi));
+        name.append(e);
+        i++;
+      }
+      syl++;
+    });
+    name.style.setProperty("--rows", String(i));
+    name.style.setProperty("--syls", String(syllables.length));
+    name.classList.add("stair");
+    main.append(name);
+  } else if (prosign) {
+    const sign = el("span", "about-prosign", prosign);
+    sign.dataset.len = prosign.length;
+    main.append(sign);
+  }
+  box.append(main);
+
+  /* at the foot, stacked up from the bottom: the cut number it
+     stands for (or stands in for it), then what it could be
+     misheard as */
+  const foot = el("span", "about-foot");
+  const stack = (cls, label, title, codes) => {
+    const s = el("span", cls);
+    s.title = title;
+    s.append(el("span", "about-label", label));
+    for (const c of codes) {
+      const a = aboutLink(c, "", `about ${DECODE[c]}`);
+      a.textContent = DECODE[c];
+      s.append(a);
+    }
+    foot.append(s);
+  };
+
+  /* cut numbers: T for 0, N for 9 … (the long digits, shortened) */
+  const own = DECODE[code];
+  const cutFor = CUT[code];                                     // this code is a cut: for that digit
+  const cutCode = Object.keys(CUT).find(k => CUT[k] === own && k !== code);   // this digit's cut
+  if (cutFor && cutFor !== own) stack("about-cut", "cut", `also sent as a cut ${cutFor}`, [ENCODE[cutFor]]);
+  else if (cutCode) stack("about-cut", "cut", `often sent cut, as ${DECODE[cutCode]}`, [cutCode]);
+
+  const alt = own ? splits(code) : [];
+  if (alt.length) {
+    stack("about-heard", "~", "could be misheard as " + alt.slice(0, 6).map(p => p.map(c => DECODE[c]).join("")).join(", "), alt[0]);
+  }
+  if (foot.firstChild) box.append(foot);
+}
+
+/*
+ * Fit the column. Everything has one size (the name is --fs-s); a
+ * short screen lets go of the misheard line, then the cut, then
+ * lays the name flat, then drops it. The marks and (i) always stay.
+ */
+function fitAbout() {
+  const box = $("#about");
+  if (box.hidden || !box.firstChild) return;
+  const name = box.querySelector(".about-name");
+  const heard = box.querySelector(".about-heard");
+  const cut = box.querySelector(".about-cut");
+  for (const o of [name, heard, cut]) if (o) o.hidden = false;
+  if (name) { name.classList.remove("flat"); name.classList.add("stair"); }
+
+  /* a prosign runs across: as big as the column allows */
+  const sign = box.querySelector(".about-prosign");
+  if (sign) sign.style.fontSize = Math.min(15, (box.clientWidth - 6) / (sign.dataset.len * 0.62)) + "px";
+
+  const over = () => box.scrollHeight > box.clientHeight + 1;
+  if (over() && heard) heard.hidden = true;
+  if (over() && cut) cut.hidden = true;
+  if (over() && name) { name.classList.remove("stair"); name.classList.add("flat"); }
+  if (over() && name) name.hidden = true;
 }
 
 /* Expanded: the letters-only vertical tree, plus branches for
@@ -616,8 +875,9 @@ function openTree(open) {
   document.body.classList.toggle("tree-open", open);
   $("#tree-box").hidden = !open;
   $("#local").hidden = open;
+  $("#about").hidden = open;
   const toggle = $("#tree-toggle");
-  toggle.textContent = open ? "<>" : "><";
+  toggle.innerHTML = icon(open ? "out" : "in");
   toggle.title = open ? "back to where you are" : "show the whole tree";
   toggle.setAttribute("aria-expanded", String(open));
   if (!open) $(".tree-edge").style.width = "";
@@ -641,6 +901,7 @@ new ResizeObserver(() => {
   requestAnimationFrame(() => {
     refitQueued = false;
     if (treeOpen) drawTree();   // re-measures the panel only if the station's size changed
+    else drawAbout(aboutCode);   // the column's size may have changed
     settleTape();
   });
 }).observe($(".station"));
@@ -652,6 +913,7 @@ $("#tree").addEventListener("click", event => {
   if (t.dataset?.kind !== "lbl" || !code || t.classList.contains("blank")) return;
   if (structure(tokens).path) tokens.push(" ");
   tokens.push(...code, " ");
+  localCleared = false;
   update();
 });
 
@@ -698,8 +960,9 @@ const keyer = createKeyer({
   mark: (m, timing) => press(m, timing),
   gap: kind => press(kind),
   signal: down => {
-    logo.classList.toggle("down", down);
+    setSignal(down);
     sound.key(down);
+    if (!player.playing) trace.live(down);   // the held mark grows on the scrub bar
   },
   train: e => trainView.show(e)
 });
@@ -725,8 +988,8 @@ function tapMark(m) {
   if (start - now > 2000) return;
   tapBusyUntil = start + length;
   sound.mark((start - now) / 1000, length / 1000);
-  setTimeout(() => logo.classList.add("down"), start - now);
-  setTimeout(() => logo.classList.remove("down"), start - now + length);
+  setTimeout(() => setSignal(true), start - now);
+  setTimeout(() => setSignal(false), start - now + length);
 }
 
 const LABELS = {
@@ -768,6 +1031,7 @@ function keyDown(button) {
   }
   if (mark) tapMark(act);
   else keyer.cancel();            // undo / spaces cancel a pending gap (timing kept)
+  localCleared = act === "letter" || act === "word";   // a space you pressed: start fresh
   press(act);
 }
 
@@ -815,6 +1079,7 @@ function releaseAll() {
   for (const b of document.querySelectorAll("#pad .key.pressed")) keyUp(b);
   keyer.reset();
   sound.silence();
+  outputs?.quiet();
 }
 window.addEventListener("blur", releaseAll);
 document.addEventListener("visibilitychange", () => { if (document.hidden) releaseAll(); });
@@ -825,9 +1090,21 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) relea
  * TIMING TRAIN
  * ============================================================
  *
- *   held / sent    Δt ├──.──┃──-──┤       0 … 4 units
- *                            └ past here a held key is a dah
- *   waiting        Δt ├───˽────/──┤       0 … past the word gap
+ * The bar lines up with the keys under it. Time runs out from
+ * the left edge of the dit key: key DOWN runs right, key UP
+ * runs left.
+ *
+ *    ← key up                 key down →
+ *   ├/───────┃──˽──┃───┼──────────.┃────────┃────────-┤
+ *   │  ↶ ˽ / │                   │  dit     │    dah   │
+ *    7      5   3  2  0           1     2           3   units
+ *
+ * Key down: a full dit ends at the dit key's right edge, a full
+ * dah at the dah key's. The keys aren't 1:3 wide, so the dah
+ * stretch runs slower (1 unit across the dit key, 2 across the
+ * rest). Key up runs evenly: the word gap (7) at the far left,
+ * the letter gap (3) at 3/7 of the way. Brass lines mark where
+ * one call turns into the next (dit → dah, ˽ → /).
  */
 
 const trainView = (() => {
@@ -837,9 +1114,23 @@ const trainView = (() => {
   let event = null;
   let frame = 0;
 
-  /* the two halves: key held 0…4 units, key up 0…just past a
-     full word gap (so the ideal word gap fits on the bar) */
-  const spans = t => ({ on: 4 * t.unit, off: Math.max(t.wordAt * 1.2, t.word * 1.1) });
+  /* how much of the key-down half the dit key takes (1 unit of 3);
+     measured from the pad, or a true 1:3 for the one-key straight key */
+  let ditShare = 1 / 3;
+  function measure() {
+    const dit = $("#pad .key.dit").getBoundingClientRect();
+    const dah = $("#pad .key.dah").getBoundingClientRect();
+    if (!dit.width) return;                       // pad not shown
+    ditShare = dah.width ? (dit.right - dit.left) / (dah.right - dit.left) : 1 / 3;
+  }
+
+  /* where a time falls, as % of its half */
+  const holdPct = (ms, t) => {
+    const u = Math.max(0, ms / t.unit);
+    const at = u <= 1 ? u * ditShare : ditShare + (Math.min(u, 3) - 1) / 2 * (1 - ditShare);
+    return at * 100;
+  };
+  const gapPct = (ms, t) => Math.min(1, Math.max(0, ms / t.word)) * 100;
 
   /* playback only: where the ideal length would have ended */
   const onIdeal = el("span", "ideal");
@@ -848,41 +1139,49 @@ const trainView = (() => {
   offSeg.append(offIdeal);
   onIdeal.hidden = offIdeal.hidden = true;
 
-  /* labels are built once (and again only if the speed changes) */
+  /* each label sits inside the stretch it ends: left of its line
+     on the key-down side, right of it on the key-up side */
   function build() {
+    measure();
     const t = timingNow();
-    const { on, off } = spans(t);
-    onSeg.style.flexGrow = on;
-    offSeg.style.flexGrow = off;
     ticks = {};
-    const place = (seg, at, max, key, label, cls) => {
-      const tick = el("span", "tick" + (cls ? " " + cls : ""), label);
-      tick.style.left = Math.min(100, (at / max) * 100) + "%";
-      seg.querySelector(".ticks").append(tick);
+    for (const seg of [onSeg, offSeg]) seg.querySelector(".ticks").textContent = "";
+    const hold = (ms, key, label, cls) => {
+      const tick = el("span", "tick " + cls, label);
+      tick.style.right = (100 - holdPct(ms, t)) + "%";
+      onSeg.querySelector(".ticks").append(tick);
       if (key) ticks[key] = tick;
     };
-    for (const seg of [onSeg, offSeg]) seg.querySelector(".ticks").textContent = "";
-    place(onSeg, t.unit, on, ".", ".", "dot");
-    place(onSeg, t.dahAt, on, null, "", "split");
-    place(onSeg, 3 * t.unit, on, "-", "-", "dash");
-    place(offSeg, t.letterAt, off, "letter", "˽");
-    place(offSeg, t.wordAt, off, "word", "/");
+    const wait = (ms, key, label, cls = "") => {
+      const tick = el("span", "tick " + cls, label);
+      tick.style.left = (100 - gapPct(ms, t)) + "%";
+      offSeg.querySelector(".ticks").append(tick);
+      if (key) ticks[key] = tick;
+    };
+    hold(t.unit, ".", ".", "dot");
+    hold(t.dahAt, null, "", "split");
+    hold(3 * t.unit, "-", "-", "dash");
+    wait(t.letterAt, null, "", "split");
+    wait(t.letter, "letter", "˽");
+    wait(t.wordAt, null, "", "split");
+    wait(t.word, "word", "/");
   }
 
   function light(key) {
     for (const [k, tick] of Object.entries(ticks)) tick.classList.toggle("lit", k === key);
   }
 
+  const gapCall = (ms, t) => (ms >= t.wordAt ? "word" : ms >= t.letterAt ? "letter" : null);
+
   function draw() {
     if (!event) return;
     const t = timingNow();
-    const { on, off } = spans(t);
     let elapsed = performance.now() - event.t0;
 
     if (event.phase === "gap") {
-      offFill.style.width = Math.min(100, (elapsed / off) * 100) + "%";
-      light(elapsed >= t.wordAt ? "word" : elapsed >= t.letterAt ? "letter" : null);
-      if (elapsed >= off) { event = null; return; }   // past a word space: rest
+      offFill.style.width = gapPct(elapsed, t) + "%";
+      light(gapCall(elapsed, t));
+      if (elapsed >= t.word) return;                 // a full word space: rest
     } else {
       let mark;
       if (event.phase === "send") {
@@ -892,7 +1191,7 @@ const trainView = (() => {
         mark = elapsed >= t.dahAt ? "-" : ".";
       }
       onFill.className = "fill " + (mark === "." ? "dot" : "dash");
-      onFill.style.width = Math.min(100, (elapsed / on) * 100) + "%";
+      onFill.style.width = holdPct(elapsed, t) + "%";
       light(mark);
     }
     frame = requestAnimationFrame(draw);
@@ -908,23 +1207,15 @@ const trainView = (() => {
       light(null);
       return;
     }
-    if (event.phase === "gap") {
-      onFill.classList.add("past");       // keep the mark just made, dimmed
-      offFill.style.width = "0";
-    } else {
-      onFill.classList.remove("past");
-      offFill.style.width = "0";
-    }
+    onFill.classList.toggle("past", event.phase === "gap");   // keep the mark just made, dimmed
+    offFill.style.width = "0";
     draw();
   }
 
   /*
    * Playback: the bar replays the timing as it was keyed, with a
-   * marker where the ideal length ends, so you can see a dah held
-   * short or a letter space rushed:
-   *
-   *     Δt ├──.──┃██-██▌┤          ▌ = ideal (3 units)
-   *                     └ fill = how long you actually held it
+   * notch where the ideal length ends, so you can see a dah held
+   * short or a letter space rushed.
    */
   function replay(ph) {
     cancelAnimationFrame(frame);
@@ -937,34 +1228,52 @@ const trainView = (() => {
       return;
     }
     const t = timingNow();
-    const { on, off } = spans(t);
-    const pct = (x, max) => Math.min(100, (x / max) * 100) + "%";
     if (ph.kind === "hold") {
       onFill.className = "fill " + (ph.symbol === "." ? "dot" : "dash");
-      onFill.style.width = pct(ph.elapsed, on);
+      onFill.style.width = holdPct(ph.elapsed, t) + "%";
       offFill.style.width = "0";
       onIdeal.hidden = false;
-      onIdeal.style.left = pct(ph.ideal, on);
+      onIdeal.style.left = holdPct(ph.ideal, t) + "%";
       offIdeal.hidden = true;
       light(ph.symbol);
     } else {
       onFill.classList.add("past");
-      offFill.style.width = pct(ph.elapsed, off);
+      offFill.style.width = gapPct(ph.elapsed, t) + "%";
       offIdeal.hidden = false;
-      offIdeal.style.left = pct(ph.ideal, off);
+      offIdeal.style.left = (100 - gapPct(ph.ideal, t)) + "%";
       onIdeal.hidden = true;
-      light(ph.elapsed >= t.wordAt ? "word" : ph.elapsed >= t.letterAt ? "letter" : null);
+      light(gapCall(ph.elapsed, t));
     }
   }
 
   build();
   $("#opt-wpm").addEventListener("input", build);
   $("#opt-fwpm").addEventListener("input", build);
+  /* the keys changed size, appeared, or merged (the straight key) */
+  const refit = new ResizeObserver(build);
+  refit.observe($("#pad .key.dit"));
+  refit.observe($("#pad .key.dah"));
 
   return { show, replay, build };
 })();
 
 $("#send").addEventListener("click", send);
+
+/* lit while held, like the keys (at least a blink, for a quick tap) */
+{
+  const b = $("#send");
+  let since = 0;
+  b.addEventListener("pointerdown", () => {
+    if (b.disabled) return;
+    since = performance.now();
+    b.classList.add("pressed");
+  });
+  const release = () => {
+    const left = Math.max(0, 120 - (performance.now() - since));
+    setTimeout(() => b.classList.remove("pressed"), left);
+  };
+  for (const type of ["pointerup", "pointercancel", "pointerleave"]) b.addEventListener(type, release);
+}
 
 
 /*
@@ -975,12 +1284,37 @@ $("#send").addEventListener("click", send);
 
 let mode = "key";
 
-function setMode(next, focus = true) {
-  mode = next;
-  document.body.dataset.mode = mode;
+/*
+ * Read mode: the caret beside the input modes puts the pad /
+ * keyboard away, so the message gets the room (to read a long
+ * history, or show someone); tap it again, or either mode, to
+ * bring it back. A computer keyboard still keys meanwhile.
+ */
+let inputAway = false;
+
+function markModeButtons() {
   for (const b of document.querySelectorAll(".input-mode button")) {
     b.setAttribute("aria-pressed", String(b.dataset.mode === mode));
   }
+  const t = $("#keys-toggle");
+  t.setAttribute("aria-expanded", String(!inputAway));
+  t.title = inputAway ? "show the keys" : "hide the keys (read mode)";
+  t.setAttribute("aria-label", t.title);
+}
+
+function putKeysAway(away) {
+  inputAway = away;
+  if (inputAway) openTray(false);
+  markModeButtons();
+  showInput();
+  update();     // the message area changed size
+}
+
+function setMode(next, focus = true) {
+  mode = next;
+  inputAway = false;
+  document.body.dataset.mode = mode;
+  markModeButtons();
   showInput();
   if (mode === "type") setTyped(plainText(wordsOf(tokens)) ?? "");
   try { localStorage.setItem("dot-dash:tx-mode", mode); } catch { }
@@ -988,8 +1322,12 @@ function setMode(next, focus = true) {
 }
 
 for (const b of document.querySelectorAll(".input-mode button")) {
-  b.addEventListener("click", () => setMode(b.dataset.mode));
+  b.addEventListener("click", () => {
+    if (b.dataset.mode !== mode) setMode(b.dataset.mode);
+    else if (inputAway) putKeysAway(false);
+  });
 }
+$("#keys-toggle").addEventListener("click", () => putKeysAway(!inputAway));
 
 /*
  * ============================================================
@@ -1019,6 +1357,7 @@ function retype(text) {
 
 function typeKey(k) {
   if (player.playing) stopPlayback();
+  localCleared = k === " ";
   if (k === "back") return retype(typed.slice(0, -1));
   if (k === "send") return send();
   if (k === " ") {
@@ -1042,8 +1381,8 @@ function soundLetter(code) {
   for (const m of code) {
     const length = (m === "." ? 1 : 3) * t.unit;
     sound.mark((start - now) / 1000, length / 1000);
-    setTimeout(() => logo.classList.add("down"), start - now);
-    setTimeout(() => logo.classList.remove("down"), start - now + length);
+    setTimeout(() => setSignal(true), start - now);
+    setTimeout(() => setSignal(false), start - now + length);
     tapBusyUntil = start + length;
     start += length + t.unit;
   }
@@ -1134,8 +1473,7 @@ function buildKeyboard() {
         b.append(el("b", "", "⌫"));
         b.setAttribute("aria-label", "backspace");
       } else if (k === " ") {
-        b.className = "k-space";
-        b.append(el("small", "", "space"));
+        b.className = "k-space";             // a plain bar, like a real space bar
         b.setAttribute("aria-label", "space");
       } else if (k === "send") {
         b.className = "k-send";
@@ -1268,10 +1606,11 @@ document.addEventListener("keydown", event => {
 
 /* the tray takes the pad's place while it's open */
 function showInput() {
-  const trayOpen = !$("#tray").hidden;
-  $("#pad").hidden = trayOpen || mode !== "key";
-  $("#type").hidden = trayOpen || mode !== "type";
-  $("#train").hidden = trayOpen || mode !== "key" || keyMode === "tap";
+  const off = !$("#tray").hidden || inputAway;   // the tray in their place, or put away
+  $("#pad").hidden = off || mode !== "key";
+  $("#type").hidden = off || mode !== "type";
+  $("#train").hidden = off || mode !== "key" || keyMode === "tap";
+  document.body.classList.toggle("reading", inputAway && $("#tray").hidden);
 }
 
 function openTray(open) {
@@ -1283,11 +1622,11 @@ function openTray(open) {
 $("#tray-toggle").addEventListener("click", () => openTray($("#tray").hidden));
 
 /* a tap anywhere above the player closes the settings; the player
-   row itself (play, scrub, repeat, sound / light / vibration) stays
-   usable, so changes can be tried out with the settings still open */
+   (play, scrub, repeat) and the sound / light / vibration toggles
+   stay usable, so changes can be tried out with the settings still open */
 document.addEventListener("pointerdown", event => {
   if ($("#tray").hidden) return;
-  if (event.target.closest("#tray, #tray-toggle, .player")) return;
+  if (event.target.closest("#tray, #tray-toggle, .player, .outputs")) return;
   openTray(false);
 });
 
@@ -1299,7 +1638,7 @@ const settingInputs = () => document.querySelectorAll("#tray input[type=range], 
 
 function saveSettings() {
   const saved = {};
-  for (const input of settingInputs()) saved[input.id] = input.value;
+  for (const input of settingInputs()) saved[input.id] = input.tagName === "SELECT" ? choice(input) : input.value;
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(saved)); } catch { }
 }
 
@@ -1333,15 +1672,198 @@ for (const input of document.querySelectorAll("#tray input[type=range]")) {
 /* only offer what this phone can do */
 $("#vibe-set").hidden = !("vibrate" in navigator);
 document.querySelector('[data-out="vibrate"]').hidden = !("vibrate" in navigator);
-if (!/Android/i.test(navigator.userAgent)) $("#torch-choice").remove();   // placeholder until wired
+/* the flashlight: Chrome on Android exposes the torch through the camera */
+if (!/Android/i.test(navigator.userAgent) || !navigator.mediaDevices?.getUserMedia) $("#torch-choice").remove();
+
+/*
+ * ============================================================
+ * LIGHT & VIBRATION
+ * ============================================================
+ *
+ * One signal for everything that keys: the logo, the light and
+ * the vibration all follow it (sound is scheduled on its own,
+ * to the same timing).
+ */
+const outputOn = name => document.querySelector(`[data-out="${name}"]`).getAttribute("aria-pressed") === "true";
+
+const outputs = createOutputs({
+  settings: () => ({
+    light: outputOn("light"),
+    lightMode: choice("#opt-light"),
+    vibrate: outputOn("vibrate"),
+    strength: Number($("#opt-vibe").value)
+  }),
+  lampTarget: $(".station"),
+  overlay: {
+    isOpen: () => !$("#lamp").hidden,
+    flash: on => $("#lamp").classList.toggle("on", on)
+  }
+});
+
+function setSignal(down) {
+  logo.classList.toggle("down", down);
+  outputs.signal(down);
+}
+
+/* the flashlight needs the camera: ask when it's chosen (a tap) */
+async function wantTorch() {
+  if (choice("#opt-light") !== "torch" || !outputOn("light")) return;
+  if (!(await outputs.torchReady())) {
+    toast("no flashlight available here");
+    $("#opt-light").value = "lamp";
+    saveSettings();
+  }
+}
+$("#opt-light").addEventListener("change", () => {
+  outputs.quiet();
+  if (choice("#opt-light") !== "torch") outputs.releaseTorch();
+  wantTorch();
+});
+
+
+/*
+ * Signal lamp: with the light on and "signal lamp" chosen, play
+ * goes full screen. It asks first; if the message would flash
+ * more than 3 times a second (the photosensitivity guideline),
+ * it asks again, explicitly.
+ */
+const SAFE_RATE = 3;
+let lampAgreed = false;    // this visit: the warning's been read
+let lampPending = null;
+
+function wantsLamp() {
+  return outputOn("light") && choice("#opt-light") === "signal";
+}
+
+function askLamp(rate, go) {
+  lampPending = { go, fast: rate > SAFE_RATE, confirmedFast: false };
+  const fast = $("#lamp-warn .fast");
+  fast.hidden = true;
+  $("#lamp-go").textContent = "start";
+  $("#lamp-warn").hidden = false;
+  $("#lamp-go").focus({ preventScroll: true });
+  lampPending.rate = rate;
+}
+
+$("#lamp-go").addEventListener("click", () => {
+  if (!lampPending) return;
+  if (lampPending.fast && !lampPending.confirmedFast) {
+    /* the second, explicit confirmation */
+    lampPending.confirmedFast = true;
+    const fast = $("#lamp-warn .fast");
+    fast.textContent = `At this speed it flashes about ${lampPending.rate.toFixed(1)} times a second, faster than the 3-per-second safety guideline. Slow it down in settings, or start anyway.`;
+    fast.hidden = false;
+    $("#lamp-go").textContent = "start anyway";
+    return;
+  }
+  lampAgreed = true;
+  $("#lamp-warn").hidden = true;
+  const go = lampPending.go;
+  lampPending = null;
+  go();
+});
+
+function cancelLamp() {
+  $("#lamp-warn").hidden = true;
+  lampPending = null;
+}
+$("#lamp-cancel").addEventListener("click", cancelLamp);
+$("#lamp-warn .close").addEventListener("click", cancelLamp);
+
+function openLamp(words) {
+  /* the ghost respects the eye: a hidden row stays hidden */
+  $("#lamp .ghost-morse").textContent = hidden && mode === "type" ? "" : share.morseText(words);
+  $("#lamp .ghost-text").textContent = hidden && mode === "key" ? "" : share.plainText(words);
+  $("#lamp").classList.remove("on");
+  $("#lamp").hidden = false;
+}
+
+function closeLamp() {
+  if ($("#lamp").hidden) return;
+  $("#lamp").hidden = true;
+  $("#lamp").classList.remove("on");
+}
+
+/* tap or Escape: stop and leave */
+$("#lamp").addEventListener("click", () => { stopPlayback(); closeLamp(); });
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && !$("#lamp").hidden) { stopPlayback(); closeLamp(); }
+  if (event.key === "Escape" && !$("#lamp-warn").hidden) cancelLamp();
+});
+
 
 /* output toggles (♪ ☼ ≋), remembered on this device */
 const OUTPUTS_KEY = "dot-dash:tx-outputs";
 
 function applyOutputs() {
-  const on = name => document.querySelector(`[data-out="${name}"]`).getAttribute("aria-pressed") === "true";
-  sound.setEnabled(on("sound"));
+  sound.setEnabled(outputOn("sound"));
+  outputs.quiet();             // a switched-off light / vibration lets go at once
+  wantTorch();
+  linkSettings();
 }
+
+/*
+ * Settings follow their output: with ♪ off, the sound settings
+ * grey out (☼: light, ≋: vibrate). Touching a greyed one switches
+ * its output back on, and the touch carries on as normal (the
+ * slider slides, the list opens).
+ */
+function linkSettings() {
+  for (const set of document.querySelectorAll("#tray [data-needs]")) {
+    const on = outputOn(set.dataset.needs);
+    set.classList.toggle("idle", !on);
+    const select = set.querySelector("select");
+    if (!select) continue;
+    if (!on && select.value !== "off") {
+      select.dataset.last = select.value;
+      select.value = "off";
+    } else if (on && select.value === "off") {
+      select.value = choice(select);
+    }
+  }
+}
+
+/* a list's real choice, even while it shows "off" */
+function choice(select) {
+  if (typeof select === "string") select = $(select);
+  if (select.value !== "off") return select.value;
+  const last = select.dataset.last;
+  return [...select.options].some(o => o.value === last && last !== "off") ? last : select.options[0].value;
+}
+
+function wake(event) {
+  const set = event.target.closest?.("#tray [data-needs].idle");
+  if (set) document.querySelector(`[data-out="${set.dataset.needs}"]`)?.click();
+}
+$("#tray").addEventListener("pointerdown", wake, true);
+$("#tray").addEventListener("focusin", wake, true);
+
+/* dot red / dash blue: one choice for this page and the reference
+   (the same remembered setting) */
+{
+  const box = $("#opt-color");
+  try {
+    const saved = localStorage.getItem("dot-dash:signal");
+    if (saved !== null) box.checked = saved === "1";
+  } catch { }
+  const apply = () => {
+    document.body.classList.toggle("signal", box.checked);
+    try { localStorage.setItem("dot-dash:signal", box.checked ? "1" : "0"); } catch { }
+  };
+  box.addEventListener("change", apply);
+  apply();
+}
+
+/* light level: dims the lamp's glow and the signal lamp (a web
+   page can't dim the flashlight: it's on or off) */
+function applyGlow() {
+  document.body.style.setProperty("--glow", Number($("#opt-glow").value) / 100);
+  const torch = choice("#opt-light") === "torch";
+  $("#opt-glow").disabled = torch;
+  $("#opt-glow").closest(".fader").title = torch ? "the flashlight can only be on or off" : "";
+}
+$("#opt-glow").addEventListener("input", applyGlow);
+$("#opt-light").addEventListener("change", applyGlow);
 
 try {
   const saved = JSON.parse(localStorage.getItem(OUTPUTS_KEY)) ?? {};
@@ -1350,14 +1872,35 @@ try {
   }
 } catch { }
 
+function setOutput(name, on) {
+  const b = document.querySelector(`[data-out="${name}"]`);
+  if (!b || outputOn(name) === on) return;
+  b.setAttribute("aria-pressed", String(on));
+  const saved = {};
+  for (const o of document.querySelectorAll(".outputs button")) saved[o.dataset.out] = o.getAttribute("aria-pressed") === "true";
+  try { localStorage.setItem(OUTPUTS_KEY, JSON.stringify(saved)); } catch { }
+  applyOutputs();
+}
+
 for (const b of document.querySelectorAll(".outputs button")) {
   b.addEventListener("click", () => {
-    b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true"));
-    const saved = {};
-    for (const o of document.querySelectorAll(".outputs button")) saved[o.dataset.out] = o.getAttribute("aria-pressed") === "true";
-    try { localStorage.setItem(OUTPUTS_KEY, JSON.stringify(saved)); } catch { }
-    applyOutputs();
+    setOutput(b.dataset.out, !outputOn(b.dataset.out));
     if (b.dataset.out === "sound" && sound.enabled) preview();
+  });
+}
+
+/*
+ * Sound, wave and light also have "off" in their lists: the same
+ * switch as ♪ / ☼. Picking off turns the output off; picking
+ * anything else turns it back on. While it's off the list shows
+ * "off" and keeps the last real choice for when it comes back.
+ */
+for (const select of document.querySelectorAll("#opt-sound, #opt-wave, #opt-light")) {
+  select.addEventListener("change", () => {
+    const name = select.closest("[data-needs]").dataset.needs;
+    if (select.value === "off") return setOutput(name, false);
+    select.dataset.last = select.value;
+    setOutput(name, true);
   });
 }
 
@@ -1365,7 +1908,9 @@ for (const b of document.querySelectorAll(".outputs button")) {
 function applySound() {
   sound.setPitch(Number($("#opt-hz").value));
   sound.setVolume(Number($("#opt-vol").value) / 100);
-  sound.setKind($("#opt-sound").value);
+  sound.setKind(choice("#opt-sound"));
+  sound.setWave(choice("#opt-wave"));
+  $("#opt-wave").disabled = choice("#opt-sound") === "sounder";   // the sounder has no wave
 }
 
 function preview() {
@@ -1377,6 +1922,7 @@ function preview() {
 $("#opt-hz").addEventListener("input", applySound);
 $("#opt-vol").addEventListener("input", applySound);
 $("#opt-sound").addEventListener("change", () => { applySound(); preview(); });
+$("#opt-wave").addEventListener("change", () => { applySound(); preview(); });
 $("#opt-hz").addEventListener("change", preview);
 $("#opt-vol").addEventListener("change", preview);
 
@@ -1461,11 +2007,55 @@ function sizeClock(duration) {
   $("#time").style.width = longest.length + "ch";
 }
 
+/*
+ * The scrub bar's trace (js/tx-trace.js): the signal of whatever
+ * play would play, with the playhead's progress.
+ */
+const THUMB = 4;   // px: the playhead column's width (tx.css)
+const css = name => getComputedStyle(document.body).getPropertyValue(name).trim();
+const trace = createTrace({
+  canvas: $(".seek-wrap .trace"),
+  pop: $(".seek-pop"),
+  popCanvas: $(".seek-pop canvas"),
+  thumb: THUMB,
+  unit: () => timingNow().unit,
+  colors: () => {
+    const signal = document.body.classList.contains("signal");
+    const c = { wire: css("--wire"), paper: css("--paper"), brass: css("--brass"), played: css("--paper"), toCome: css("--graphite"),
+                sounder: choice("#opt-sound") === "sounder" };
+    c.markColor = mk => mk.live ? c.brass : signal ? css(mk.mark === "." ? "--dot" : "--dash") : c.paper;
+    return c;
+  }
+});
+
+function refreshTrace() {
+  /* nothing being entered (just sent, or cleared): a blank bar,
+     though play still replays the last message sent */
+  const idle = playKey === null && !wordsOf(tokens).length;
+  const p = idle ? null : playable();
+  if (!p) return trace.line({ marks: [], letters: [], duration: 0 });
+  const line = timeline(p.words, timingNow(), p.rec);
+  for (const l of line.letters) l.label = DECODE[l.code]?.replace(/^<(.*)>$/, "$1") ?? "?";
+  trace.line(line);
+}
+
+new ResizeObserver(() => trace.redraw()).observe($(".seek-wrap"));
+$("#opt-sound").addEventListener("change", () => trace.redraw());   // the sounder draws clicks
+$("#opt-color").addEventListener("change", () => trace.redraw());
+
+/* hold the scrub bar: the magnified pop-out */
+$("#seek").addEventListener("pointerdown", () => { if (!$("#seek").disabled) trace.zoom(true); });
+for (const type of ["pointerup", "pointercancel"]) window.addEventListener(type, () => trace.zoom(false));
+
 function playerControls() {
   const can = !!playable();
   $("#play").disabled = !can;
   $("#seek").disabled = !can;
-  $("#play").textContent = player.playing ? "❚❚" : "▷";
+  const playIcon = player.playing ? "pause" : "play";
+  if ($("#play").dataset.icon !== playIcon) {
+    $("#play").dataset.icon = playIcon;
+    $("#play").innerHTML = icon(playIcon);
+  }
   $("#play").setAttribute("aria-label", player.playing ? "pause" : "play");
   /* nothing loaded yet: show the length of what would play */
   if (playKey === null && !player.playing) {
@@ -1473,6 +2063,8 @@ function playerControls() {
     const d = p ? timeline(p.words, timingNow(), p.rec).duration : 0;
     $("#seek").max = Math.round(d);
     $("#seek").value = 0;
+    refreshTrace();
+    trace.at(0);
     $("#time").textContent = clock(d) + unitOf(d);
     sizeClock(d);
   }
@@ -1485,6 +2077,7 @@ function load() {
     player.load(p.words, p.rec);
     playKey = messageKey();
     playEntry = p.entry;
+    refreshTrace();
     $("#seek").max = Math.round(player.duration);
     sizeClock(player.duration);
   }
@@ -1497,6 +2090,12 @@ function togglePlay() {
     player.pause();
   } else {
     if (!load()) return;
+    if (wantsLamp() && $("#lamp").hidden) {
+      const go = () => { openLamp(playable().words); togglePlay(); };
+      const rate = flashRate(timeline(playable().words, timingNow(), playable().rec));
+      if (!lampAgreed || rate > SAFE_RATE) return askLamp(rate, go);
+      return go();
+    }
     clearTimeout(endTimer);
     keyer.cancel();
     player.play();
@@ -1523,7 +2122,8 @@ function stopPlayback() {
   if (wasPast) settleTape();
   playKey = null;
   playEntry = null;
-  logo.classList.remove("down");
+  setSignal(false);
+  closeLamp();
   playerControls();
 }
 
@@ -1553,8 +2153,9 @@ function clearHighlight() {
 /* every frame while playing (or when the scrub bar moves) */
 function showPlayback(state) {
   $("#seek").value = Math.round(state.position);
+  trace.at(state.position);
   $("#time").textContent = clock(state.position) + "/" + clock(state.duration) + unitOf(state.duration);
-  logo.classList.toggle("down", state.down);
+  setSignal(state.down);
   ghostKeys(state.symbol);
   if (!$("#train").hidden) trainView.replay(state.between ? null : state.phase);
 
@@ -1577,7 +2178,7 @@ function showPlayback(state) {
   }
 
   /* the trees follow the letter being sounded */
-  drawLocal(state.path);
+  drawLocal(state.path || (state.letter >= 0 ? wordsAt()[state.letter] ?? "" : ""));
   if (treeOpen) {
     tree.handle({ type: "start" });
     if (state.path) tree.handle({ type: "beat", path: inTree(state.path) });
@@ -1600,7 +2201,8 @@ function playbackEnded() {
   /* hold the finished message a moment, then rest */
   endTimer = setTimeout(() => {
     clearHighlight();
-    logo.classList.remove("down");
+    setSignal(false);
+    closeLamp();
     drawLocal();
     drawTree();
     settleTape();   // back to the current line
@@ -1667,6 +2269,7 @@ for (const id of ["#opt-wpm", "#opt-fwpm"]) {
   $(id).addEventListener("input", () => {
     if (playKey === null) return playerControls();   // nothing loaded: just the new length
     player.retime();
+    refreshTrace();
     $("#seek").max = Math.round(player.duration);
     sizeClock(player.duration);
     if (!player.playing) showPlayback(player.stateAt(player.position));
@@ -1726,9 +2329,12 @@ function openShare(open) {
   menu.hidden = !open;
   $("#share-toggle").setAttribute("aria-expanded", String(open));
   if (!open) return;
+  /* it drops down from just under the share button */
+  menu.style.setProperty("--share-top", Math.round($("#share-toggle").getBoundingClientRect().bottom + 8) + "px");
   const p = playable();
   const words = p?.words ?? [];
   for (const b of menu.querySelectorAll("#share-copy button, .saves button, #share-native button")) b.disabled = !words.length;
+  for (const b of menu.querySelectorAll("[data-soon]")) b.disabled = true;   // not ready yet
   menu.querySelector('[data-peek="morse"]').textContent = words.length ? share.morseText(words) : "nothing yet";
   menu.querySelector('[data-peek="text"]').textContent = words.length ? share.plainText(words) : "";
   menu.querySelector('[data-peek="link"]').textContent = words.length ? share.linkTo(words).replace(/^https?:\/\//, "") : "";
@@ -1746,7 +2352,7 @@ $("#share .close").addEventListener("click", () => openShare(false));
 
 /* close on a tap outside, or Escape */
 document.addEventListener("pointerdown", event => {
-  if (!menu.hidden && !menu.contains(event.target) && event.target !== $("#share-toggle")) openShare(false);
+  if (!menu.hidden && !menu.contains(event.target) && event.target !== $("#share-toggle") && !event.target.closest("#privacy-pop")) openShare(false);
 });
 document.addEventListener("keydown", event => {
   if (event.key === "Escape" && !menu.hidden) openShare(false);
@@ -1777,7 +2383,8 @@ menu.addEventListener("click", async event => {
       note("rendering…");
       const blob = await share.renderWav({
         words, rec: p.rec, timing: timingNow(),
-        kind: $("#opt-sound").value,
+        kind: choice("#opt-sound"),
+        wave: choice("#opt-wave"),
         pitch: Number($("#opt-hz").value),
         volume: Number($("#opt-vol").value) / 100
       });
@@ -1887,7 +2494,7 @@ document.addEventListener("pointerdown", event => {
 /* the privacy (i): a small popup with the details */
 function openPrivacy(open) {
   $("#privacy-pop").hidden = !open;
-  $("#privacy-info").setAttribute("aria-expanded", String(open));
+  for (const b of document.querySelectorAll(".privacy-open")) b.setAttribute("aria-expanded", String(open));
   if (open) {
     resetPopupClear();
     $("#privacy-pop .close").focus({ preventScroll: true });
@@ -1925,12 +2532,36 @@ $("#privacy-clear").addEventListener("click", () => {
   popupArmed = setTimeout(resetPopupClear, 3000);
 });
 
-$("#privacy-info").addEventListener("click", () => openPrivacy($("#privacy-pop").hidden));
+for (const b of document.querySelectorAll(".privacy-open")) {
+  b.addEventListener("click", () => openPrivacy($("#privacy-pop").hidden));
+}
 $("#privacy-pop .close").addEventListener("click", () => openPrivacy(false));
 document.addEventListener("pointerdown", event => {
-  if ($("#privacy-pop").hidden || event.target.closest("#privacy-pop, #privacy-info")) return;
+  if ($("#privacy-pop").hidden || event.target.closest("#privacy-pop, .privacy-open")) return;
   openPrivacy(false);
 });
+
+/*
+ * The note over the keys on arrival: gone at the first tap
+ * anywhere. A tap on the note itself is only that (it doesn't
+ * key); its (i) opens the details.
+ */
+{
+  const notice = $("#notice");
+  const dismiss = event => {
+    if (notice.hidden) return;
+    notice.hidden = true;
+    document.removeEventListener("pointerdown", dismiss, true);
+    document.removeEventListener("keydown", dismiss, true);
+    if (event?.type === "pointerdown" && notice.contains(event.target)) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.target.closest(".privacy-open")) openPrivacy(true);   // the note goes; the details open
+    }
+  };
+  document.addEventListener("pointerdown", dismiss, true);
+  document.addEventListener("keydown", dismiss, true);
+}
 document.addEventListener("keydown", event => {
   if (event.key === "Escape" && !$("#privacy-pop").hidden) openPrivacy(false);
 });
@@ -1945,6 +2576,7 @@ document.addEventListener("keydown", event => {
 loadSettings();
 applySound();
 applyOutputs();
+applyGlow();
 trainView.build();
 setKeyMode($("#opt-key").value);
 
@@ -1955,3 +2587,9 @@ setMode(savedMode === "type" ? "type" : "key", false);
 let savedTree = "0";
 try { savedTree = localStorage.getItem("dot-dash:tx-tree") ?? "0"; } catch { }
 if (savedTree === "1") openTree(true);
+
+
+/* installable, and usable offline (see /sw.js) */
+if ("serviceWorker" in navigator) {
+  addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => { }));
+}

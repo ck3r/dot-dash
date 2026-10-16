@@ -5,7 +5,10 @@
  *
  * Two voices, picked in settings:
  *
- *   tone      a sine wave at the pitch slider (default 600 Hz).
+ *   tone      a wave at the pitch slider (default 600 Hz): sine
+ *             (classic, clean), triangle (brighter) or square (a
+ *             buzzy practice-oscillator sound that carries on small
+ *             speakers), levelled so they sound about as loud.
  *             Every mark starts and ends with a ~5 ms soft
  *             edge: an abrupt start/stop makes a click ("key
  *             clicks"), which real CW transmitters shape away.
@@ -32,12 +35,14 @@
 
 const RISE = 0.0015;        // setTargetAtTime constant: ~5 ms to full
 const TONE_LEVEL = 0.5;     // headroom under the master volume
+const WAVE_LEVEL = { sine: 1, triangle: 1, square: 0.55 };   // square is louder for the same peak
 
 export function createSound(options = {}) {
   let ctx = options.context ?? null;
   let master, osc, toneGain, noise;
 
   let kind = "tone";
+  let wave = "sine";
   let pitch = 600;
   let volume = 0.6;
   let enabled = true;
@@ -68,7 +73,7 @@ export function createSound(options = {}) {
 
     /* the tone runs all the time at zero gain: no start-up delay */
     osc = ctx.createOscillator();
-    osc.type = "sine";
+    osc.type = wave;
     osc.frequency.value = pitch;
     toneGain = ctx.createGain();
     toneGain.gain.value = 0;
@@ -142,7 +147,7 @@ export function createSound(options = {}) {
     const t = Math.max(at ?? 0, ctx.currentTime);
     if (kind === "tone") {
       toneOn = down;
-      toneGain.gain.setTargetAtTime(down ? TONE_LEVEL : 0, t, RISE);
+      toneGain.gain.setTargetAtTime(down ? TONE_LEVEL * WAVE_LEVEL[wave] : 0, t, RISE);
     } else {
       clack(down, t);
     }
@@ -171,6 +176,13 @@ export function createSound(options = {}) {
     kind = next === "sounder" ? "sounder" : "tone";
   }
 
+  function setWave(next) {
+    if (!WAVE_LEVEL[next] || next === wave) return;
+    silence();
+    wave = next;
+    if (osc) osc.type = wave;
+  }
+
   function setPitch(hz) {
     pitch = hz;
     if (osc) osc.frequency.setTargetAtTime(hz, ctx.currentTime, 0.01);
@@ -188,7 +200,7 @@ export function createSound(options = {}) {
 
   return {
     key, mark, silence, unlock,
-    setKind, setPitch, setVolume, setEnabled,
+    setKind, setWave, setPitch, setVolume, setEnabled,
     get context() { return ctx; },
     get enabled() { return enabled; }
   };
