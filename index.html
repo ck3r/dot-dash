@@ -90,6 +90,7 @@
         </label>
         <label class="check"><input type="checkbox" id="opt-symbols"> symbols</label>
         <label class="check"><input type="checkbox" id="opt-prune"> prune empty</label>
+        <label class="check" title="each character's cost in units: its marks, the gaps inside it, and the letter gap after"><input type="checkbox" id="opt-weights"> weights</label>
       </fieldset>
 
       <pre class="tree tree-h" id="tree-h" aria-label="Morse tree: dot branches left, dash branches right"></pre>
@@ -225,6 +226,62 @@
     <li><a href="/?/-.-"><span class="label">Invitation for any station to transmit</span><span class="code">-.-</span></a></li>
     </ul>
   </div>
+
+  <h2>Q codes</h2>
+  <p class="cheat-note">Three letters for a whole sentence. Sent with <b>?</b> they ask instead: QRS? is "should I send slower?"</p>
+  <ul class="cheat">
+    <li><a href="/?/_--.-_.-._.-.._"><b class="term">QRL</b><span class="code">--.- .-. .-..</span></a><span class="means">this frequency is in use</span></li>
+    <li><a href="/?/_--.-_.-._--_"><b class="term">QRM</b><span class="code">--.- .-. --</span></a><span class="means">man-made interference</span></li>
+    <li><a href="/?/_--.-_.-._-._"><b class="term">QRN</b><span class="code">--.- .-. -.</span></a><span class="means">static, natural noise</span></li>
+    <li><a href="/?/_--.-_.-._---_"><b class="term">QRO</b><span class="code">--.- .-. ---</span></a><span class="means">increase power</span></li>
+    <li><a href="/?/_--.-_.-._.--._"><b class="term">QRP</b><span class="code">--.- .-. .--.</span></a><span class="means">reduce power; low power</span></li>
+    <li><a href="/?/_--.-_.-._--.-_"><b class="term">QRQ</b><span class="code">--.- .-. --.-</span></a><span class="means">send faster</span></li>
+    <li><a href="/?/_--.-_.-._..._"><b class="term">QRS</b><span class="code">--.- .-. ...</span></a><span class="means">send slower</span></li>
+    <li><a href="/?/_--.-_.-._-_"><b class="term">QRT</b><span class="code">--.- .-. -</span></a><span class="means">stop sending; closing down</span></li>
+    <li><a href="/?/_--.-_.-._..-_"><b class="term">QRU</b><span class="code">--.- .-. ..-</span></a><span class="means">I have nothing for you</span></li>
+    <li><a href="/?/_--.-_.-._...-_"><b class="term">QRV</b><span class="code">--.- .-. ...-</span></a><span class="means">I am ready</span></li>
+    <li><a href="/?/_--.-_.-._-..-_"><b class="term">QRX</b><span class="code">--.- .-. -..-</span></a><span class="means">wait, stand by</span></li>
+    <li><a href="/?/_--.-_.-._--.._"><b class="term">QRZ</b><span class="code">--.- .-. --..</span></a><span class="means">who is calling me?</span></li>
+    <li><a href="/?/_--.-_..._-..._"><b class="term">QSB</b><span class="code">--.- ... -...</span></a><span class="means">your signal is fading</span></li>
+    <li><a href="/?/_--.-_..._-.-_"><b class="term">QSK</b><span class="code">--.- ... -.-</span></a><span class="means">I can hear you between my signals (break-in)</span></li>
+    <li><a href="/?/_--.-_..._.-.._"><b class="term">QSL</b><span class="code">--.- ... .-..</span></a><span class="means">I confirm receipt</span></li>
+    <li><a href="/?/_--.-_..._---_"><b class="term">QSO</b><span class="code">--.- ... ---</span></a><span class="means">a contact, a conversation</span></li>
+    <li><a href="/?/_--.-_..._-.--_"><b class="term">QSY</b><span class="code">--.- ... -.--</span></a><span class="means">change frequency</span></li>
+    <li><a href="/?/_--.-_-_...._"><b class="term">QTH</b><span class="code">--.- - ....</span></a><span class="means">my location is</span></li>
+    <li><a href="/?/_--.-_-_.-._"><b class="term">QTR</b><span class="code">--.- - .-.</span></a><span class="means">the correct time is</span></li>
+  </ul>
+
+  <h2>Abbreviations</h2>
+  <p class="cheat-note">What operators send to save time; prosigns (above) and Q codes mix right in.</p>
+  <ul class="cheat">
+    <li><a href="/?/_-.-._--.-_"><b class="term">CQ</b><span class="code">-.-. --.-</span></a><span class="means">calling any station</span></li>
+    <li><a href="/?/_-.._._"><b class="term">DE</b><span class="code">-.. .</span></a><span class="means">from; this is</span></li>
+    <li><a href="/?/_-.-_"><b class="term">K</b><span class="code">-.-</span></a><span class="means">over, go ahead</span></li>
+    <li><a href="/?/_.-._"><b class="term">R</b><span class="code">.-.</span></a><span class="means">received, roger</span></li>
+    <li><a href="/?/_-..._-.-_"><b class="term">BK</b><span class="code">-... -.-</span></a><span class="means">break, back to you</span></li>
+    <li><a href="/?/_.-._..._-_"><b class="term">RST</b><span class="code">.-. ... -</span></a><span class="means">signal report: readability, strength, tone</span></li>
+    <li><a href="/?/_....._-._-._"><b class="term">5NN</b><span class="code">..... -. -.</span></a><span class="means">599, a perfect report (cut numbers)</span></li>
+    <li><a href="/?/_--..._...--_"><b class="term">73</b><span class="code">--... ...--</span></a><span class="means">best regards</span></li>
+    <li><a href="/?/_---.._---.._"><b class="term">88</b><span class="code">---.. ---..</span></a><span class="means">love and kisses</span></li>
+    <li><a href="/?/_-_..-_"><b class="term">TU</b><span class="code">- ..-</span></a><span class="means">thank you</span></li>
+    <li><a href="/?/_-_-._-..-_"><b class="term">TNX</b><span class="code">- -. -..-</span></a><span class="means">thanks</span></li>
+    <li><a href="/?/_..-._-..._"><b class="term">FB</b><span class="code">..-. -...</span></a><span class="means">fine business: great</span></li>
+    <li><a href="/?/_---_--_"><b class="term">OM</b><span class="code">--- --</span></a><span class="means">old man: any operator</span></li>
+    <li><a href="/?/_-.--_.-.._"><b class="term">YL</b><span class="code">-.-- .-..</span></a><span class="means">young lady: any operator</span></li>
+    <li><a href="/?/_...._.-._"><b class="term">HR</b><span class="code">.... .-.</span></a><span class="means">here</span></li>
+    <li><a href="/?/_..-_.-._"><b class="term">UR</b><span class="code">..- .-.</span></a><span class="means">your, you&#x27;re</span></li>
+    <li><a href="/?/_._..._"><b class="term">ES</b><span class="code">. ...</span></a><span class="means">and</span></li>
+    <li><a href="/?/_.--_-..-_"><b class="term">WX</b><span class="code">.-- -..-</span></a><span class="means">weather</span></li>
+    <li><a href="/?/_.-._.._--._"><b class="term">RIG</b><span class="code">.-. .. --.</span></a><span class="means">radio</span></li>
+    <li><a href="/?/_.-_-._-_"><b class="term">ANT</b><span class="code">.- -. -</span></a><span class="means">antenna</span></li>
+    <li><a href="/?/_.--._..._._"><b class="term">PSE</b><span class="code">.--. ... .</span></a><span class="means">please</span></li>
+    <li><a href="/?/_.-_--._-._"><b class="term">AGN</b><span class="code">.- --. -.</span></a><span class="means">again</span></li>
+    <li><a href="/?/_-.-._..-_.-.._"><b class="term">CUL</b><span class="code">-.-. ..- .-..</span></a><span class="means">see you later</span></li>
+    <li><a href="/?/_...._.._"><b class="term">HI</b><span class="code">.... ..</span></a><span class="means">laughter</span></li>
+    <li><a href="/?/_--._--_"><b class="term">GM</b><span class="code">--. --</span></a><span class="means">good morning</span></li>
+    <li><a href="/?/_--._.-_"><b class="term">GA</b><span class="code">--. .-</span></a><span class="means">good afternoon</span></li>
+    <li><a href="/?/_--._._"><b class="term">GE</b><span class="code">--. .</span></a><span class="means">good evening</span></li>
+  </ul>
 
 </div>
     </section>
