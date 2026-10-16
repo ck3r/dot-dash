@@ -2397,3 +2397,20 @@ body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
 /* about, under the collapsed tree: the same room above and below the marks */
 .about { padding-top: 0; }
 .about-main { gap: 0.8rem; }
+
+/* the wait lamp: a small brass light keying AS while something's made */
+.wait-lamp {
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  margin-right: 0.3em;
+  border-radius: 50%;
+  border: 1px solid var(--wire);
+  vertical-align: -0.05em;
+}
+.wait-lamp.lit {
+  background: var(--brass);
+  border-color: var(--brass);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--brass) 70%, transparent);
+}
+.wait-label { color: var(--graphite); }
