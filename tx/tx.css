@@ -18,10 +18,15 @@
  * signal lamp's full-screen ghost text, and a prosign (sized to
  * fit the column).
  */
-/* a key lit while pressed, dimmed with the light level (--glow, 0.1 … 1) */
-.tx {
-  --key-lit: color-mix(in srgb, var(--paper) calc(var(--glow, 1) * 100%), var(--bakelite));
-}
+
+
+/*
+ * ============================================================
+ * THE PAGE
+ * ============================================================
+ *
+ * Type sizes, the shared measures, the page itself.
+ */
 
 /* light: invert: the whole screen flips while the key is down
    (dimmed with the light level) */
@@ -29,19 +34,49 @@ html.inverted {
   filter: invert(1) hue-rotate(180deg) brightness(var(--glow, 1));   /* light for dark; red stays red, blue blue */
 }
 
+/*
+ * The shared measures:
+ *   --fs-*       the four type sizes (above)
+ *   --icon       every tappable symbol that isn't a framed button
+ *                (chevrons, close and remove ×, the eye, play / pause,
+ *                repeat, ♪ ☼ ≋, the tree's ><, the (i)) is drawn this
+ *                size, centred in --icon-box, roomier to tap
+ *   --pad-cols   side keys | dit | dah, shared by the pad and the
+ *                timing train above it
+ *   --key-lit    a key lit while pressed, dimmed with the light level
+ *                (--glow, 0.1 … 1)
+ *   --bar        what the eye hides, drawn as a bar in the tape's colour
+ */
+/* the collapsed tree column's width, as a length (so a ch here is
+   the station's, wherever it's used): the ↵ in the far corner keeps a
+   column as wide, so the counts sit as far in from either edge */
+@property --edge-w {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
 .tx {
   --fs-xs: 0.72rem;
   --fs-s: 0.85rem;
   --fs-m: 1.05rem;
   --fs-l: 1.3rem;
+  --icon: 1.2rem;
+  --icon-box: 1.9rem;
+  --pad-cols: 1fr 1.7fr 2.4fr;
+  --key-lit: color-mix(in srgb, var(--paper) calc(var(--glow, 1) * 100%), var(--bakelite));
+  --bar: color-mix(in srgb, var(--paper) 80%, var(--bakelite));
 }
 
 body.tx {
   font-size: var(--fs-m);
   /* one height for the input area, whichever is showing (keyer
      pad + timing bar, keyboard, or settings), so switching between
-     them never squeezes the message above */
-  --input-h: clamp(190px, 32dvh, 300px);
+     them never squeezes the message above. A third of the screen,
+     190 to 300px; on a short screen it gives way (down to 6rem) so
+     the message keeps a line: 17.5rem is everything else, the
+     header, the player, the control row, the gaps and one line */
+  --input-h: max(6rem, min(300px, max(190px, 32dvh), 100dvh - 17.5rem - env(safe-area-inset-bottom)));
   max-width: 520px;
   height: 100dvh;
   padding: 0.75rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom));
@@ -60,39 +95,46 @@ body.tx {
   touch-action: manipulation;   /* no double-tap zoom */
 }
 
-/*
- * The site's button:hover (paper fill) sticks after a tap on
- * touch screens, so here small buttons keep their own colours
- * on hover; only real hover devices get a brass hint.
- */
-.tx .input-mode button:hover,
-.tx .edge-toggle:hover,
-.tx .x:hover,
-.tx .outputs button:hover,
-.tx .player button:hover,
-.tx .tray-toggle:hover,
-.tx .quiet:hover {
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+.ico {
+  display: block;
+  flex: none;
+  width: var(--icon);
+  height: var(--icon);
+  overflow: visible;
+}
+
+/* the icon box: one size for every icon you can tap */
+.edge-toggle,
+.entry .x,
+.popup .close,
+.share-menu .close,
+.player button,
+.outputs button,
+.keys-toggle,
+.profile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-box);
+  height: var(--icon-box);
+  padding: 0;
+  border: 0;
   background: transparent;
-  color: var(--graphite);
+  letter-spacing: 0;
 }
 
-.tx .send:hover {
-  background: color-mix(in srgb, var(--paper) 4%, var(--bakelite));
-  color: var(--paper);
-}
-
-@media (hover: hover) {
-  .tx .edge-toggle:hover,
-  .tx .x:hover,
-  .tx .popup .close:hover,
-  .tx .share-menu .close:hover,
-  .tx .tray-toggle:hover,
-  .tx .quiet:hover,
-  .tx .input-mode button:hover { color: var(--brass); }
-}
+.tx .frame-label { font-size: var(--fs-s); }
 
 
-/* ---------- header ---------- */
+/*
+ * ============================================================
+ * HEADER
+ * ============================================================
+ *
+ * The name, paste and share.
+ */
 
 .tx-top {
   display: flex;
@@ -111,15 +153,41 @@ body.tx {
   font-weight: 400;
 }
 
-/* the name: brass to the pointer, like everything else (no fill) */
-.tx .tx-top .home:hover { background: transparent; color: var(--paper); }
-@media (hover: hover) {
-  .tx .tx-top .home:hover,
-  .tx .tx-top .home:hover span { color: var(--brass); }
+.top-right {
+  display: flex;
+  align-items: center;
+  gap: 1.2ch;
 }
 
-/* the note on arrival, already seen this month: not drawn at all */
-.noticed #notice { display: none; }
+/* profiles, soon: a ring, outline only, greyed like paste and share */
+.profile {
+  margin-right: -0.35rem;   /* its ring, not its tap room, at the edge */
+  color: var(--graphite);
+}
+
+.share-toggle {
+  border: 0;
+  padding: 0.15rem 0.2rem;
+  color: var(--graphite);
+  background: transparent;
+  font-size: var(--fs-s);
+}
+
+.share-toggle[aria-expanded="true"] {
+  color: var(--paper);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+
+/*
+ * ============================================================
+ * THE STATION
+ * ============================================================
+ *
+ * The box: the tree edge on the left, the field on the right, the
+ * switch on its bottom edge, and a brass glow while the key is down.
+ */
 
 /*
  * The switch on the bottom edge of the message box. Drawn at
@@ -128,11 +196,22 @@ body.tx {
  * the lever cuts the border: open, there's a gap; closed, the
  * lever fills it.
  */
+/* never shorter than one line of the message and its counts:
+     the tape's padding (0.75rem) and one entry, Morse and letters
+     (1.1rem + 2 rows of 1.2 × --fs-m), then the counts (0.75rem +
+     2.7em of --fs-xs) and the borders. Squeezed, the input area
+     gives way instead (--input-h) */
 .station {
+  --edge-w: 6.5ch;
   position: relative;
+  flex: 1;
+  min-height: calc(0.75rem + 1.1rem + 2.4 * var(--fs-m) + 0.75rem + 2.7 * var(--fs-xs) + 3px);
+  display: flex;
+  border: 1px solid var(--wire);
 }
 
-.station .switch {
+.station .switch,
+.waiting-box .switch {
   position: absolute;
   z-index: 3;
   top: calc(100% + 0.5px);
@@ -144,14 +223,34 @@ body.tx {
   pointer-events: none;
 }
 
-.station .switch svg {
+/* the station's switch is a straight key (tx/keys.js): press it */
+.station .switch {
+  pointer-events: auto;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* never the reference page's filled hover (style.css): paper at rest
+   and held (the LED says it's closed), brass to a pointer (below) */
+.station .switch:hover svg { color: var(--paper); }
+
+.station .switch::after {
+  content: "";
+  position: absolute;
+  inset: -6px -8px;          /* a little more to aim at than the drawing */
+}
+
+.station .switch svg,
+.waiting-box .switch svg {
   position: relative;
   width: 30px;
   height: 32.5px;
   overflow: visible;
 }
 
-.station .switch::before {
+.station .switch::before,
+.waiting-box .switch::before {
   content: "";
   position: absolute;
   left: 1px;
@@ -160,136 +259,6 @@ body.tx {
   height: 4px;              /* the border, and the lit border's outer ring */
   background: var(--bakelite);
 }
-
-/* under the player: settings ⌃ on the left, the actions on the right */
-.control-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1ch;
-}
-
-.top-right {
-  display: flex;
-  align-items: center;
-  gap: 1.2ch;
-}
-
-.control-row .actions {
-  display: flex;
-  align-items: center;
-  gap: 0.8ch;
-}
-
-.control-row .divider {
-  color: var(--wire);
-}
-
-@media (max-width: 359px) {
-  .control-row .actions { gap: 0.4ch; }
-  .control-row .input-mode button,
-  .tx .control-row .input-mode button:hover { padding: 0.15rem 0.35rem; }
-}
-
-.share-toggle,
-.tx .share-toggle:hover {
-  border: 0;
-  padding: 0.15rem 0.2rem;
-  color: var(--graphite);
-  background: transparent;
-  font-size: var(--fs-s);
-}
-
-.share-toggle[aria-expanded="true"],
-.tx .share-toggle[aria-expanded="true"]:hover {
-  color: var(--paper);
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-
-
-/* ---------- share menu ---------- */
-
-.share-menu {
-  position: fixed;
-  z-index: 10;
-  top: var(--share-top, 3rem);   /* set on open: just under the share button */
-  right: max(0.75rem, calc((100vw - 520px) / 2 + 0.75rem));
-  width: min(20rem, calc(100vw - 1.5rem));
-  padding: 1rem 0.9rem 0.7rem;
-  background: var(--bakelite);
-  border: 1px solid var(--graphite);
-  box-shadow: 0 0 0 100vmax color-mix(in srgb, var(--bakelite) 55%, transparent);   /* dims the page behind */
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  font-size: var(--fs-s);
-}
-
-.share-menu .frame-label {
-  left: 0.8rem;
-}
-
-.share-menu .rows {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.share-menu .rows + .rows {
-  border-top: 1px dashed var(--wire);
-  padding-top: 0.5rem;
-}
-
-.share-menu button,
-.tx .share-menu button:hover {
-  display: flex;
-  justify-content: space-between;
-  gap: 1ch;
-  width: 100%;
-  border: 0;
-  padding: 0.35rem 0.2rem;
-  text-align: left;
-  background: transparent;
-  color: var(--paper);
-}
-
-@media (hover: hover) {
-  .tx .share-menu button:hover { color: var(--brass); }
-}
-
-.share-menu button > span:first-child {
-  flex: none;
-  white-space: nowrap;
-}
-
-.share-menu .peek {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--graphite);
-}
-
-.share-menu .saves {
-  flex-direction: row;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.share-menu .saves .lead {
-  color: var(--graphite);
-  margin-right: 0.4rem;
-}
-
-.share-menu .saves button,
-.tx .share-menu .saves button:hover {
-  width: auto;
-  border: 1px solid var(--wire);
-  padding: 0.25rem 0.6rem;
-}
-
-/* ---------- light ---------- */
 
 /* lamp: a brass glow round the message area while the key is closed */
 /* --glow: the light level from settings, 0.1 … 1 */
@@ -302,160 +271,30 @@ body.tx {
     inset 0 0 28px color-mix(in srgb, var(--brass) calc(var(--glow, 1) * 18%), transparent);
 }
 
-/* signal lamp: the whole screen, dark ↔ paper */
-.lamp {
-  position: fixed;
-  inset: 0;
-  z-index: 20;
+.field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 2rem 1.25rem;
-  background: var(--bakelite);
-  color: color-mix(in srgb, var(--paper) 16%, var(--bakelite));    /* ghost text, barely there */
-  cursor: pointer;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.lamp.on {
-  --lit: color-mix(in srgb, var(--paper) calc(var(--glow, 1) * 100%), var(--bakelite));
-  background: var(--lit);
-  color: color-mix(in srgb, var(--bakelite) 14%, var(--lit));
-}
-
-.lamp .ghost {
-  text-align: center;
-  overflow: hidden;
-}
-
-.lamp .ghost-morse {
-  font-size: clamp(1.4rem, 7vw, 2.6rem);
-  font-weight: 700;
-  line-height: 1.3;
-  word-spacing: 0.4em;
-  overflow-wrap: anywhere;
-}
-
-.lamp .ghost-text {
-  margin-top: 1rem;
-  font-size: clamp(1rem, 5vw, 1.6rem);
-  letter-spacing: 0.3em;
-}
-
-.lamp .lamp-hint {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(1rem + env(safe-area-inset-bottom));
-  text-align: center;
-  font-size: var(--fs-xs);
-}
-
-.popup .warn {
-  color: var(--brass);
-}
-
-.popup .fast {
-  color: var(--dot);
-}
-
-.popup .actions {
-  display: flex;
-  gap: 0.6rem;
-  margin-top: 0.9rem;
-}
-
-.popup .actions button,
-.tx .popup .actions button:hover {
-  background: transparent;
-}
-
-#lamp-go,
-.tx #lamp-go:hover {
-  border-color: var(--paper);
-  color: var(--paper);
-}
-
-/* the long-press bubble */
-.paste-bubble,
-.tx .paste-bubble:hover {
-  position: fixed;
-  z-index: 12;
-  transform: translate(-50%, calc(-100% - 12px));
-  padding: 0.4rem 0.9rem;
-  border: 1px solid var(--paper);
-  background: var(--paper);
-  color: var(--bakelite);
-  font-size: var(--fs-s);
-}
-
-.paste-bubble::after {          /* the little pointer underneath */
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -11px;
-  margin-left: -6px;
-  border: 6px solid transparent;
-  border-top-color: var(--paper);
-}
-
-/* a short message (nothing to paste, …) under the header */
-.toast {
-  position: fixed;
-  z-index: 12;
-  top: 2.9rem;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 0.3rem 0.8rem;
-  border: 1px solid var(--wire);
-  background: var(--bakelite);
-  color: var(--brass);
-  font-size: var(--fs-xs);
-  white-space: nowrap;
-}
-
-.share-note {
-  min-height: 1.2em;
-  color: var(--brass);
-  font-size: var(--fs-xs);
-}
-
-.input-mode {
-  display: flex;
-  align-items: center;
-  gap: 0.4ch;
-  color: var(--graphite);
-}
-
-.input-mode button,
-.tx .input-mode button:hover {
-  min-width: 3.2ch;
-  padding: 0.15rem 0.5rem;
-  border-color: var(--wire);
-  color: var(--graphite);
-}
-
-.input-mode button[aria-pressed="true"],
-.tx .input-mode button[aria-pressed="true"]:hover {
-  border-color: var(--paper);
-  color: var(--paper);
 }
 
 
+/*
+ * ============================================================
+ * THE TREE EDGE
+ * ============================================================
+ *
+ * The collapsed tree, the about column under it, and (i).
+ */
 
-/* ---------- station: tree edge + field ---------- */
-
-.station {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  border: 1px solid var(--wire);
-}
-
+/* a size container: what's in it scales to its height, and nothing
+   runs past the station's edge */
 .tree-edge {
+  container-type: size;
+  overflow: hidden;
   flex: none;
-  width: 6.5ch;
+  width: var(--edge-w);
   border-right: 1px solid var(--wire);
   display: flex;
   flex-direction: column;
@@ -473,11 +312,8 @@ body.tx {
 }
 
 .edge-toggle {
-  border: 0;
-  padding: 0.1rem 0.3rem;
   color: var(--graphite);
   font-size: var(--fs-s);
-  letter-spacing: -0.1em;
 }
 
 /*
@@ -487,8 +323,11 @@ body.tx {
  *                         / \
  *                        R   W      children (tap = dit / dah)
  */
+/* five rows; on a short station, as big as fits beside the toggle
+   and (i) (6.5rem with the gaps), down to a size that still reads */
 .local {
-  font-size: var(--fs-m);
+  cursor: pointer;          /* a tap opens the whole tree */
+  font-size: clamp(0.6rem, (100cqh - 6.5rem) / 6.25, var(--fs-m));
   line-height: 1.25;
   white-space: pre;
   text-align: center;
@@ -510,11 +349,6 @@ body.tx {
   min-width: 2ch;
 }
 
-.local button:hover {
-  background: none;
-  color: var(--brass);
-}
-
 .signal .local .dot  { color: var(--dot); }
 .signal .local .dash { color: var(--dash); }
 
@@ -532,7 +366,6 @@ body.tx {
   flex-direction: column;
   align-items: center;
   gap: 0.3rem;
-  padding-top: 0.1rem;
   font-size: var(--fs-m);
   line-height: 1.15;
   text-align: center;
@@ -544,8 +377,7 @@ body.tx {
 }
 
 /* the parts are buttons (copy, say, why) and a link (cut): plain */
-.about button,
-.tx .about button:hover {
+.about button {
   appearance: none;
   border: 0;
   padding: 0;
@@ -556,9 +388,15 @@ body.tx {
   cursor: pointer;
 }
 
-/* a moment's word over the part tapped: "copied", "soon" */
-.about [data-flash] { position: relative; }
-.about [data-flash]::after {
+/* a moment's word over the part tapped: "copied", "soon" (the about
+   column, the counts) */
+.about [data-flash],
+.stats[data-flash],
+.profile[data-flash] { position: relative; }
+
+.about [data-flash]::after,
+.stats[data-flash]::after,
+.profile[data-flash]::after {
   content: attr(data-flash);
   position: absolute;
   left: 50%;
@@ -575,13 +413,15 @@ body.tx {
   pointer-events: none;
 }
 
-.local { cursor: pointer; }
-
+/* the marks and the name, the same room above and below the marks;
+   across the column's width (the eye's bars run it, inside a little
+   padding) */
 .about-main {
+  align-self: stretch;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.8rem;
 }
 
 /* the marks, one per row, drawn as the keys draw them */
@@ -620,8 +460,8 @@ body.tx {
 
 /*
  * The name as a stair, like the old charts: each syllable steps
- * down and across, centred on the column, with a little more room
- * between syllables so their letters never touch:
+ * down and across, centred on the column, the stairs evenly apart
+ * (tx/about.js works out where each letter goes):
  *        U
  *       N
  *        I
@@ -629,24 +469,23 @@ body.tx {
  *       O
  *        R
  *         M
- * --dx: place across its syllable (centred), --row: letter number,
- * --syl: syllable number.
+ * --dx: place across its syllable (centred), --y: how far down, in
+ * em; --h: the stair's height.
  */
 .about-name.stair {
   display: block;
   position: relative;
   width: 100%;
-  height: calc(var(--rows) * 0.56em + (var(--syls) - 1) * 0.3em + 0.45em);
+  height: calc(var(--h) * 1em);
 }
 
 .about-name.stair > * {
   position: absolute;
   left: calc(50% + var(--dx) * 0.72em);
-  top: calc(var(--row) * 0.56em + var(--syl) * 0.3em);
+  top: calc(var(--y) * 1em);
   transform: translateX(-50%);
   line-height: 1;
 }
-
 
 /* where the stress falls (AL·fa, ho·TEL): brighter and bold */
 .about-name .stress { color: var(--paper); font-weight: 700; }
@@ -668,6 +507,7 @@ body.tx {
 
 /* the foot: cut, then misheard as, sitting on the bottom */
 .about-foot {
+  align-self: stretch;
   margin-top: auto;
   display: flex;
   flex-direction: column;
@@ -691,6 +531,7 @@ body.tx {
 }
 
 .about-heard .about-label { font-size: var(--fs-s); line-height: 0.9; }
+
 .about-cut b,
 .about-heard b { color: var(--paper); font-weight: 700; }
 
@@ -706,14 +547,17 @@ body.tx {
 }
 
 .edge-foot .info {
-  margin-bottom: 0.2rem;
+  /* level with the counts beside it: their middle is the foot's
+     bottom padding and one of their two rows up (.field-foot),
+     less the column's own padding */
+  margin-bottom: calc(0.45rem + 1.35 * var(--fs-xs) - 0.4rem - var(--icon) / 2);
   text-decoration: none;
   flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.35rem;
-  height: 1.35rem;
+  width: var(--icon);       /* a ring the icon size */
+  height: var(--icon);
   border: 1px solid var(--graphite);
   border-radius: 50%;
   color: var(--graphite);
@@ -722,332 +566,21 @@ body.tx {
   line-height: 1;
 }
 
-@media (hover: hover) {
-  .about a:hover,
-  .about a:hover b,
-  .tx .about button:hover,
-  .tx .about button:hover b,
-  .tx .about button:hover .stress { color: var(--brass); }
-  .about .about-marks:hover i { background: var(--brass); }
+/* a station too short for the collapsed tree and (i) both (squeezed
+   height): no (i), rather than half a ring, and its room to the tree */
+@container (max-height: 10.25rem) {
+  .edge-foot { display: none; }
+  .local { font-size: clamp(0.6rem, (100cqh - 4.3rem) / 6.25, var(--fs-m)); }
 }
 
-.field {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-
-/* ---------- the tape (history + current line) ---------- */
-
-.tape {
-  -webkit-touch-callout: none;   /* our own long-press (paste) instead of the phone's */
-  position: relative;   /* offsets measured from here */
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  list-style: none;
-  padding: 0.25rem 0.6rem 0.5rem;
-  overscroll-behavior: contain;
-}
-
-.entry {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6ch;
-  padding: 0.55rem 0;
-  border-bottom: 1px dashed var(--wire);
-}
-
-.entry:last-child {
-  border-bottom: 0;
-}
-
-/* the top of the history: where you clear it */
-.tape-head {
-  display: flex;
-  justify-content: center;
-  padding: 0.35rem 0 0.5rem;
-  border-bottom: 1px dashed var(--wire);
-}
-
-.tape-head button,
-.tx .tape-head button:hover {
-  border: 0;
-  padding: 0.1rem 0.4rem;
-  font-size: var(--fs-xs);
-  color: var(--graphite);
-  background: transparent;
-}
-
-.tape-head button.armed,
-.tx .tape-head button.armed:hover {
-  color: var(--brass);
-}
-
-/* on touch screens a long-press means paste, not select */
-@media (pointer: coarse) {
-  .tape { -webkit-user-select: none; user-select: none; }
-}
-
-/* history above: the top edge fades out */
-/* the fade covers only the peeking message (--peek), never the current line */
-.tape.more-above {
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--peek, 26px));
-  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--peek, 26px));
-}
-
-.entry .marker {
-  flex: none;
-  width: 1.2ch;
-  color: var(--brass);
-}
 
 /*
- * Typing (text in, Morse out): the marker and the caret sit on
- * the LETTERS' line of the current message, since that's what
- * you're writing; keying, they sit on the Morse line.
+ * ============================================================
+ * THE WHOLE TREE
+ * ============================================================
+ *
+ * The tree edge opened to half the station, scaled to fit.
  */
-body[data-mode="type"] .entry.current .empty-line {
-  padding-top: calc(1.05rem * 1.2);
-}
-
-/* the current line's marker: one slot per row (> and the eye) */
-.entry .marker.two {
-  width: var(--icon);
-  display: grid;
-  grid-template-rows: repeat(2, calc(1.05rem * 1.2));
-  align-items: center;
-  justify-items: center;     /* > and the eye share a centre line */
-}
-
-.marker .eye,
-.tx .marker .eye:hover {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--icon);       /* the icon size, centred under (or over) the > */
-  height: 100%;
-  font: inherit;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--graphite);
-}
-
-/* small to look at, roomy to tap */
-.marker .eye { position: relative; }
-.marker .eye::after { content: ""; position: absolute; inset: -4px -10px; }
-
-.marker .eye svg {
-  width: 100%;
-  height: auto;
-  stroke: none;
-}
-
-.marker .eye[aria-pressed="true"] {
-  color: var(--paper);
-}
-
-/*
- * Hidden row: each word becomes a bar the width of the word
- * (the slashes between words stay visible).
- */
-.tape.hide-p .line .c,
-.tape.hide-m .line .c {
-  position: relative;
-}
-
-.tape.hide-p .line .p,
-.tape.hide-m .line .m,
-.tape.hide-m .line .m span {
-  color: transparent !important;
-}
-
-/* a bar per letter, running on across the gap to the next letter
-   of the same word: one solid bar per word, even when a long word
-   wraps onto another line */
-.tape.hide-p .line .c::after,
-.tape.hide-m .line .c::after {
-  content: "";
-  position: absolute;
-  left: -0.25ch;
-  right: -0.25ch;
-  height: 0.95em;
-  background: color-mix(in srgb, var(--paper) 80%, var(--bakelite));
-  pointer-events: none;
-}
-
-.tape.hide-p .line .c:not(:last-child)::after,
-.tape.hide-m .line .c:not(:last-child)::after {
-  right: -1.45ch;    /* across the 1.4ch gap to the next letter */
-}
-
-.tape.hide-p .line .c::after { bottom: 0.12em; }   /* the letters row */
-.tape.hide-m .line .c::after { top: 0.15em; }      /* the Morse row */
-
-body[data-mode="type"] .entry.current .line:not(.empty-line) .caret {
-  margin-top: calc(1.05rem * 1.2);
-}
-
-.entry .line {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 0.6rem 0;
-  font-size: var(--fs-m);
-  line-height: 1.2;
-}
-
-.entry.past .line {
-  cursor: pointer;
-}
-
-.entry.past {
-  opacity: 0.7;
-}
-
-.entry .x {
-  flex: none;
-  border: 0;
-  padding: 0 0.3ch;
-  color: var(--graphite);
-}
-
-/* words wrap whole; a letter is its code over its character */
-.line .w { display: inline-flex; flex-wrap: wrap; gap: 0.6rem 1.4ch; }   /* a word wider than the line breaks between letters */
-.line .slash { margin: 0 1.2ch; color: var(--graphite); }
-.line .c { display: inline-grid; }
-.line .m, .line .p { white-space: pre; }
-.line .m { color: var(--graphite); }
-
-.signal .line .dot  { color: var(--dot); }
-.signal .line .dash { color: var(--dash); }
-
-/* the letter being keyed: its best guess so far, dimmed */
-.line .c.partial .p { color: var(--graphite); }
-
-.caret {
-  display: inline-block;
-  width: 0.55ch;
-  height: 1.1em;
-  margin-left: 0.4ch;
-  background: var(--brass);
-  animation: blink 1.1s steps(1) infinite;
-}
-
-@keyframes blink { 50% { opacity: 0; } }
-
-/* steady while keying; blinks again once you pause */
-.caret.steady { animation: none; }
-
-/* riding on the last letter: beside it, taking no room (so it never
-   wraps alone); on the Morse row keying, the letters row typing */
-.line .c { position: relative; }
-.caret.tail {
-  position: absolute;
-  top: 0;
-  left: 100%;
-  margin-left: 0.4ch;
-}
-body[data-mode="type"] .entry.current .line .caret.tail {
-  margin-top: 0;
-  top: calc(1.05rem * 1.2);
-}
-
-/* playing: the caret holds still; keys put away: no caret at all */
-body.playing .caret { animation: none; }
-body.reading .caret { visibility: hidden; }
-
-/* the empty line: the caret waits in front of the hint */
-.caret.first {
-  margin: 0 0.8ch 0 0;
-}
-
-.empty-line {
-  color: var(--graphite);
-}
-
-
-/* ---------- field footer, send ---------- */
-
-.field-foot {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1ch;
-  padding: 0.3rem 0.6rem 0.45rem;
-  font-size: var(--fs-xs);
-  color: var(--graphite);
-  border-top: 1px dashed var(--wire);
-}
-
-.stats {
-  white-space: pre-line;
-  line-height: 1.35;
-  min-height: 2.7em;   /* keeps the footer steady when empty */
-}
-
-#stats-morse {
-  text-align: right;
-  padding-right: 3rem;     /* clear of the send button in the corner */
-}
-
-.outputs {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.outputs button,
-.tx .outputs button:hover {
-  border: 0;
-  padding: 0.05rem 0.35rem;
-  color: var(--wire);
-  font-size: var(--fs-s);
-}
-
-.outputs button[aria-pressed="true"],
-.tx .outputs button[aria-pressed="true"]:hover {
-  color: var(--paper);
-}
-
-.send {
-  position: absolute;
-  right: 0.9rem;     /* the switch has the middle of the edge now */
-  bottom: -1.15rem;
-  width: 2.3rem;
-  height: 2.3rem;
-  padding: 0;
-  border-radius: 50%;
-  /* a key like the others: the same faint tint and rule, lit
-     while it's pressed (opaque, since it sits on the border) */
-  border: 1px solid var(--wire);
-  background: color-mix(in srgb, var(--paper) 4%, var(--bakelite));
-  color: var(--paper);
-  font-weight: 700;
-  z-index: 3;
-  touch-action: manipulation;
-}
-
-.send.pressed,
-.tx .send.pressed:hover {
-  background: var(--key-lit);
-  color: var(--bakelite);
-}
-
-.send:disabled,
-.tx .send:disabled:hover {
-  background: var(--bakelite);
-  color: var(--wire);
-  cursor: default;
-}
-
-
-/* ---------- the whole tree (left half, no scrolling) ---------- */
 
 body.tree-open .tree-edge {
   width: 50%;
@@ -1093,31 +626,479 @@ body.tree-open .tree-edge {
   line-height: 1;   /* rows touch, so the │ lines join up */
 }
 
-/* the timing bar shares the input area's height with the pad */
-body:has(#train:not([hidden])) .pad {
-  height: calc(var(--input-h) - 1.6rem - 0.45rem);   /* the bar, and the gap above the pad */
+/* the marks run on past the tree's edge: ⋮ after the last node shown */
+#tree { position: relative; }
+
+#tree .more {
+  position: absolute;
+  width: 0.2em;               /* three dots drawn, narrower than the glyph: */
+  height: 0.9em;              /* it fits in the box's padding */
+  transform: translate(0.25em, -50%);
+  font-size: inherit;
+  color: transparent;         /* the glyph is for copying; the dots are drawn */
+  background: radial-gradient(circle closest-side, var(--more, var(--paper)) 85%, transparent 100%) 0 0 / 0.2em 0.3em repeat-y;
+  pointer-events: none;
 }
 
-/* ---------- privacy note ---------- */
+.signal #tree .more.dot  { --more: var(--dot); }
+.signal #tree .more.dash { --more: var(--dash); }
 
-/* not ready yet (the spoken .wav, until the recordings are in) */
-.share-menu button[data-soon],
-.tx .share-menu button[data-soon]:hover {
+
+/*
+ * ============================================================
+ * THE TAPE
+ * ============================================================
+ *
+ * The history, and the line being written: letters under their
+ * marks, the caret, the > and the eye, rows hidden as bars, and the
+ * line lighting up as it plays.
+ */
+
+.tape {
+  -webkit-touch-callout: none;   /* our own long-press (paste) instead of the phone's */
+  position: relative;   /* offsets measured from here */
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0.25rem 0.6rem 0.5rem;
+  overscroll-behavior: contain;   /* a pull at the top is ours, never the page's refresh */
+}
+
+/* pulling the history away (tx/tape.js): a brass line runs along the
+   top of the message while the finger holds; at its end, it's gone */
+.field.pulling::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: var(--brass);
+  z-index: 4;
+  animation: pull-run 1.5s linear forwards;
+}
+
+@keyframes pull-run {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+
+.entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6ch;
+  padding: 0.55rem 0;
+  border-bottom: 1px dashed var(--wire);
+}
+
+.entry:last-child {
+  border-bottom: 0;
+}
+
+/* quick scroll (tx/tape.js): a thumb on the tape's right edge, narrow
+   to see and wide to grab; up while you scroll, brass while held */
+.tape-thumb {
+  position: absolute;
+  right: 2px;
+  z-index: 2;
+  width: 4px;
+  height: 2.6rem;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: var(--graphite);
+  opacity: 0;
+  pointer-events: none;
+  touch-action: none;
+  transition: opacity 0.25s;
+}
+.tape-thumb::before { content: ""; position: absolute; inset: -0.4rem -1rem -0.4rem -1.4rem; }   /* the finger's room */
+.tape-thumb.up { opacity: 1; pointer-events: auto; }
+.tape-thumb.held { background: var(--brass); }
+
+/* the top of the history: where you clear it */
+.tape-head {
+  display: flex;
+  justify-content: center;
+  padding: 0.35rem 0 0.5rem;
+  border-bottom: 1px dashed var(--wire);
+}
+
+.tape-head button {
+  border: 0;
+  padding: 0.1rem 0.4rem;
+  font-size: var(--fs-xs);
+  color: var(--graphite);
+  background: transparent;
+}
+
+.tape-head button.armed {
+  color: var(--brass);
+}
+
+/* on touch screens a long-press means paste, not select */
+@media (pointer: coarse) {
+  .tape { -webkit-user-select: none; user-select: none; }
+}
+
+/* history above: the top edge fades out */
+/* the fade covers only the peeking message (--peek), never the current line */
+.tape.more-above {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--peek, 26px));
+  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--peek, 26px));
+}
+
+.entry .marker {
+  flex: none;
+  width: 1.2ch;
+  color: var(--brass);
+}
+
+/*
+ * Typing (text in, Morse out): the marker and the caret sit on
+ * the LETTERS' line of the current message, since that's what
+ * you're writing; keying, they sit on the Morse line.
+ */
+body[data-mode="type"] .entry.current .empty-line {
+  padding-top: calc(1.05rem * 1.2);
+}
+
+/* the current line's marker: one slot per row (> and the eye) */
+.entry .marker.two {
+  width: var(--icon);
+  display: grid;
+  grid-template-rows: repeat(2, calc(1.05rem * 1.2));
+  align-items: center;
+  justify-items: center;     /* > and the eye share a centre line */
+}
+
+.marker .eye {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon);       /* the icon size, centred under (or over) the > */
+  height: 100%;
+  font: inherit;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--graphite);
+}
+
+/* small to look at, roomy to tap */
+
+.marker .eye::after { content: ""; position: absolute; inset: -4px -10px; }
+
+.marker .eye svg {
+  width: 100%;
+  height: auto;
+  stroke: none;
+}
+
+/* held long enough to collapse: brass until it's let go */
+.tx .marker .eye.armed { color: var(--brass); }
+
+.marker .eye[aria-pressed="true"] {
+  color: var(--paper);
+}
+
+/*
+ * The eye: the row you're not entering, hidden as bars, or collapsed.
+ * Each look is set on the whole tape (.hide-m, .collapse-p …), and
+ * also as a class on a single letter (.bar-m, .flat-p …): while the
+ * eye changes, the line being written (.entry.anim) goes over from
+ * the caret back, a letter at a time, each wearing the old look until
+ * its turn (tx/tape.js). The tape's own classes stand aside for it.
+ *
+ *   bars:       a bar per letter, running on across the gap to the
+ *               next letter of the same word: one bar per word, even
+ *               when a long word wraps (the slashes stay)
+ *   collapsed:  keying, the letters' row takes no room; typing, the
+ *               Morse row stays, empty (the eye keeps its place above
+ *               the letters, the > and caret theirs), and the letters
+ *               close up into plain text, a word space a space
+ *
+ *   .... . .-.. .-.. ---      ████████████████      (the row, empty)
+ *    H   E  L    L   O         H   E  L    L   O    HELLO
+ */
+.tape.hide-p .entry:not(.anim) .line .p,
+.tape.hide-m .entry:not(.anim) .line .m,
+.tape.hide-m .entry:not(.anim) .line .m span,
+.line .c.bar-p .p,
+.line .c.bar-m .m,
+.line .c.bar-m .m span {
+  color: transparent !important;
+}
+
+.tape.hide-p .entry:not(.anim) .line .c::after,
+.tape.hide-m .entry:not(.anim) .line .c::after,
+.line .c.bar-p::after,
+.line .c.bar-m::after {
+  content: "";
+  position: absolute;
+  left: -0.25ch;
+  right: -0.25ch;
+  height: 0.95em;
+  background: var(--bar);
+  pointer-events: none;
+}
+
+.tape.hide-p .entry:not(.anim) .line .c:not(:last-child)::after,
+.tape.hide-m .entry:not(.anim) .line .c:not(:last-child)::after,
+.line .c.bar-p:not(:last-child)::after,
+.line .c.bar-m:not(:last-child)::after {
+  right: -1.45ch;    /* across the 1.4ch gap to the next letter */
+}
+
+.tape.hide-p .entry:not(.anim) .line .c::after,
+.line .c.bar-p::after { bottom: 0.12em; }   /* the letters row */
+.tape.hide-m .entry:not(.anim) .line .c::after,
+.line .c.bar-m::after { top: 0.15em; }      /* the Morse row */
+
+.tape.collapse-p .entry:not(.anim) .line .p,
+.line .c.flat-p .p { display: none; }
+.tape.collapse-m .entry:not(.anim) .line .m,
+.line .c.flat-m .m { width: 0; overflow: hidden; visibility: hidden; white-space: nowrap; }
+.tape.collapse-m .entry:not(.anim) .line .p,
+.line .c.flat-m .p { white-space: normal; }        /* no leading spaces (they set it under its code) */
+.tape.collapse-m .entry:not(.anim) .line .w { column-gap: 0; }
+.tape.collapse-m .entry:not(.anim) .line .slash,
+.line .slash.flat { margin: 0; color: transparent; }   /* a space's width */
+
+/* letters closed up, with a bar over each: the first frame back from
+   collapsed to shown, typing (███ / SOS, then each opens) */
+.line .c.flat-m.bar-m::after { left: 0.05ch; right: 0.05ch; }
+
+/* collapsing or uncollapsing (typing), the spacing changes letter by
+   letter: closed-up letters touch, the others keep the word's 1.4ch.
+   It's a margin after a letter, never before, so a letter starting a
+   wrapped line stays put (between shown and bars nothing changes, and
+   the word's gap is left alone) */
+.entry.anim.close-up .line .w { column-gap: 0; }
+.entry.anim.close-up .line .c:not(:last-child):not(.flat-m),
+.entry.anim.close-up .line .c.flat-m:not(:last-child):has(+ .c:not(.flat-m)) { margin-right: 1.4ch; }
+
+body[data-mode="type"] .entry.current .line:not(.empty-line) .caret {
+  margin-top: calc(1.05rem * 1.2);
+}
+
+.entry .line {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.6rem 0;
+  font-size: var(--fs-m);
+  line-height: 1.2;
+}
+
+.entry.past .line {
+  cursor: pointer;
+}
+
+.entry.past {
+  opacity: 0.7;
+}
+
+.entry .x {
+  flex: none;
+  align-self: flex-start;
+  margin-top: -0.2rem;
+  color: var(--graphite);
+}
+
+/* a long message, the one being written or one in the history: its ×
+   stays at the top of the tape while the message scrolls under it, so
+   it can always be cleared; it never leaves its own message, going
+   up with the message's last line */
+.entry .x {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bakelite);
+  border-radius: 50%;
+}
+
+/* words wrap whole; a letter is its code over its character */
+.line .w { display: inline-flex; flex-wrap: wrap; gap: 0.6rem 1.4ch; max-width: calc(100% - 1ch); }   /* a word wider than the line breaks between letters */
+.line .slash { margin: 0 1.2ch; color: var(--graphite); }
+.line .c { display: inline-grid; position: relative; }   /* (the caret rides on the last one) */
+.line .m, .line .p { white-space: pre; }
+/* a letter longer than the line (dozens of marks, never closed): its
+   marks wrap, between any two. The room for the caret after it is
+   kept on the word (measured on the line); the letter is at most its
+   word (a letter's own 100% - 1ch shrank one-letter words, S as ..|.) */
+.line .c { min-width: 0; max-width: 100%; grid-template-columns: minmax(0, auto); }
+.line .m { white-space: normal; overflow-wrap: anywhere; }
+.line .m { color: var(--graphite); }
+.signal .line .dot  { color: var(--dot); }
+.signal .line .dash { color: var(--dash); }
+
+/* the letter being keyed: its best guess so far, dimmed */
+.line .c.partial .p { color: var(--graphite); }
+
+.caret {
+  display: inline-block;
+  width: 0.55ch;
+  height: 1.1em;
+  margin-left: 0.4ch;
+  background: var(--brass);
+  animation: blink 1.1s steps(1) infinite;
+}
+
+@keyframes blink { 50% { opacity: 0; } }
+
+/* steady while keying; blinks again once you pause (and it keeps
+   its blink under reduced motion: it's a state, ready or keying, not
+   movement, as in any text editor) */
+.caret.steady { animation: none; }
+
+/* riding on the last letter: beside it, taking no room (so it never
+   wraps alone); on the Morse row keying, the letters row typing */
+.caret.tail {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  margin-left: 0.4ch;
+}
+
+body[data-mode="type"] .entry.current .line .caret.tail {
+  margin-top: 0;
+  top: calc(1.05rem * 1.2);
+}
+
+/* playing: the caret holds still; keys put away: no caret at all */
+body.playing .caret,
+.entry.anim .caret { animation: none; }   /* (and while the eye goes over: lit, not blinking) */
+body.reading .caret { visibility: hidden; }
+
+/* the empty line: the caret waits in front of the hint */
+.caret.first {
+  margin: 0 0.8ch 0 0;
+}
+
+.empty-line {
+  color: var(--graphite);
+}
+
+/*
+ * playing back: marks appear as they're sounded, the letter
+ * lights when its last mark is done, the rest waits dimmed
+ */
+.line.live .m span,
+.line.live .p {
+  opacity: 0.25;
+  transition: opacity 0.06s linear;
+}
+
+.line.live .m .keyed,
+.line.live .landed .p,
+.line.live .sent .p {
+  opacity: 1;
+}
+
+.line.live .landed .p {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.entry.past.playing {
+  opacity: 1;
+}
+
+
+/*
+ * ============================================================
+ * THE FIELD'S FOOT
+ * ============================================================
+ *
+ * The counts, and return set into the rule above them, at the right,
+ * where the line feeds up into the tape:
+ *
+ *   > ... --- ...
+ *   - - - - - - - - - - - - - (↵) -
+ *   1 char             2 dits
+ */
+
+.field-foot {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1ch;
+  padding: 0.3rem 0.6rem 0.45rem;
+  font-size: var(--fs-xs);
+  color: var(--graphite);
+  border-top: 1px dashed var(--wire);
+}
+
+/*
+ * Each count a row: the numbers right-aligned in a column of their
+ * own, the words after them, so both stay put as the numbers grow.
+ *
+ *    1 dit        12 dits
+ *    3 dahs        3 dahs
+ */
+.stats {
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: 1ch;
+  align-content: start;
+  line-height: 1.35;
+  min-height: 2.7em;   /* keeps the footer steady when empty */
+}
+
+.stats .n { justify-self: end; }
+
+.stats:not(:empty) { cursor: pointer; }   /* a tap copies (tx/tape.js) */
+.stats.secret:not(:empty) { cursor: default; }   /* hidden by the eye: a tap only says "hidden" */
+
+#stats-morse {
+  padding-right: var(--edge-w);   /* the ↵'s column: as far in as the counts on the left */
+}
+
+.send {
+  position: absolute;
+  right: calc(var(--edge-w) / 2 - 1.15rem);   /* centred in a column as wide as the tree's */
+  top: calc(-1.15rem - 0.5px);   /* centred on the rule */
+  width: 2.3rem;
+  height: 2.3rem;
+  padding: 0;
+  border-radius: 50%;
+  /* a key like the others: the same faint tint and rule, lit
+     while it's pressed (opaque, since it sits on the border) */
+  border: 1px solid var(--wire);
+  background: color-mix(in srgb, var(--paper) 4%, var(--bakelite));
+  color: var(--paper);
+  font-size: 1.3rem;   /* ↵ is small in the mono faces */
+  line-height: 1;
+  font-weight: 700;
+  z-index: 3;
+  touch-action: manipulation;
+}
+
+.send.pressed {
+  background: var(--key-lit);
+  color: var(--bakelite);
+}
+
+.send:disabled {
+  background: var(--bakelite);
   color: var(--wire);
   cursor: default;
 }
 
-.share-menu button[data-soon] .peek { color: var(--wire); }
 
-/* in the share menu, under everything */
-.share-menu .privacy {
-  margin-top: 0.2rem;
-  padding-top: 0.6rem;
-  border-top: 1px dashed var(--wire);
-  font-size: var(--fs-xs);
-  line-height: 1.5;
-  color: var(--graphite);
-}
+/*
+ * ============================================================
+ * CONTROLS
+ * ============================================================
+ *
+ * Under the station: the note on arrival over the keys, the player,
+ * and the row with settings, the outputs and the input modes.
+ */
 
 /*
  * On arrival: the same note over the keys (the input area), until
@@ -1125,7 +1106,16 @@ body:has(#train:not([hidden])) .pad {
  */
 .controls {
   position: relative;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.5rem;   /* room for the switch, below the box: the player
+                           sits as far under it as above the row below */
 }
+
+/* the note on arrival, already seen this month: not drawn at all */
+.noticed #notice { display: none; }
 
 .notice {
   position: absolute;
@@ -1157,111 +1147,134 @@ body:has(#train:not([hidden])) .pad {
   color: var(--graphite);
 }
 
-/* the small (i): a ringed letter, drawn so it looks the same everywhere */
-.privacy .info,
-.tx .privacy .info:hover,
-.notice .info,
-.tx .notice .info:hover {
-  display: inline-flex;
+/* under the player: settings ⌃ on the left, the actions on the right */
+.control-row {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 1.35em;
-  height: 1.35em;
-  margin-left: 0.5ch;
-  padding: 0;
-  border: 1px solid var(--graphite);
-  border-radius: 50%;
-  background: transparent;
-  color: var(--graphite);
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  line-height: 1;
-  vertical-align: -0.2em;
+  justify-content: space-between;
+  gap: 1ch;
 }
 
-.privacy-open[aria-expanded="true"],
-.tx .privacy-open[aria-expanded="true"]:hover {
+.control-row .actions {
+  display: flex;
+  align-items: center;
+  gap: 0.8ch;
+}
+
+.control-row .divider {
+  color: var(--wire);
+}
+
+/*
+ * The input modes are one switch, one button: .- ⇄ A. A press
+ * anywhere on it flips to the other side. The ⇄ is brass to the
+ * pointer, and the side that comes on flashes brass once, then
+ * settles to paper. Each side is drawn as the framed buttons were.
+ */
+.input-mode {
+  display: flex;
+  align-items: center;
+  gap: 0.4ch;
+  padding: 0;
+  border: 0;
+  color: var(--graphite);
+  cursor: pointer;
+}
+
+.input-mode .swap {
+  padding: 0.15rem 0;
+  user-select: none;
+}
+
+.input-mode .side.flash {
+  animation: mode-flash 0.45s ease-out;
+}
+
+@keyframes mode-flash {
+  from, 40% { border-color: var(--brass); }
+}
+
+.input-mode .side {
+  min-width: 3.2ch;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--wire);
+  color: var(--graphite);
+  text-align: center;
+}
+
+.input-mode .side.on {
   border-color: var(--paper);
   color: var(--paper);
 }
 
-/* a small framed popup, centred over the page */
-.popup {
-  position: fixed;
-  z-index: 14;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(20rem, calc(100vw - 2rem));
-  padding: 1.1rem 1rem 0.8rem;
-  border: 1px solid var(--graphite);
-  background: var(--bakelite);
-  box-shadow: 0 0 0 100vmax color-mix(in srgb, var(--bakelite) 60%, transparent);
-  font-size: var(--fs-s);
-  line-height: 1.45;
-}
-
-.popup .frame-label {
-  left: 0.8rem;
-}
-
-.popup p + p {
-  margin-top: 0.6rem;
-}
-
-.popup .popup-clear,
-.tx .popup .popup-clear:hover {
-  margin-top: 0.8rem;
-  background: transparent;
-}
-
-.popup .popup-clear.armed,
-.tx .popup .popup-clear.armed:hover {
-  border-color: var(--brass);
-  color: var(--brass);
-}
-
-.popup .popup-clear:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.popup .close,
-.tx .popup .close:hover,
-.share-menu .close,
-.tx .share-menu .close:hover {
-  display: block;
-  width: auto;
-  position: absolute;
-  top: 0.15rem;
-  right: 0.3rem;
-  border: 0;
-  padding: 0.2rem 0.4rem;
-  background: transparent;
-  color: var(--graphite);
-  font-size: var(--fs-s);
-}
-
-
-/* ---------- controls ---------- */
-
-.controls {
-  flex: none;
+.outputs {
   display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  margin-top: 1.5rem;   /* room for the send button and the switch, below the box */
+  gap: 0.25rem;
 }
+
+.outputs button {
+  flex: none;
+  color: var(--wire);
+  font-size: var(--fs-s);
+}
+
+.outputs button[aria-pressed="true"] {
+  color: var(--paper);
+}
+
+/* settings and keys: a chevron that points the way it'll go */
+.tray-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4ch;
+  border: 0;
+  padding: 0;
+  font-size: var(--fs-s);
+  color: var(--graphite);
+}
+
+.tray-toggle .chev { display: inline-block; }
+
+.tray-toggle .chev,
+.keys-toggle .chev {
+  transition: transform 0.15s;
+}
+
+.tray-toggle[aria-expanded="true"] .chev,
+.keys-toggle[aria-expanded="true"] .chev {
+  transform: rotate(180deg);
+}
+
+.keys-toggle {
+  color: var(--graphite);
+}
+
+/* the narrowest phones: a tighter row of controls */
+@media (max-width: 359px) {
+  .tx { --icon-box: 1.6rem; }
+  .control-row .input-mode .side { padding: 0.15rem 0.35rem; }
+  .control-row .actions { gap: 0.2ch; }
+  .control-row .divider { display: none; }
+  .outputs { gap: 0; }
+}
+
+
+/*
+ * ============================================================
+ * THE PLAYER
+ * ============================================================
+ *
+ * Play, the scrub bar with its trace, the time, repeat.
+ */
 
 .player {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.6ch;
-}
-
-.player button {
-  border: 0;
-  padding: 0 0.3ch;
+  /* its frame (active, below) as far from the row under it as from
+     the station's edge above, where the switch takes the room */
+  margin-bottom: 0.65rem;
 }
 
 .player .play {
@@ -1275,15 +1288,19 @@ body:has(#train:not([hidden])) .pad {
   cursor: default;
 }
 
-.tx .player .play:not(:disabled):hover { color: var(--paper); }
+/*
+ * Every control in the player row has a fixed width (the icon box),
+ * in every state (resting, hovered, pressed, toggled), so tapping
+ * one never nudges the others sideways.
+ */
+.player button { flex: none; }
+.player .repeat { color: var(--wire); position: relative; }
 
-.player .repeat,
-.tx .player .repeat:hover { color: var(--wire); position: relative; }
-
-/* ×3 / ∞: a small badge over the symbol (no change in width) */
+/* ×3 / ∞: a small badge over the symbol (no change in width; just
+   inside the row's edge, clear of the active player's frame) */
 .player .repeat::after {
   position: absolute;
-  right: -0.35ch;
+  right: 0.15ch;
   top: -0.35em;
   font-size: var(--fs-xs);
   font-weight: 700;
@@ -1292,15 +1309,12 @@ body:has(#train:not([hidden])) .pad {
 
 .player .repeat[data-repeat="three"]::after { content: "3"; }
 .player .repeat[data-repeat="on"]::after    { content: "∞"; }
-.player .repeat[aria-pressed="true"],
-.tx .player .repeat[aria-pressed="true"]:hover { color: var(--paper); }
+.player .repeat[aria-pressed="true"] { color: var(--paper); }
 
-/* the scrub bar: a hairline with a paper knob */
+/* repeat, with nothing to play: greyed like play (its ×3 / ∞ too) */
+.tx .player .repeat:disabled { color: var(--wire); cursor: default; }
+
 /* the scrub bar: the signal drawn underneath, the range on top */
-.player {
-  position: relative;
-}
-
 .seek-wrap {
   position: relative;
   flex: 1;
@@ -1355,7 +1369,7 @@ body:has(#train:not([hidden])) .pad {
 }
 
 /* the line is drawn by the trace; the range keeps only its playhead,
-   a rounded column (keep its width in step with THUMB in tx.js) */
+   a rounded column (keep its width in step with THUMB in tx/player.js) */
 .seek::-webkit-slider-runnable-track { height: 1px; background: transparent; }
 .seek::-moz-range-track              { height: 1px; background: transparent; }
 
@@ -1381,74 +1395,46 @@ body:has(#train:not([hidden])) .pad {
 .seek:disabled::-webkit-slider-thumb { background: var(--wire); }
 .seek:disabled::-moz-range-thumb     { background: var(--wire); }
 
-/*
- * Every control in the player row has a fixed width, in every
- * state (resting, hovered, pressed, toggled), so tapping one
- * never nudges the others sideways.
- */
-.player button,
-.tx .player button:hover,
-.outputs button,
-.tx .outputs button:hover {
-  flex: none;
-  width: 2ch;
-  padding: 0;
-  text-align: center;
-}
-
-.player .play,
-.tx .player .play:hover {
-  width: 2.4ch;   /* room for ❚❚ */
-}
-
+/* the readout: one width, the widest it can read ("59.9/59.9s"; past
+   a minute, "9:59/9:59"), so the scrub bar never moves or changes
+   length, whatever the message or the playhead */
 .player .time {
-  flex: none;     /* its width is set for the longest reading, below */
+  flex: none;
+  width: 10ch;
   font-size: var(--fs-xs);
   color: var(--graphite);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
+/* the player, active (clicked or tabbed into): the keys are its own.
+   The frame keeps to the row's own width, the same as the field above
+   and the keys below; only above and below does it stand off a little
+   (an outline would stand off all round, wider than both) */
+.player::before {
+  content: "";
+  position: absolute;
+  inset: -6px 0;
+  border: 1px solid transparent;
+  pointer-events: none;
+  transition: border-color 0.15s;
+}
+
+.player.active::before { border-color: var(--brass); }
+
+/* active, the keys go to the whole player, not the focused button:
+   one frame, no ring inside it */
+.player.active :focus-visible { outline: none; }
+
+
 /*
- * playing back: marks appear as they're sounded, the letter
- * lights when its last mark is done, the rest waits dimmed
+ * ============================================================
+ * THE TRAY
+ * ============================================================
+ *
+ * Settings, in the input area's place: the lists over the faders,
+ * the checkboxes in a column of their own.
  */
-.line.live .m span,
-.line.live .p {
-  opacity: 0.25;
-  transition: opacity 0.06s linear;
-}
-
-.line.live .m .keyed,
-.line.live .landed .p,
-.line.live .sent .p {
-  opacity: 1;
-}
-
-.line.live .landed .p {
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-
-.entry.past.playing {
-  opacity: 1;
-}
-
-.tray-toggle {
-  border: 0;
-  padding: 0;
-  font-size: var(--fs-s);
-  color: var(--graphite);
-}
-
-.tray-toggle .chev {
-  display: inline-block;
-  transition: transform 0.15s;
-}
-
-.tray-toggle[aria-expanded="true"] .chev {
-  transform: rotate(180deg);
-}
 
 .tray {
   height: var(--input-h);   /* takes the pad's place, same height */
@@ -1460,10 +1446,21 @@ body:has(#train:not([hidden])) .pad {
      (color, invert) in a column of its own at the right */
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 0.6rem 0.5rem;
+  /*
+   * The faders sit in even columns, one per slider (5 without
+   * vibrate). The lists above use the same measure: key centred over
+   * speed, sound ending just before the vol | pitch gap, wave starting
+   * at that gap, light starting at light. A list too wide for its
+   * place nudges the next one along rather than touching it.
+   */
+  --n: 6;
+  --g: 0.3rem;                                            /* between slider columns */
+  --c: calc((100% - (var(--n) - 1) * var(--g)) / var(--n)); /* one slider column */
 }
 
+.tray:has(#vibe-set[hidden]) { --n: 5; }
 .tray .switches { grid-column: 1; grid-row: 1; }
 .tray .faders   { grid-column: 1; grid-row: 2; }
 
@@ -1491,30 +1488,24 @@ body:has(#train:not([hidden])) .pad {
   font-size: var(--fs-xs);
 }
 
-/*
- * faders: radio-panel style columns, value on top, label below,
- * grouped in pairs with the group's name underneath
- */
-/*
- * The faders sit in even columns, one per slider (5 without
- * vibrate). The lists above use the same measure: key centred over
- * speed, sound ending just before the vol | pitch gap, wave starting
- * at that gap, light starting at light. A list too wide for its
- * place nudges the next one along rather than touching it.
- */
-.tray {
-  --n: 6;
-  --g: 0.3rem;                                            /* between slider columns */
-  --c: calc((100% - (var(--n) - 1) * var(--g)) / var(--n)); /* one slider column */
+/* the foot: a report for support, quiet, across the tray */
+.tray-foot {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  padding-top: 0.4rem;
+  border-top: 1px dashed var(--wire);
 }
-.tray:has(#vibe-set[hidden]) { --n: 5; }
 
+/* faders: radio-panel style columns, value on top, label below,
+   grouped in pairs with the group's name underneath */
 .faders {
   min-height: 140px;   /* sliders stay usable; a short phone scrolls the tray */
   display: grid;
   grid-template-columns: repeat(var(--n), minmax(0, 1fr));
   column-gap: var(--g);
 }
+
 .faders .group:has(.pair > .fader + .fader) { grid-column: span 2; }
 
 .group {
@@ -1569,6 +1560,42 @@ body:has(#train:not([hidden])) .pad {
   cursor: pointer;
 }
 
+/*
+ * farnsworth can't be faster than wpm: the track above wpm is out
+ * of reach, drawn as a dotted, greyed stretch the thumb tops out
+ * against. --f: how much of the travel is out of reach (tx/settings.js);
+ * --r: the thumb's radius (its centre travels r … height − r).
+ */
+.fader .track {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  --f: 0;
+  --r: 8px;
+}
+
+.fader .track .cap {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 10px;
+  transform: translateX(-50%);
+  height: calc(var(--f) * (100% - 2 * var(--r)));
+  background:
+    repeating-linear-gradient(to bottom, var(--graphite) 0 2px, transparent 2px 5px) center / 2px 100% no-repeat,
+    var(--bakelite);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+/* not used by the current choice (the flashlight has no level) */
+.fader:has(input:disabled) {
+  opacity: 0.38;
+}
+
 /* the choices: lined up over the faders (see the columns above) */
 .switches {
   display: grid;
@@ -1580,9 +1607,14 @@ body:has(#train:not([hidden])) .pad {
     minmax(0, 1fr);
   row-gap: 0.35rem;
   color: var(--graphite);
+  container-type: inline-size;   /* .lead measures a slider column on it */
 }
 
+/* each list its own width, with soft room before the next */
 .switches label {
+  position: relative;
+  justify-self: start;
+  margin-right: 0.6rem;
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
@@ -1614,44 +1646,9 @@ body:has(#train:not([hidden])) .pad {
   color: var(--graphite);
 }
 
-/*
- * farnsworth can't be faster than wpm: the track above wpm is out
- * of reach, drawn as a dotted, greyed stretch the thumb tops out
- * against. --f: how much of the travel is out of reach (tx.js);
- * --r: the thumb's radius (its centre travels r … height − r).
- */
-.fader .track {
-  flex: 1;
-  min-height: 0;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  --f: 0;
-  --r: 8px;
-}
-.fader .track .cap {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 10px;
-  transform: translateX(-50%);
-  height: calc(var(--f) * (100% - 2 * var(--r)));
-  background:
-    repeating-linear-gradient(to bottom, var(--graphite) 0 2px, transparent 2px 5px) center / 2px 100% no-repeat,
-    var(--bakelite);
-  opacity: 0.8;
-  pointer-events: none;
-}
 
-/* not used by the current choice (the flashlight has no level) */
-.fader:has(input:disabled) {
-  opacity: 0.38;
-}
-
-.switches label { justify-self: start; margin-right: 0.6rem; }     /* their own width; soft room before the next */
 /* key centred over speed, sound against the vol | pitch gap; crowded, key gives way */
-.switches { container-type: inline-size; }
+
 .switches .lead {
   --c: calc((100cqw - (var(--n) - 1) * var(--g)) / var(--n));   /* a slider column, measured on the row */
   grid-column: 1 / 3;
@@ -1660,12 +1657,13 @@ body:has(#train:not([hidden])) .pad {
   justify-content: space-between;
   min-width: 0;
 }
+
 .switches .lead > label:first-child { justify-self: start; margin-right: 0; }
 .switches label:has(#opt-wave) { grid-column: 3; }                        /* wave, from that gap */
 .switches > label[data-needs="light"] { grid-column: 4; margin-right: 0; } /* light, from light */
 
 /* the lists' chevron: drawn, so it can turn brass with the rest */
-.switches label { position: relative; }
+
 .switches label:has(select)::after {
   content: "";
   position: absolute;
@@ -1679,8 +1677,8 @@ body:has(#train:not([hidden])) .pad {
   pointer-events: none;
 }
 
-/* ctrl (keys as paddles): beside key, caption over [ ] like a list;
-   touch screens have no Ctrl keys, so it isn't shown there */
+/* ctrl (keys as paddles, for a USB paddle adapter): beside key on
+   every screen, caption over [ ] like a list */
 .switches .ctrl-flag {
   display: flex;
   flex-direction: column;
@@ -1688,11 +1686,10 @@ body:has(#train:not([hidden])) .pad {
   font-size: var(--fs-xs);
   cursor: pointer;
 }
-.switches .ctrl-flag .check { font-size: var(--fs-xs); padding: 0.1rem 0; }
-/* (on touch screens and narrow ones, ctrl lives at the end of the
-   checkbox column instead: tx.js placeCtrl) */
 
-/* placed by placeSwitches() (tx.js): each list over its slider(s) */
+.switches .ctrl-flag .check { font-size: var(--fs-xs); padding: 0.1rem 0; }
+
+/* placed by placeSwitches() (tx/settings.js): each list over its slider(s) */
 .switches.placed { display: block; position: relative; }
 .switches.placed .lead { display: contents; }
 .switches.placed label { position: absolute; top: 0; margin: 0; }
@@ -1702,14 +1699,14 @@ body:has(#train:not([hidden])) .pad {
  * Narrow phones (384px and less): three rows, the tray scrolling
  * if the sliders run past the bottom:
  *
- *   key      sound    wave
- *   light    color  invert  pretty play  (ctrl)
+ *   key  ctrl  sound    wave
+ *   light    color  invert  pretty play
  *   │ │  │ │  │  │      the sliders, full width, full height
  */
 @media (max-width: 384px) {
   .tray {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: auto auto auto;
+    grid-template-columns: minmax(0, 1.35fr) repeat(2, minmax(0, 1fr));   /* the first a little wider: key and ctrl share it */
+    grid-template-rows: auto auto auto auto;
     gap: 0.7rem 0.4rem;
   }
   .tray .switches,
@@ -1717,6 +1714,7 @@ body:has(#train:not([hidden])) .pad {
   .switches label,
   .switches .lead > label:first-child { justify-self: start; align-self: start; margin: 0; }
   .switches .lead > label:first-child  { grid-column: 1; grid-row: 1; }
+  .switches .ctrl-flag                 { grid-column: 1; grid-row: 1; justify-self: end; margin-right: 0.6rem; }   /* key's cell, at its far end, clear of the next */
   .switches .lead > label:has(#opt-sound) { grid-column: 2; grid-row: 1; }
   .switches label:has(#opt-wave)       { grid-column: 3; grid-row: 1; }
   .switches > label[data-needs="light"] { grid-column: 1; grid-row: 2; }
@@ -1728,6 +1726,7 @@ body:has(#train:not([hidden])) .pad {
     justify-content: space-between;
     gap: 0.5rem;
     padding-left: 0;
+    padding-right: 0.6rem;   /* clear of the tray's scrollbar, which phones draw over the edge */
     border-left: 0;
   }
   .tray .faders {
@@ -1756,21 +1755,29 @@ body:has(#train:not([hidden])) .pad {
   filter: grayscale(1);
 }
 
-.quiet {
-  align-self: flex-start;
-  border-color: var(--wire);
-  color: var(--graphite);
-  font-size: var(--fs-xs);
-  padding: 0.2rem 0.6rem;
-}
+/* the tray scrolls, so it clips at its edges: a focus outline standing
+   off its control (style.css) lost its left side on the key list.
+   Inside the tray it draws just inside the control instead */
+.tray :focus-visible,
+.tray .check:has(input:focus-visible) { outline-offset: -1px; }
 
 
-/* ---------- timing train ---------- */
+/*
+ * ============================================================
+ * THE TIMING TRAIN
+ * ============================================================
+ */
 
-/* side keys | dit | dah: shared by the pad and the bar above it */
-.tx { --pad-cols: 1fr 1.7fr 2.4fr; }
-
+/* key up over the side keys, key down over dit and dah; time zero
+   sits in the middle of the gap between the side keys and the dit
+   key, marked by an upright bar, and each half reaches it. A tap
+   says what it shows (a popup) */
 .train {
+  position: relative;
+  cursor: pointer;
+  flex: none;
+  height: 1.6rem;   /* exactly what the pad gives up for it (THE PAD): the slot's height
+                       never changes, so the player above stays put on a switch */
   display: grid;
   grid-template-columns: var(--pad-cols);   /* the pad's columns, so it lines up with the keys */
   column-gap: 6px;
@@ -1787,12 +1794,6 @@ body:has(#train:not([hidden])) .pad {
 }
 
 /* key up: over the side keys, reaching across the gap to the dit key's edge */
-/* time zero sits in the middle of the gap between the side keys and
-   the dit key, marked by an upright bar; each half reaches it */
-.train {
-  position: relative;
-}
-
 .train .seg.off {
   grid-column: 1;
   margin-right: -3px;
@@ -1815,7 +1816,7 @@ body:has(#train:not([hidden])) .pad {
   bottom: -3px;
   width: 2px;
   margin-left: -1px;
-  left: 0;                 /* set from the keys (tx.js: the timing train) */
+  left: 0;                 /* set from the keys (tx/keys.js: the timing train) */
   background: var(--graphite);
   border-radius: 1px;
   pointer-events: none;
@@ -1829,7 +1830,6 @@ body:has(#train:not([hidden])) .pad {
 }
 
 .train .seg.off .fill { inset: 0 0 0 auto; }   /* key up grows leftward */
-
 .signal .train .fill.dot  { background: color-mix(in srgb, var(--dot) 55%, var(--bakelite)); }
 .signal .train .fill.dash { background: color-mix(in srgb, var(--dash) 55%, var(--bakelite)); }
 .train .fill.past         { opacity: 0.4; }   /* the last mark, kept while you wait */
@@ -1855,7 +1855,6 @@ body:has(#train:not([hidden])) .pad {
 /* where one call turns into the next (dit → dah, ˽ → /) */
 .train .seg.on .tick.split  { padding: 0; border-right: 1px solid var(--brass); }
 .train .seg.off .tick.split { padding: 0; border-left: 1px solid var(--brass); }
-
 .train .tick.lit                 { color: var(--paper); border-color: var(--graphite); }
 
 /* playback: where the ideal length ends (a bright notch top and bottom) */
@@ -1883,12 +1882,35 @@ body:has(#train:not([hidden])) .pad {
 .signal .train .tick.lit.dash    { color: var(--dash); }
 
 
-/* ---------- keyer pad ---------- */
+/*
+ * ============================================================
+ * THE PAD
+ * ============================================================
+ */
+
+/*
+ * The slot under the control row: settings, the timing bar and the
+ * pad, or the keyboard. Its height is set, whatever is in it, so the
+ * player and the station above never move when one replaces another
+ * (or when a browser draws one a few pixels taller). Read mode puts
+ * the keys away: the slot goes, and the message has the room.
+ */
+.slot {
+  flex: none;
+  height: var(--input-h);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;   /* the timing bar to the pad, as the controls' own gap was */
+}
+
+body.reading .slot { display: none; }
 
 .pad {
   display: grid;
   grid-template-columns: var(--pad-cols);
-  grid-template-rows: repeat(3, 1fr);
+  grid-template-rows: repeat(4, minmax(0, 1fr));   /* the side: ˽ / ⌫ ↵ */
+  min-height: 0;   /* its set height, never its keys' (or the station above moves) */
   gap: 6px;
   height: var(--input-h);
   user-select: none;
@@ -1905,18 +1927,13 @@ body:has(#train:not([hidden])) .pad {
   touch-action: none;   /* a press is a press, never a scroll */
 }
 
-.key:hover {
-  background: color-mix(in srgb, var(--paper) 4%, var(--bakelite));
-  color: var(--paper);
-}
-
 .key.side { grid-column: 1; }
 .key.dit  { grid-column: 2; }
 .key.dah  { grid-column: 3; }
 
 .key.dit,
 .key.dah {
-  grid-row: 1 / span 3;
+  grid-row: 1 / -1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1959,16 +1976,26 @@ body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
   color: var(--bakelite) !important;
 }
 
+/* the timing bar shares the input area's height with the pad */
+body:has(#train:not([hidden])) .pad {
+  height: calc(var(--input-h) - 1.6rem - 0.45rem);   /* the bar, and the gap above the pad */
+}
 
-/* ---------- type mode ---------- */
 
-/* ---------- type mode: our own keyboard ---------- */
+/*
+ * ============================================================
+ * THE KEYBOARD
+ * ============================================================
+ *
+ * Type mode's keys, their codes, the long-press fan.
+ */
 
 .type {
   display: flex;
   flex-direction: column;
   gap: 6px;
   height: var(--input-h);
+  min-height: 0;   /* the same height as the pad, exactly: nothing above moves on a switch */
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -1978,11 +2005,11 @@ body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-rows: repeat(4, 1fr);
+  grid-template-rows: repeat(4, minmax(0, 1fr));   /* rows as the slot allows, never their keys' own height */
   gap: 5px;
 }
 
-/* 20 half-key columns: keys are placed on this grid (see tx.js) */
+/* 20 half-key columns: keys are placed on this grid (see tx/keyboard.js) */
 .kbd .row {
   display: grid;
   grid-template-columns: repeat(20, minmax(0, 1fr));
@@ -1990,8 +2017,10 @@ body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
   min-height: 0;
 }
 
-.kbd button,
-.tx .kbd button:hover {
+.kbd button {
+  position: relative;
+  overflow: hidden;
+  container-type: inline-size;   /* for the codes (below) */
   min-width: 0;
   margin: 0 1px;   /* with the 2px column gap: 4px between keys */
   display: flex;
@@ -2027,22 +2056,18 @@ body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
   font-size: var(--fs-s);
 }
 
-/* keys that hold digits / symbols (long-press): a tick in the corner */
-.kbd button { position: relative; overflow: hidden; }
-
 /*
  * Codes fit their key: each key measures its own width (a size
  * container) and a code of --len marks takes at most that, so
  * short codes stay full size and $ (7 marks) shrinks just enough.
  * (A monospace mark is about 0.6em wide.)
  */
-.kbd button { container-type: inline-size; }
-
 .kbd small[style*="--len"] {
   font-size: min(0.55rem, calc(88cqw / (var(--len) * 0.62)));
   letter-spacing: 0;
 }
 
+/* keys that hold digits / symbols (long-press): a tick in the corner */
 .kbd .more::after {
   content: "";
   position: absolute;
@@ -2052,6 +2077,32 @@ body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
   height: 4px;
   border-top: 1px solid var(--graphite);
   border-right: 1px solid var(--graphite);
+}
+
+/* an output's list, long-pressed open (tx/layer.js): like the fan */
+.quick-list {
+  position: fixed;
+  z-index: 15;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  max-width: calc(100vw - 12px);
+  padding: 3px;
+  background: var(--bakelite);
+  border: 1px solid var(--paper);
+  font-size: var(--fs-s);
+}
+
+.quick-list button {
+  border: 0;
+  padding: 0.45rem 0.6rem;
+  color: var(--graphite);
+  background: transparent;
+}
+
+.quick-list button.on {
+  background: var(--paper);
+  color: var(--bakelite);
 }
 
 /* the long-press fan */
@@ -2086,6 +2137,7 @@ body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
   font-size: 0.6rem;
   line-height: 1;
   color: var(--graphite);
+  white-space: nowrap;
 }
 
 .signal .fan small .dot  { color: var(--dot); }
@@ -2101,8 +2153,7 @@ body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
   color: var(--bakelite) !important;
 }
 
-.kbd .pressed,
-.tx .kbd .pressed:hover {
+.kbd .pressed {
   background: var(--key-lit);
   color: var(--bakelite);
 }
@@ -2112,203 +2163,8 @@ body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
   color: var(--bakelite) !important;
 }
 
-
-/* the caret keeps its blink under reduced motion: it's a state
-   (ready / keying), not movement, as in any text editor */
-
-
-/*
- * ============================================================
- * ICONS
- * ============================================================
- *
- * Every tappable symbol that isn't a framed button: chevrons,
- * close and remove ×, the eye, play / pause, repeat, ♪ ☼ ≋,
- * the tree's >< and the (i). One drawn size (--icon), centred in
- * a roomier box to tap.
- */
-.tx { --icon: 1.2rem; --icon-box: 1.9rem; }
-
-.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
-
-.tx .frame-label { font-size: var(--fs-s); }
-
-.ico {
-  display: block;
-  flex: none;
-  width: var(--icon);
-  height: var(--icon);
-  overflow: visible;
-}
-
-.edge-toggle,
-.tx .edge-toggle:hover,
-.entry .x,
-.tx .entry .x:hover,
-.popup .close,
-.tx .popup .close:hover,
-.share-menu .close,
-.tx .share-menu .close:hover,
-.player button,
-.tx .player button:hover,
-.outputs button,
-.tx .outputs button:hover,
-.keys-toggle,
-.tx .keys-toggle:hover {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--icon-box);
-  height: var(--icon-box);
-  padding: 0;
-  border: 0;
-  background: transparent;
-  letter-spacing: 0;
-}
-
-.player .play,
-.tx .player .play:hover { width: var(--icon-box); }
-
-.popup .close,
-.tx .popup .close:hover,
-.share-menu .close,
-.tx .share-menu .close:hover { top: 0.1rem; right: 0.15rem; }   /* hover too, or it jumps */
-
-.entry .x { align-self: flex-start; margin-top: -0.2rem; }
-
-/* settings and keys: a chevron that points the way it'll go */
-.tray-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4ch;
-}
-
-.tray-toggle .chev,
-.keys-toggle .chev {
-  transition: transform 0.15s;
-}
-
-.tray-toggle[aria-expanded="true"] .chev,
-.keys-toggle[aria-expanded="true"] .chev {
-  transform: rotate(180deg);
-}
-
-.keys-toggle,
-.tx .keys-toggle:hover {
-  color: var(--graphite);
-}
-
-/* the (i) at the foot of the tree: a ring the icon size */
-.edge-foot .info {
-  width: var(--icon);
-  height: var(--icon);
-  font-size: var(--fs-xs);
-}
-
-/* the narrowest phones: a tighter row of controls */
-@media (max-width: 359px) {
-  .tx { --icon-box: 1.6rem; }
-  .control-row .actions { gap: 0.2ch; }
-  .control-row .divider { display: none; }
-  .outputs { gap: 0; }
-}
-
-/* marks named in a popup's text take the dot / dash colours */
-.signal .popup .dot  { color: var(--dot); }
-.signal .popup .dash { color: var(--dash); }
-
-/* every (i) the same on hover: a brass ring, no fill (last, so it
-   wins over each ring's own look) */
-@media (hover: hover) {
-  .tx .info:hover,
-  .tx .edge-foot .info:hover,
-  .tx .privacy .info:hover,
-  .tx .notice .info:hover,
-  .tx .privacy-open[aria-expanded="true"]:hover {
-    background: transparent;
-    border-color: var(--brass);
-    color: var(--brass);
-  }
-}
-
-/*
- * The eye, beyond the tape: in the about column and the counts,
- * what it hides is a bar in the tape's colour, and takes no taps.
- * (The whole tree stays as it is: a hint, and a way to learn it.)
- */
-.tx { --bar: color-mix(in srgb, var(--paper) 80%, var(--bakelite)); }
-.redact,
-.redact * {
-  color: transparent !important;
-  pointer-events: none;
-  cursor: default;
-}
-.local .redact { background: var(--bar) !important; border: 0; border-radius: 1px; }
-
-/* the bars run the column's width, inside a little padding */
-.about-main { align-self: stretch; }
-.about-foot { align-self: stretch; }
-.about .redact { margin-left: 0.35rem; margin-right: 0.35rem; }
-.about-marks.redact i { align-self: stretch; }
-
-/* one shape for any name, the size of the tallest (NOVEMBER's
-   stair): its length gives nothing away */
-.about-name.redact,
-.about-prosign.redact {
-  display: block;
-  align-self: stretch;
-  width: auto;
-  height: calc(8 * 0.56em + 2 * 0.3em + 0.45em);
-  font-size: var(--fs-s);
-  background: var(--bar);
-  border-radius: 1px;
-}
-.about-name.redact > * { display: none; }
-
-/* the marks, the cut and ~: bars the column's full width */
-.about-marks.redact { align-self: stretch; gap: 0; }
-.about-marks.redact i { width: 100% !important; background: var(--bar) !important; }
-.about-cut.redact,
-.about-heard.redact { align-self: stretch; align-items: stretch; }
-.about-cut.redact b,
-.about-heard.redact b { display: block; background: var(--bar); border-radius: 1px; }
-.about-heard.redact b + b { margin-top: 0.2em; }
-.redact .about-label { color: var(--graphite) !important; text-align: center; }   /* the titles stay */
-
-/* the counts: the numbers go, the words stay */
-.stats .n.redact {
-  display: inline-block;
-  min-width: 2ch;
-  background: var(--bar);
-  border-radius: 1px;
-  line-height: 1.05;
-}
-
-/* the marks run on past the tree's edge: ⋮ after the last node shown */
-#tree { position: relative; }
-#tree .more {
-  position: absolute;
-  width: 0.2em;               /* three dots drawn, narrower than the glyph: */
-  height: 0.9em;              /* it fits in the box's padding */
-  transform: translate(0.25em, -50%);
-  font-size: inherit;
-  color: transparent;         /* the glyph is for copying; the dots are drawn */
-  background: radial-gradient(circle closest-side, var(--more, var(--paper)) 85%, transparent 100%) 0 0 / 0.2em 0.3em repeat-y;
-  pointer-events: none;
-}
-.signal #tree .more.dot  { --more: var(--dot); }
-.signal #tree .more.dash { --more: var(--dash); }
-
-/* the player, active (clicked or tabbed into): the keys are its own */
-.player { outline: 1px solid transparent; outline-offset: 4px; transition: outline-color 0.15s; }
-.player.active { outline-color: var(--brass); }
-/* active, the keys go to the whole player, not the focused button:
-   one frame, no ring inside it */
-.player.active :focus-visible { outline: none; }
-
 /* the (i) in the Z row's empty start: a ring, not a key */
-.kbd .kbd-info,
-.tx .kbd .kbd-info:hover {
+.kbd .kbd-info {
   justify-self: center;
   align-self: center;
   width: 1.35rem;
@@ -2324,9 +2180,489 @@ body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
   line-height: 1;
   overflow: visible;
 }
-@media (hover: hover) {
-  .tx .kbd .kbd-info:hover { border-color: var(--brass); color: var(--brass); }
+
+
+/*
+ * ============================================================
+ * POPUPS
+ * ============================================================
+ *
+ * Framed boxes over the page: the popups (privacy, misheard, the lamp's
+ * warning, the about card), the share menu, the paste bubble, the toast.
+ */
+
+/* a small framed popup, centred over the page */
+.popup {
+  position: fixed;
+  z-index: 14;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(20rem, calc(100vw - 2rem));
+  padding: 1.1rem 1rem 0.8rem;
+  border: 1px solid var(--graphite);
+  background: var(--bakelite);
+  box-shadow: 0 0 0 100vmax color-mix(in srgb, var(--bakelite) 60%, transparent);
+  font-size: var(--fs-s);
+  line-height: 1.45;
 }
+
+.popup .frame-label {
+  left: 0.8rem;
+}
+
+.popup p + p {
+  margin-top: 0.6rem;
+}
+
+/* cut numbers: each digit's marks, the ones the cut drops greyed,
+   the row for the character showing in brass */
+.cut-chart {
+  margin: 0.6rem 0;
+  font-size: var(--fs-s);
+  line-height: 1.5;
+}
+.cut-chart .cut-row { display: block; color: var(--graphite); }
+.cut-chart .cut-row.here { color: var(--brass); }
+.cut-chart .dot,
+.cut-chart .dash { color: var(--paper); }
+.cut-note { color: var(--graphite); font-size: var(--fs-xs); }
+
+/* the report, as it would be copied: scrolls if long, wraps if wide */
+.report-text {
+  margin: 0.6rem 0 0;
+  max-height: min(16rem, 50dvh);
+  overflow: auto;
+  padding: 0.5rem 0.6rem;
+  border: 1px dashed var(--wire);
+  color: var(--graphite);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* marks named in a popup's text take the dot / dash colours */
+.signal .popup .dot  { color: var(--dot); }
+.signal .popup .dash { color: var(--dash); }
+/* (after the colours: a mark the cut drops is grey in any colour) */
+.popup .cut-chart .gone { color: var(--wire); }
+
+.popup .warn {
+  color: var(--brass);
+}
+
+.popup .fast {
+  color: var(--dot);
+}
+
+.popup .actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+}
+
+.popup .actions button {
+  background: transparent;
+}
+
+.quiet {
+  align-self: flex-start;
+  border-color: var(--wire);
+  color: var(--graphite);
+  font-size: var(--fs-xs);
+  padding: 0.2rem 0.6rem;
+}
+
+#lamp-go,
+#report-copy {
+  border-color: var(--paper);
+  color: var(--paper);
+}
+
+.popup .popup-clear {
+  margin-top: 0.8rem;
+  background: transparent;
+}
+
+.popup .popup-clear.armed {
+  border-color: var(--brass);
+  color: var(--brass);
+}
+
+.popup .popup-clear:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.popup .close,
+.share-menu .close {
+  position: absolute;
+  top: 0.1rem;      /* the same at rest and on hover, or it jumps */
+  right: 0.15rem;
+  color: var(--graphite);
+  font-size: var(--fs-s);
+}
+
+/* the small (i): a ringed letter, drawn so it looks the same everywhere */
+.privacy .info,
+.notice .info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35em;
+  height: 1.35em;
+  margin-left: 0.5ch;
+  padding: 0;
+  border: 1px solid var(--graphite);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--graphite);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: -0.2em;
+}
+
+.privacy-open[aria-expanded="true"] {
+  border-color: var(--paper);
+  color: var(--paper);
+}
+
+.share-menu {
+  position: fixed;
+  z-index: 10;
+  top: var(--share-top, 3rem);   /* set on open: just under the share button */
+  right: max(0.75rem, calc((100vw - 520px) / 2 + 0.75rem));
+  width: min(20rem, calc(100vw - 1.5rem));
+  padding: 1rem 0.9rem 0.7rem;
+  background: var(--bakelite);
+  border: 1px solid var(--graphite);
+  box-shadow: 0 0 0 100vmax color-mix(in srgb, var(--bakelite) 55%, transparent);   /* dims the page behind */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: var(--fs-s);
+}
+
+.share-menu .frame-label {
+  left: 0.8rem;
+}
+
+.share-menu .rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.share-menu .rows + .rows {
+  border-top: 1px dashed var(--wire);
+  padding-top: 0.5rem;
+}
+
+.share-menu button {
+  display: flex;
+  justify-content: space-between;
+  gap: 1ch;
+  width: 100%;
+  border: 0;
+  padding: 0.35rem 0.2rem;
+  text-align: left;
+  background: transparent;
+  color: var(--paper);
+}
+
+.share-menu button > span:first-child {
+  flex: none;
+  white-space: nowrap;
+}
+
+.share-menu .peek {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--graphite);
+}
+
+.share-menu .saves {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.share-menu .saves .lead {
+  color: var(--graphite);
+  margin-right: 0.4rem;
+}
+
+.share-menu .saves button {
+  width: auto;
+  border: 1px solid var(--wire);
+  padding: 0.25rem 0.6rem;
+}
+
+/* not ready yet (the spoken .wav, until the recordings are in) */
+.share-menu button[data-soon] {
+  color: var(--wire);
+  cursor: default;
+}
+
+.share-menu button[data-soon] .peek { color: var(--wire); }
+
+/* in the share menu, under everything */
+.share-menu .privacy {
+  margin-top: 0.2rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--wire);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  color: var(--graphite);
+}
+
+.share-note {
+  min-height: 1.2em;
+  color: var(--brass);
+  font-size: var(--fs-xs);
+}
+
+/* the wait lamp: a small brass light keying AS while something's made */
+.wait-lamp {
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  margin-right: 0.3em;
+  border-radius: 50%;
+  border: 1px solid var(--wire);
+  vertical-align: -0.05em;
+}
+
+.wait-lamp.lit {
+  background: var(--brass);
+  border-color: var(--brass);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--brass) 70%, transparent);
+}
+
+.wait-label { color: var(--graphite); }
+
+/*
+ * The waiting screen (index.html, #waiting): the station's skeleton
+ * while the scripts start. Hidden for the first second, so a normal
+ * start never shows it; if the page is stuck, it stays, the lamp
+ * keying AS at 10 wpm (a 100 ms unit) until it isn't:
+ *
+ *   .  -    .  .  .        on 1, 3, 1, 1, 1; off 1 between, then 7
+ *   ▮ ▮▮▮ ▮ ▮ ▮ _______    18 units, 1.8 s
+ */
+.waiting {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 1rem 3rem;
+  background: var(--bakelite);
+  opacity: 0;
+  visibility: hidden;
+  animation: waiting-in 0.3s 1s forwards;
+}
+@keyframes waiting-in { to { opacity: 1; visibility: visible; } }
+
+.waiting-box {
+  position: relative;
+  width: min(100%, 22rem);
+  height: min(60vh, 26rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--brass);
+  font-size: var(--fs-s);
+}
+
+.waiting .wait-lamp { animation: key-as 1.8s step-end infinite; }
+@keyframes key-as {
+  0%, 11.11%, 33.33%, 44.44%, 55.56% { background: var(--brass); border-color: var(--brass); box-shadow: 0 0 6px color-mix(in srgb, var(--brass) 70%, transparent); }
+  5.56%, 27.78%, 38.89%, 50%, 61.11% { background: transparent; border-color: var(--wire); box-shadow: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .waiting .wait-lamp { animation: none; background: var(--brass); border-color: var(--brass); }
+}
+
+/* the long-press bubble */
+.paste-bubble {
+  position: fixed;
+  z-index: 12;
+  transform: translate(-50%, calc(-100% - 12px));
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--paper);
+  background: var(--paper);
+  color: var(--bakelite);
+  font-size: var(--fs-s);
+}
+
+.paste-bubble::after {          /* the little pointer underneath */
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -11px;
+  margin-left: -6px;
+  border: 6px solid transparent;
+  border-top-color: var(--paper);
+}
+
+/* a short message (nothing to paste, …) under the header */
+.toast {
+  position: fixed;
+  z-index: 12;
+  top: 2.9rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.3rem 0.8rem;
+  border: 1px solid var(--wire);
+  background: var(--bakelite);
+  color: var(--brass);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+
+/* the about card: wider than the other popups, scrolling inside */
+.about-pop { width: min(34rem, calc(100vw - 1.5rem)); }
+
+.about-pop .about-card {
+  max-height: min(70vh, 34rem);
+  overflow: auto;
+  margin: 0;
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+}
+
+.about-pop .about-card a { color: var(--paper); text-decoration: none; }
+/* misheard: a line over each letter's stretch of the bar, just above it */
+.about-pop .about-card .over { box-shadow: inset 0 -2px 0 -1px var(--graphite); }
+.about-pop .about-more { margin: 0.6rem 0 0; font-size: var(--fs-xs); }
+.about-pop .about-more a { color: var(--graphite); text-decoration: none; }
+
+
+/*
+ * ============================================================
+ * THE SIGNAL LAMP
+ * ============================================================
+ *
+ * The whole screen, black and paper, while a message plays.
+ */
+
+/*
+ * Signal lamp: the whole screen, black ↔ paper. True black between
+ * flashes, so an OLED screen switches its pixels off; lit, the dark
+ * theme's paper whatever the theme (a lamp lights up), dimmed toward
+ * black with the light level.
+ */
+.lamp {
+  --lamp-off: #000;
+  --lamp-on: #e9e3d5;
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2rem 1.25rem;
+  background: var(--lamp-off);
+  color: color-mix(in srgb, var(--lamp-on) 16%, var(--lamp-off));    /* ghost text, barely there */
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.lamp.on {
+  --lit: color-mix(in srgb, var(--lamp-on) calc(var(--glow, 1) * 100%), var(--lamp-off));
+  background: var(--lit);
+  color: color-mix(in srgb, var(--lamp-off) 14%, var(--lit));
+}
+
+.lamp .ghost {
+  text-align: center;
+  overflow: hidden;
+}
+
+.lamp .ghost-morse {
+  font-size: clamp(1.4rem, 7vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1.3;
+  word-spacing: 0.4em;
+  overflow-wrap: anywhere;
+}
+
+.lamp .ghost-text {
+  margin-top: 1rem;
+  font-size: clamp(1rem, 5vw, 1.6rem);
+  letter-spacing: 0.3em;
+}
+
+.lamp .lamp-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+  text-align: center;
+  font-size: var(--fs-xs);
+}
+
+
+/*
+ * ============================================================
+ * THE EYE, BEYOND THE TAPE
+ * ============================================================
+ */
+
+.redact,
+.redact * {
+  color: transparent !important;
+  pointer-events: none;
+  cursor: default;
+}
+
+.local .redact { background: var(--bar) !important; border: 0; border-radius: 1px; }
+.about .redact { margin-left: 0.35rem; margin-right: 0.35rem; }
+.about-marks.redact i { align-self: stretch; }
+
+/* one shape for any name, the size of the tallest (NOVEMBER's
+   stair): its length gives nothing away */
+.about-name.redact,
+.about-prosign.redact {
+  display: block;
+  align-self: stretch;
+  width: auto;
+  height: calc(8 * 0.56em + 2 * 0.3em + 0.45em);
+  font-size: var(--fs-s);
+  background: var(--bar);
+  border-radius: 1px;
+}
+
+.about-name.redact > * { display: none; }
+
+/* the marks, the cut and ~: bars the column's full width */
+.about-marks.redact { align-self: stretch; gap: 0; }
+.about-marks.redact i { width: 100% !important; background: var(--bar) !important; }
+
+.about-cut.redact,
+.about-heard.redact { align-self: stretch; align-items: stretch; }
+
+.about-cut.redact b,
+.about-heard.redact b { display: block; background: var(--bar); border-radius: 1px; }
+.about-heard.redact b + b { margin-top: 0.2em; }
+.redact .about-label { color: var(--graphite) !important; text-align: center; }   /* the titles stay */
+
+/* the counts: the numbers go, the words stay */
+.stats .n.redact {
+  display: inline-block;
+  min-width: 2ch;
+  background: var(--bar);
+  border-radius: 1px;
+  line-height: 1.05;
+}
+
 
 /*
  * ============================================================
@@ -2343,23 +2679,43 @@ body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
  * so they can always be seen.
  */
 @media (hover: hover) {
-  :root .tx :is(#paste, #share-toggle, .tray-toggle, .outputs button, .input-mode button,
-                .keys-toggle, .edge-toggle, .marker .eye, .player button, .entry .x,
-                .popup .close, .share-menu .close, .quiet, .popup .actions button,
-                .paste-bubble, #local button, .tape-head button):not(:disabled):hover {
+  /* text and icons: brass, never a fill */
+  :root .tx :is(#paste, #share-toggle, #profile, .tx-top .home, .tray-toggle, .keys-toggle, .outputs button,
+                .input-mode, .edge-toggle, #local button, .about a, .about button,
+                .marker .eye, .entry .x, .tape-head button, .player button,
+                .share-menu button, .popup .close, .popup .actions button, .quiet, .paste-bubble,
+                .about-pop .about-card a, .about-pop .about-more a, .stats:not(:empty), .quick-list button:not(.on)):not(:disabled):not(.secret):hover {
     color: var(--brass);
     background: transparent;
   }
-  :root .tx :is(.input-mode button, .popup .actions button, .paste-bubble):not(:disabled):hover {
+  /* and the parts inside them with a colour of their own */
+  :root .tx .tx-top .home:hover span,
+  :root .tx .about a:hover b,
+  :root .tx .about button:hover :is(b, .stress) { color: var(--brass); }
+  :root .tx .about .about-marks:hover i { background: var(--brass); }
+
+  :root .tx .input-mode:hover .swap { color: var(--brass); }
+  :root .tx .station .switch:hover svg { color: var(--brass); }
+
+  /* framed: the frame too */
+  /* the input switch: the side a press would turn on */
+  :root .tx .input-mode:hover .side:not(.on) { border-color: var(--brass); color: var(--brass); }
+  :root .tx :is(.popup .actions button, .paste-bubble):not(:disabled):hover {
     border-color: var(--brass);
   }
   :root .tx .send:not(:disabled):hover {
     border-color: var(--brass);
     color: var(--brass);
   }
+  /* every (i) the same: a brass ring, no fill */
+  :root .tx :is(.info, .kbd-info):hover {
+    background: transparent;
+    border-color: var(--brass);
+    color: var(--brass);
+  }
+
   /* the tree's letters: their colours at rest, brass to the pointer */
   :root .tx #tree .lbl:not(.blank):hover { color: var(--brass); cursor: pointer; }
-  :root .tx #local button:not(:disabled):hover { color: var(--brass); }
   /* the keys */
   :root .tx #pad .key:hover,
   :root .tx #kbd button[data-k]:hover { border-color: var(--brass); }
@@ -2374,43 +2730,3 @@ body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
 .tx .kbd .pressed {
   border-color: color-mix(in srgb, var(--brass) calc(var(--glow, 1) * 100%), var(--wire));
 }
-
-/* repeat, with nothing to play: greyed like play (its ×3 / ∞ too) */
-.tx .player .repeat:disabled,
-.tx .player .repeat:disabled:hover { color: var(--wire); cursor: default; }
-
-/* the about card: wider than the other popups, scrolling inside */
-.about-pop { width: min(34rem, calc(100vw - 1.5rem)); }
-.about-pop .about-card {
-  max-height: min(70vh, 34rem);
-  overflow: auto;
-  margin: 0;
-  font-size: var(--fs-xs);
-  line-height: 1.45;
-}
-.about-pop .about-card a { color: var(--paper); text-decoration: none; }
-.about-pop .about-card a:hover { background: transparent; color: var(--brass); }
-.about-pop .about-more { margin: 0.6rem 0 0; font-size: var(--fs-xs); }
-.about-pop .about-more a { color: var(--graphite); text-decoration: none; }
-@media (hover: hover) { .about-pop .about-more a:hover { background: transparent; color: var(--brass); } }
-
-/* about, under the collapsed tree: the same room above and below the marks */
-.about { padding-top: 0; }
-.about-main { gap: 0.8rem; }
-
-/* the wait lamp: a small brass light keying AS while something's made */
-.wait-lamp {
-  display: inline-block;
-  width: 0.6em;
-  height: 0.6em;
-  margin-right: 0.3em;
-  border-radius: 50%;
-  border: 1px solid var(--wire);
-  vertical-align: -0.05em;
-}
-.wait-lamp.lit {
-  background: var(--brass);
-  border-color: var(--brass);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--brass) 70%, transparent);
-}
-.wait-label { color: var(--graphite); }

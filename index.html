@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#1c1916">
   <!-- installable: add to home screen (see sw.js) -->
@@ -13,11 +13,12 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <title>dot-da.sh</title>
 
-  <link id="favicon" rel="icon" type="image/svg+xml" href="switch.svg">
-
-  <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
-  <link rel="stylesheet" href="style.css">
-
+  <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
+  <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }
+  /* the note on arrival: seen in the last 30 days, it stays away (before paint, no flash) */
+  try { if (Date.now() - Number(localStorage.getItem("dot-dash:tx-noticed") || 0) < 30 * 864e5) document.documentElement.classList.add("noticed"); } catch { }</script>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/tx/tx.css">
   <!-- Primary Meta Tags -->
 <meta name="title" content="dot-da.sh" />
 <meta name="description" content=".... . .-.. .-.. --- / .-- --- .-. .-.. -.." />
@@ -37,262 +38,541 @@
 <meta property="twitter:image" content="https://dot-da.sh/preview.png" />
 
 <!-- Meta Tags Generated with https://metatags.io -->
-  
 </head>
 
-<body>
-  <header class="top">
-    <a href="/" class="logo" aria-label="dot-da.sh home">
-      <svg viewBox="0 0 73 79" width="27" height="29" aria-hidden="true" fill="none">
+<!--
+  ============================================================
+  TX — transmit (step 1: layout, tap keying, history, tree)
+  ============================================================
+
+   o⁄ tx                          [.-] [A]
+  ┌──┬──────────────────────────────────┐
+  │><│  .... . .-.. .-.. ---           │  history (tape)
+  │A │> .-- --- .-.                    │  current line
+  │/ │                                  │
+  │R │  5 chars          11 dits · 5 dahs│
+  │  │  1 word                     2.1 s│
+  └──┴───────────────(↑)────────────────┘
+    ▷ ──●──────────────────  ⟲   ♪ ☼ ≋
+  ⌃ settings
+  ┌──┬────────┬─────────────────┐
+  │˽ │   .    │        -        │  keyer pad
+  │/ │  dit   │       dah       │
+  │⌫ │        │                 │
+  │↵ │        │                 │
+  └──┴────────┴─────────────────┘
+-->
+
+<body class="tx signal">
+
+  <!--
+    icons: every tappable symbol that isn't a framed button is drawn
+    from these, at one size (--icon in tx.css), so they match on every
+    phone (font symbols like ♪ ☼ ⟲ vary a lot between fonts)
+  -->
+  <svg class="sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-play" viewBox="0 0 24 24"><path d="M7 4.5 19 12 7 19.5Z"/></symbol>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-pause" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M6.5 5h3.5v14H6.5zM14 5h3.5v14H14z"/></symbol>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-repeat" viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.05-4.95"/><path d="M19.5 4v4.5H15"/></symbol>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-sound" viewBox="0 0 24 24"><path d="M14 17.5V4.5c1.5 1.5 4.5 2.5 4.5 6"/><ellipse fill="currentColor" stroke="none" cx="10.5" cy="17.5" rx="3.5" ry="2.8" transform="rotate(-20 10.5 17.5)"/></symbol>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-light" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.8"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></symbol>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-vibrate" viewBox="0 0 24 24"><path d="M3 7.5c3-2.6 6 2.6 9 0s6 2.6 9 0M3 12c3-2.6 6 2.6 9 0s6 2.6 9 0M3 16.5c3-2.6 6 2.6 9 0s6 2.6 9 0"/></symbol>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-chev" viewBox="0 0 24 24"><path d="M6 14.5 12 8.5l6 6"/></symbol>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3.2"/><path d="M6.4 18.6c1.3-2.2 3.3-3.4 5.6-3.4s4.3 1.2 5.6 3.4"/></symbol>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-x" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-in" viewBox="0 0 24 24"><path d="M4 7l5 5-5 5M20 7l-5 5 5 5"/></symbol>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-out" viewBox="0 0 24 24"><path d="M9 7l-5 5 5 5M15 7l5 5-5 5"/></symbol>
+    </defs>
+  </svg>
+
+  <header class="tx-top">
+    <a href="/" class="home" aria-label="dot-da.sh home">dot-da.sh</a>
+
+    <!-- what to do with the message; at the far right, profiles (soon) -->
+    <div class="top-right">
+      <button type="button" id="paste" class="share-toggle" title="paste into the message (or long-press the message)">paste</button>
+      <button type="button" id="share-toggle" class="share-toggle" aria-expanded="false" aria-controls="share">share</button>
+      <button type="button" id="profile" class="profile" title="profiles: coming soon" aria-label="profile (coming soon)"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg></button>
+    </div>
+  </header>
+
+  <!--
+    share: the message the player would play (the current line,
+    or the last one sent)
+
+      ┌─ share ─────────────────────┐
+      │ copy morse   .... . .-.. …  │
+      │ copy text    HEL…           │
+      │ copy link    dot-da.sh/?/…  │
+      │ ─────────────────────────── │
+      │ save .txt  .wav  .gif       │
+      │ share…                      │
+      └─────────────────────────────┘
+  -->
+  <section id="share" class="share-menu" hidden aria-label="share">
+    <span class="frame-label">share</span>
+    <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+    <div class="rows" id="share-copy">
+      <button type="button" data-do="copy-morse"><span>copy morse</span><span class="peek" data-peek="morse"></span></button>
+      <button type="button" data-do="copy-text"><span>copy text</span><span class="peek" data-peek="text"></span></button>
+      <button type="button" data-do="copy-link"><span>copy link</span><span class="peek" data-peek="link"></span></button>
+    </div>
+    <div class="rows saves">
+      <span class="lead">save</span>
+      <button type="button" data-do="save-txt">.txt</button>
+      <button type="button" data-do="save-sh" title="the message as a script you can run in a terminal">.sh</button>
+      <button type="button" data-do="save-wav">.wav</button>
+      <button type="button" data-do="save-gif" id="save-gif">.gif</button>
+    </div>
+    <!-- the message read out in the phonetic alphabet: waiting on the recordings -->
+    <div class="rows" id="share-voice">
+      <button type="button" data-do="save-voice" data-soon disabled title="coming soon"><span>save spoken .wav</span><span class="peek">soon</span></button>
+    </div>
+    <div class="rows" id="share-native" hidden>
+      <button type="button" data-do="share"><span>share…</span></button>
+    </div>
+    <p class="share-note" id="share-note" aria-live="polite"></p>
+    <p class="privacy">
+      Morse is an encoding, not encryption.<br>Don't send anything private.
+      <button type="button" class="info privacy-open" aria-label="more about privacy"
+              aria-expanded="false" aria-controls="privacy-pop">i</button>
+    </p>
+  </section>
+
+  <!--
+    signal lamp: playback, full screen, the whole page flashing
+    with each mark (the message faint on top). Tap / Esc to stop.
+  -->
+  <div id="lamp" class="lamp" hidden role="button" tabindex="0" aria-label="signal lamp: tap to stop">
+    <div class="ghost">
+      <p class="ghost-morse"></p>
+      <p class="ghost-text"></p>
+    </div>
+    <p class="lamp-hint">tap anywhere to stop</p>
+  </div>
+
+  <!-- asked before the signal lamp starts (and twice if it's fast) -->
+  <section id="lamp-warn" class="popup" role="alertdialog" aria-labelledby="lamp-title" hidden>
+    <span class="frame-label" id="lamp-title">signal lamp</span>
+    <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+    <p class="what">The signal lamp flashes the whole screen with your message.</p>
+    <p class="warn">If flashing light could affect you (for example
+    photosensitive epilepsy), please don't use it.</p>
+    <p class="fast" hidden></p>
+    <div class="actions">
+      <button type="button" id="lamp-go" class="quiet">start</button>
+      <button type="button" id="lamp-cancel" class="quiet">cancel</button>
+    </div>
+  </section>
+
+  <!-- long-press the message: a paste bubble, like a text field's -->
+  <button type="button" id="paste-bubble" class="paste-bubble" hidden>paste</button>
+  <p id="toast" class="toast" aria-live="polite" hidden></p>
+
+
+  <main class="station">
+
+    <!-- the switch sits ON the box's bottom edge, like the preview card:
+         open, the lever lifts and leaves a gap; closed, it drops into the line -->
+    <span class="logo switch" aria-hidden="true">
+      <svg viewBox="0 0 73 79" fill="none">
         <circle cx="13.66" cy="52.81" r="7" stroke="currentColor" stroke-width="6"/>
         <rect class="arm" x="16.02" y="47.22" width="56" height="7" rx="3.5" fill="currentColor"/>
         <circle class="led" cx="13.66" cy="52.81" r="3.6"/>
       </svg>
-      <span>dot-da.sh</span>
-    </a>
-  </header>
+    </span>
 
-  <main>
+    <!-- the tree: a magnified view of where you are; >< opens the
+         whole tree in the left half, the message moves to the right -->
+    <aside class="tree-edge" aria-label="the Morse tree">
+      <!-- the toggle and the (i) stay put when the tree opens -->
+      <div class="edge-head"><button type="button" id="tree-toggle" class="edge-toggle" aria-expanded="false" title="show the whole tree"><svg class="ico" aria-hidden="true"><use href="#i-in"/></svg></button></div>
+      <div id="local" class="local" title="show the whole tree"></div>
+      <!-- the letter that's showing: its marks, its phonetic name, what
+           it could be misheard as, and a link to its page on the reference -->
+      <div id="about" class="about"></div>
+      <div id="tree-box" class="tree-box" hidden>
+        <p class="tree-legend" aria-hidden="true"><span class="dot">↑DOT</span> <span class="dash">↓DASH</span></p>
+        <div id="tree-scroll" class="tree-scroll">
+          <pre id="tree" class="tree" aria-label="Morse tree"></pre>
+        </div>
+      </div>
+      <!-- (i): same spot whether the tree is collapsed or open -->
+      <div class="edge-foot">
+        <a id="tree-info" class="info" href="/ref/" target="_blank" rel="noopener">i</a>
+      </div>
+    </aside>
 
-    <!-- ───────────── message ───────────── -->
-    <section class="frame message-frame" aria-labelledby="message-label">
-      <h2 class="frame-label" id="message-label">message</h2>
+    <section class="field" aria-label="message">
+      <ol id="tape" class="tape"></ol>
+      <!-- quick scroll: a thumb to drag through a long tape (tx/tape.js) -->
+      <button type="button" id="tape-thumb" class="tape-thumb" tabindex="-1" aria-hidden="true" hidden></button>
 
-      <div id="message" class="message" aria-live="off"></div>
-      <p id="empty" class="empty" hidden>
-        Nothing to decode yet. Type something below, or try
-        <a href="?/_..._---_..._">SOS</a>.
-      </p>
+      <!-- the counts; return (↵) sits on the rule above them, at the
+           right: it feeds the tape, the line going up into the history -->
+      <div class="field-foot">
+        <span id="stats-text" class="stats"></span>
+        <span id="stats-morse" class="stats"></span>
+        <button type="button" id="send" class="send" title="return: a new line (Enter)" aria-label="return">↵</button>
+      </div>
 
-      <button id="replay" class="replay" type="button" hidden>▶ replay</button>
-
-      <form id="compose" class="compose">
-        <label for="input" class="visually-hidden">Message to send</label>
-        <input id="input" placeholder="type a message, or paste morse" autocomplete="off" spellcheck="false">
-        <button type="submit">send</button>
-      </form>
-      <output id="link" class="link"></output>
     </section>
-
-    <!-- ───────────── tree ───────────── -->
-    <section class="frame tree-frame" aria-labelledby="tree-label">
-      <h2 class="frame-label" id="tree-label">tree</h2>
-
-      <fieldset class="options">
-        <legend class="visually-hidden">What the tree shows</legend>
-        <label class="check"><input type="checkbox" id="opt-letters" checked> letters</label>
-        <label class="pick">numbers
-          <select id="opt-numbers">
-            <option value="off">off</option>
-            <option value="on">standard</option>
-            <option value="cut">cut</option>
-          </select>
-        </label>
-        <label class="check"><input type="checkbox" id="opt-symbols"> symbols</label>
-        <label class="check"><input type="checkbox" id="opt-prune"> prune empty</label>
-        <label class="check" title="each character's cost in units: its marks, the gaps inside it, and the letter gap after"><input type="checkbox" id="opt-weights"> weights</label>
-      </fieldset>
-
-      <pre class="tree tree-h" id="tree-h" aria-label="Morse tree: dot branches left, dash branches right"></pre>
-      <pre class="tree tree-v" id="tree-v" aria-label="Morse tree: dot branches up, dash branches down"></pre>
-
-      <fieldset class="options options-look">
-        <legend class="visually-hidden">How the tree looks</legend>
-        <label class="pick">style
-          <select id="opt-style">
-            <option value="branches">branches</option>
-            <option value="classic">classic</option>
-          </select>
-        </label>
-        <label class="pick">size
-          <select id="opt-size">
-            <option value="auto">auto</option>
-            <option value="roomy">roomy</option>
-            <option value="compact">compact</option>
-          </select>
-        </label>
-        <label class="check"><input type="checkbox" id="opt-signal" checked> dot/dash colors</label>
-        <label class="check"><input type="checkbox" id="opt-category"> character colors</label>
-      </fieldset>
-    </section>
-
-    <!-- ───────────── one character ───────────── -->
-    <section class="frame overview-frame" id="overview-frame" aria-labelledby="overview-label" hidden>
-      <h2 class="frame-label" id="overview-label">about</h2>
-      <pre id="overview" class="overview"></pre>
-    </section>
-
-    <!-- ───────────── reference ───────────── -->
-    <section class="frame chart-frame" aria-labelledby="chart-label">
-      <h2 class="frame-label" id="chart-label">all characters</h2>
-  <div class="morse-code">
-
-  <h2>Letters</h2>
-  <div class="group-row morse-letters">
-    <ul class="col-left">
-    <li><a href="/?/.-"><span class="code">.-</span><span class="say">Alfa</span><span class="label">A</span></a></li>
-    <li><a href="/?/-..."><span class="code">-...</span><span class="say">Bravo</span><span class="label">B</span></a></li>
-    <li><a href="/?/-.-."><span class="code">-.-.</span><span class="say">Charlie</span><span class="label">C</span></a></li>
-    <li><a href="/?/-.."><span class="code">-..</span><span class="say">Delta</span><span class="label">D</span></a></li>
-    <li><a href="/?/."><span class="code">.</span><span class="say">Echo</span><span class="label">E</span></a></li>
-    <li><a href="/?/..-."><span class="code">..-.</span><span class="say">Foxtrot</span><span class="label">F</span></a></li>
-    <li><a href="/?/--."><span class="code">--.</span><span class="say">Golf</span><span class="label">G</span></a></li>
-    <li><a href="/?/...."><span class="code">....</span><span class="say">Hotel</span><span class="label">H</span></a></li>
-    <li><a href="/?/.."><span class="code">..</span><span class="say">India</span><span class="label">I</span></a></li>
-    <li><a href="/?/.---"><span class="code">.---</span><span class="say">Juliett</span><span class="label">J</span></a></li>
-    <li><a href="/?/-.-"><span class="code">-.-</span><span class="say">Kilo</span><span class="label">K</span></a></li>
-    <li><a href="/?/.-.."><span class="code">.-..</span><span class="say">Lima</span><span class="label">L</span></a></li>
-    <li><a href="/?/--"><span class="code">--</span><span class="say">Mike</span><span class="label">M</span></a></li>
-    </ul>
-    <ul class="col-right">
-    <li><a href="/?/-."><span class="label">N</span><span class="say">November</span><span class="code">-.</span></a></li>
-    <li><a href="/?/---"><span class="label">O</span><span class="say">Oscar</span><span class="code">---</span></a></li>
-    <li><a href="/?/.--."><span class="label">P</span><span class="say">Papa</span><span class="code">.--.</span></a></li>
-    <li><a href="/?/--.-"><span class="label">Q</span><span class="say">Quebec</span><span class="code">--.-</span></a></li>
-    <li><a href="/?/.-."><span class="label">R</span><span class="say">Romeo</span><span class="code">.-.</span></a></li>
-    <li><a href="/?/..."><span class="label">S</span><span class="say">Sierra</span><span class="code">...</span></a></li>
-    <li><a href="/?/-"><span class="label">T</span><span class="say">Tango</span><span class="code">-</span></a></li>
-    <li><a href="/?/..-"><span class="label">U</span><span class="say">Uniform</span><span class="code">..-</span></a></li>
-    <li><a href="/?/...-"><span class="label">V</span><span class="say">Victor</span><span class="code">...-</span></a></li>
-    <li><a href="/?/.--"><span class="label">W</span><span class="say">Whiskey</span><span class="code">.--</span></a></li>
-    <li><a href="/?/-..-"><span class="label">X</span><span class="say">X-ray</span><span class="code">-..-</span></a></li>
-    <li><a href="/?/-.--"><span class="label">Y</span><span class="say">Yankee</span><span class="code">-.--</span></a></li>
-    <li><a href="/?/--.."><span class="label">Z</span><span class="say">Zulu</span><span class="code">--..</span></a></li>
-    </ul>
-  </div>
-
-  <h2>Numbers</h2>
-  <div class="group-row morse-numbers">
-    <ul class="col-left">
-    <li><a href="/?/-----"><span class="code">-----</span><span class="say">Zero</span><span class="label">0</span></a></li>
-    <li><a href="/?/.----"><span class="code">.----</span><span class="say">Wun</span><span class="label">1</span></a></li>
-    <li><a href="/?/..---"><span class="code">..---</span><span class="say">Too</span><span class="label">2</span></a></li>
-    <li><a href="/?/...--"><span class="code">...--</span><span class="say">Tree</span><span class="label">3</span></a></li>
-    <li><a href="/?/....-"><span class="code">....-</span><span class="say">Fower</span><span class="label">4</span></a></li>
-    </ul>
-    <ul class="col-right">
-    <li><a href="/?/....."><span class="label">5</span><span class="say">Fife</span><span class="code">.....</span></a></li>
-    <li><a href="/?/-...."><span class="label">6</span><span class="say">Six</span><span class="code">-....</span></a></li>
-    <li><a href="/?/--..."><span class="label">7</span><span class="say">Seven</span><span class="code">--...</span></a></li>
-    <li><a href="/?/---.."><span class="label">8</span><span class="say">Ait</span><span class="code">---..</span></a></li>
-    <li><a href="/?/----."><span class="label">9</span><span class="say">Niner</span><span class="code">----.</span></a></li>
-    </ul>
-  </div>
-
-  <h2>Symbols</h2>
-  <div class="group-row morse-symbols">
-    <ul class="col-left">
-    <li><a href="/?/.-.-.-"><span class="code">.-.-.-</span><span class="label">.</span></a></li>
-    <li><a href="/?/--..--"><span class="code">--..--</span><span class="label">,</span></a></li>
-    <li><a href="/?/..--.."><span class="code">..--..</span><span class="label">?</span></a></li>
-    <li><a href="/?/-.-.--"><span class="code">-.-.--</span><span class="label">!</span></a></li>
-    <li><a href="/?/.----."><span class="code">.----.</span><span class="label">'</span></a></li>
-    <li><a href="/?/.-..-."><span class="code">.-..-.</span><span class="label">"</span></a></li>
-    <li><a href="/?/-.--."><span class="code">-.--.</span><span class="label">(</span></a></li>
-    <li><a href="/?/-.--.-"><span class="code">-.--.-</span><span class="label">)</span></a></li>
-    <li><a href="/?/.-..."><span class="code">.-...</span><span class="label">&amp;</span></a></li>
-    </ul>
-    <ul class="col-right">
-    <li><a href="/?/---..."><span class="label">:</span><span class="code">---...</span></a></li>
-    <li><a href="/?/-.-.-."><span class="label">;</span><span class="code">-.-.-.</span></a></li>
-    <li><a href="/?/-..-."><span class="label">/</span><span class="code">-..-.</span></a></li>
-    <li><a href="/?/..--.-"><span class="label">_</span><span class="code">..--.-</span></a></li>
-    <li><a href="/?/-...-"><span class="label">=</span><span class="code">-...-</span></a></li>
-    <li><a href="/?/.-.-."><span class="label">+</span><span class="code">.-.-.</span></a></li>
-    <li><a href="/?/-....-"><span class="label">-</span><span class="code">-....-</span></a></li>
-    <li><a href="/?/...-..-"><span class="label">$</span><span class="code">...-..-</span></a></li>
-    <li><a href="/?/.--.-."><span class="label">@</span><span class="code">.--.-.</span></a></li>
-    </ul>
-  </div>
-
-  <h2>Prosigns</h2>
-  <div class="group-row morse-prosigns">
-    <ul class="col-left">
-    <li><a href="/?/...---..."><span class="code">...---...</span><span class="label">SOS</span></a></li>
-    <li><a href="/?/.-.-"><span class="code">.-.-</span><span class="label">New Line</span></a></li>
-    <li><a href="/?/.-.-."><span class="code">.-.-.</span><span class="label">New Page</span></a></li>
-    <li><a href="/?/-...-"><span class="code">-...-</span><span class="label">New Paragraph</span></a></li>
-    <li><a href="/?/-.-.-"><span class="code">-.-.-</span><span class="label">Attention</span></a></li>
-    <li><a href="/?/........"><span class="code">........</span><span class="label">Error</span></a></li>
-    <li><a href="/?/.-..."><span class="code">.-...</span><span class="label">Wait</span></a></li>
-    </ul>
-    <ul class="col-right">
-    <li><a href="/?/-...-.-"><span class="label">Break</span><span class="code">-...-.-</span></a></li>
-    <li><a href="/?/-.-..-.."><span class="label">Closing</span><span class="code">-.-..-..</span></a></li>
-    <li><a href="/?/-..---"><span class="label">Shift to Wabun code</span><span class="code">-..---</span></a></li>
-    <li><a href="/?/...-.-"><span class="label">End of contact</span><span class="code">...-.-</span></a></li>
-    <li><a href="/?/...-."><span class="label">Understood</span><span class="code">...-.</span></a></li>
-    <li><a href="/?/-.--."><span class="label">Invitation for named station to transmit</span><span class="code">-.--.</span></a></li>
-    <li><a href="/?/-.-"><span class="label">Invitation for any station to transmit</span><span class="code">-.-</span></a></li>
-    </ul>
-  </div>
-
-  <h2>Q codes</h2>
-  <p class="cheat-note">Three letters for a whole sentence. Sent with <b>?</b> they ask instead: QRS? is "should I send slower?"</p>
-  <ul class="cheat">
-    <li><a href="/?/_--.-_.-._.-.._"><b class="term">QRL</b><span class="code">--.- .-. .-..</span></a><span class="means">this frequency is in use</span></li>
-    <li><a href="/?/_--.-_.-._--_"><b class="term">QRM</b><span class="code">--.- .-. --</span></a><span class="means">man-made interference</span></li>
-    <li><a href="/?/_--.-_.-._-._"><b class="term">QRN</b><span class="code">--.- .-. -.</span></a><span class="means">static, natural noise</span></li>
-    <li><a href="/?/_--.-_.-._---_"><b class="term">QRO</b><span class="code">--.- .-. ---</span></a><span class="means">increase power</span></li>
-    <li><a href="/?/_--.-_.-._.--._"><b class="term">QRP</b><span class="code">--.- .-. .--.</span></a><span class="means">reduce power; low power</span></li>
-    <li><a href="/?/_--.-_.-._--.-_"><b class="term">QRQ</b><span class="code">--.- .-. --.-</span></a><span class="means">send faster</span></li>
-    <li><a href="/?/_--.-_.-._..._"><b class="term">QRS</b><span class="code">--.- .-. ...</span></a><span class="means">send slower</span></li>
-    <li><a href="/?/_--.-_.-._-_"><b class="term">QRT</b><span class="code">--.- .-. -</span></a><span class="means">stop sending; closing down</span></li>
-    <li><a href="/?/_--.-_.-._..-_"><b class="term">QRU</b><span class="code">--.- .-. ..-</span></a><span class="means">I have nothing for you</span></li>
-    <li><a href="/?/_--.-_.-._...-_"><b class="term">QRV</b><span class="code">--.- .-. ...-</span></a><span class="means">I am ready</span></li>
-    <li><a href="/?/_--.-_.-._-..-_"><b class="term">QRX</b><span class="code">--.- .-. -..-</span></a><span class="means">wait, stand by</span></li>
-    <li><a href="/?/_--.-_.-._--.._"><b class="term">QRZ</b><span class="code">--.- .-. --..</span></a><span class="means">who is calling me?</span></li>
-    <li><a href="/?/_--.-_..._-..._"><b class="term">QSB</b><span class="code">--.- ... -...</span></a><span class="means">your signal is fading</span></li>
-    <li><a href="/?/_--.-_..._-.-_"><b class="term">QSK</b><span class="code">--.- ... -.-</span></a><span class="means">I can hear you between my signals (break-in)</span></li>
-    <li><a href="/?/_--.-_..._.-.._"><b class="term">QSL</b><span class="code">--.- ... .-..</span></a><span class="means">I confirm receipt</span></li>
-    <li><a href="/?/_--.-_..._---_"><b class="term">QSO</b><span class="code">--.- ... ---</span></a><span class="means">a contact, a conversation</span></li>
-    <li><a href="/?/_--.-_..._-.--_"><b class="term">QSY</b><span class="code">--.- ... -.--</span></a><span class="means">change frequency</span></li>
-    <li><a href="/?/_--.-_-_...._"><b class="term">QTH</b><span class="code">--.- - ....</span></a><span class="means">my location is</span></li>
-    <li><a href="/?/_--.-_-_.-._"><b class="term">QTR</b><span class="code">--.- - .-.</span></a><span class="means">the correct time is</span></li>
-  </ul>
-
-  <h2>Abbreviations</h2>
-  <p class="cheat-note">What operators send to save time; prosigns (above) and Q codes mix right in.</p>
-  <ul class="cheat">
-    <li><a href="/?/_-.-._--.-_"><b class="term">CQ</b><span class="code">-.-. --.-</span></a><span class="means">calling any station</span></li>
-    <li><a href="/?/_-.._._"><b class="term">DE</b><span class="code">-.. .</span></a><span class="means">from; this is</span></li>
-    <li><a href="/?/_-.-_"><b class="term">K</b><span class="code">-.-</span></a><span class="means">over, go ahead</span></li>
-    <li><a href="/?/_.-._"><b class="term">R</b><span class="code">.-.</span></a><span class="means">received, roger</span></li>
-    <li><a href="/?/_-..._-.-_"><b class="term">BK</b><span class="code">-... -.-</span></a><span class="means">break, back to you</span></li>
-    <li><a href="/?/_.-._..._-_"><b class="term">RST</b><span class="code">.-. ... -</span></a><span class="means">signal report: readability, strength, tone</span></li>
-    <li><a href="/?/_....._-._-._"><b class="term">5NN</b><span class="code">..... -. -.</span></a><span class="means">599, a perfect report (cut numbers)</span></li>
-    <li><a href="/?/_--..._...--_"><b class="term">73</b><span class="code">--... ...--</span></a><span class="means">best regards</span></li>
-    <li><a href="/?/_---.._---.._"><b class="term">88</b><span class="code">---.. ---..</span></a><span class="means">love and kisses</span></li>
-    <li><a href="/?/_-_..-_"><b class="term">TU</b><span class="code">- ..-</span></a><span class="means">thank you</span></li>
-    <li><a href="/?/_-_-._-..-_"><b class="term">TNX</b><span class="code">- -. -..-</span></a><span class="means">thanks</span></li>
-    <li><a href="/?/_..-._-..._"><b class="term">FB</b><span class="code">..-. -...</span></a><span class="means">fine business: great</span></li>
-    <li><a href="/?/_---_--_"><b class="term">OM</b><span class="code">--- --</span></a><span class="means">old man: any operator</span></li>
-    <li><a href="/?/_-.--_.-.._"><b class="term">YL</b><span class="code">-.-- .-..</span></a><span class="means">young lady: any operator</span></li>
-    <li><a href="/?/_...._.-._"><b class="term">HR</b><span class="code">.... .-.</span></a><span class="means">here</span></li>
-    <li><a href="/?/_..-_.-._"><b class="term">UR</b><span class="code">..- .-.</span></a><span class="means">your, you&#x27;re</span></li>
-    <li><a href="/?/_._..._"><b class="term">ES</b><span class="code">. ...</span></a><span class="means">and</span></li>
-    <li><a href="/?/_.--_-..-_"><b class="term">WX</b><span class="code">.-- -..-</span></a><span class="means">weather</span></li>
-    <li><a href="/?/_.-._.._--._"><b class="term">RIG</b><span class="code">.-. .. --.</span></a><span class="means">radio</span></li>
-    <li><a href="/?/_.-_-._-_"><b class="term">ANT</b><span class="code">.- -. -</span></a><span class="means">antenna</span></li>
-    <li><a href="/?/_.--._..._._"><b class="term">PSE</b><span class="code">.--. ... .</span></a><span class="means">please</span></li>
-    <li><a href="/?/_.-_--._-._"><b class="term">AGN</b><span class="code">.- --. -.</span></a><span class="means">again</span></li>
-    <li><a href="/?/_-.-._..-_.-.._"><b class="term">CUL</b><span class="code">-.-. ..- .-..</span></a><span class="means">see you later</span></li>
-    <li><a href="/?/_...._.._"><b class="term">HI</b><span class="code">.... ..</span></a><span class="means">laughter</span></li>
-    <li><a href="/?/_--._--_"><b class="term">GM</b><span class="code">--. --</span></a><span class="means">good morning</span></li>
-    <li><a href="/?/_--._.-_"><b class="term">GA</b><span class="code">--. .-</span></a><span class="means">good afternoon</span></li>
-    <li><a href="/?/_--._._"><b class="term">GE</b><span class="code">--. .</span></a><span class="means">good evening</span></li>
-  </ul>
-
-</div>
-    </section>
-
-    <details class="debug">
-      <summary>debug</summary>
-      <pre id="status"></pre>
-    </details>
 
   </main>
 
-  <script type="module" src="js/main.js"></script>
+
+
+  <!-- (i) in the tree column: everything about the character (× / tap outside / Escape);
+       its characters open their own card here; the full page is a link away -->
+  <section id="about-pop" class="popup about-pop" role="dialog" aria-labelledby="about-title" hidden>
+    <span class="frame-label" id="about-title">about</span>
+    <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+    <pre id="about-card" class="overview about-card"></pre>
+    <p class="about-more"><a id="about-full" href="/ref/" target="_blank" rel="noopener">the full page, with the whole tree ↗</a></p>
+  </section>
+
+  <!-- (i) on the text keyboard: the keys that hold more (× / tap outside / Escape) -->
+  <section id="hold-pop" class="popup" role="dialog" aria-labelledby="hold-title" hidden>
+    <span class="frame-label" id="hold-title">hold for more</span>
+    <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+    <p>A key with a mark in its corner holds more: press and hold,
+    slide onto one, and let go. A quick tap is just the letter.</p>
+    <p>What it holds are the letter's descendants in the Morse tree:
+    the numbers and symbols whose code starts with the letter's.
+    V <span class="dot">...</span><span class="dash">-</span> holds
+    3 <span class="dot">...</span><span class="dash">--</span>;
+    O <span class="dash">---</span> holds 8, 9, 0 and the colon.</p>
+    <p>Everything is on the 123 keys too.</p>
+  </section>
+
+  <!-- ~ in the about column: why marks get misheard (× / tap outside / Escape) -->
+  <section id="heard-pop" class="popup" role="dialog" aria-labelledby="heard-title" hidden>
+    <span class="frame-label" id="heard-title">misheard</span>
+    <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+    <p>Morse is two marks and time. A dit is one beat, a dah three;
+    the quiet inside a letter is one beat, between letters three,
+    between words seven.</p>
+    <p>Hands aren't metronomes. Stretch the gap inside a letter and it
+    splits: A <span class="dot">.</span><span class="dash">-</span>
+    is heard as E <span class="dot">.</span> T <span class="dash">-</span>.
+    Rush the gap between letters and they run together the other way.</p>
+    <p>So ears learn whole letters and words by their rhythm, and lean
+    on context; when it still doesn't make sense, ask again (AGN, or ?).
+    The <b>~</b> shows what the same marks could become, cut differently.</p>
+  </section>
+
+  <!-- cut numbers: the digits shortened (the about column's "cut") -->
+  <section id="cut-pop" class="popup" role="dialog" aria-labelledby="cut-title" hidden>
+    <span class="frame-label" id="cut-title">cut numbers</span>
+    <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+    <p>Digits are long: five marks each. In contests and signal reports
+    they're often sent cut, the run of dahs trimmed, so 599 goes as
+    <b>5NN</b>. The same marks as a letter, read as a number.</p>
+    <pre class="cut-chart" id="cut-chart" aria-label="each digit, and the marks its cut keeps"></pre>
+    <p class="cut-note">4 and 6 aren't cut: their letters would be V and B.</p>
+    <p><a id="cut-full" class="about-more" href="/ref/#cut" target="_blank" rel="noopener">on the tree, in the reference ↗</a></p>
+  </section>
+
+  <!-- the timing train, tapped: what it shows -->
+  <section id="train-pop" class="popup" role="dialog" aria-labelledby="train-title" hidden>
+    <span class="frame-label" id="train-title">timing</span>
+    <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+    <p>The bar times each press against your speed. Key down runs
+    right from the upright line, under dit and dah: a full dit ends at
+    the dit key's edge, a full dah at the dah key's.</p>
+    <p>Key up runs left, over the side keys: a letter space
+    <b>˽</b> partway, a word space <b>/</b> at the far end.</p>
+    <p>The brass lines are where one turns into the next: hold past
+    the first and a dit becomes a dah; wait past the second and a
+    letter space becomes a word space.</p>
+    <p>Playing back, it shows the timing as it was keyed, with a notch
+    where the ideal length ends: a dah held short, a gap rushed.</p>
+  </section>
+
+  <!-- the report for support, shown in full before anything is copied
+       (copy / cancel / × / tap outside / Escape) -->
+  <section id="report-pop" class="popup" role="dialog" aria-labelledby="report-title" hidden>
+    <span class="frame-label" id="report-title">report for support</span>
+    <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+    <p>This is everything it holds: the version, this device, the
+    settings and the last errors. Never a message.</p>
+    <pre id="report-text" class="report-text" tabindex="0"></pre>
+    <div class="actions">
+      <button type="button" id="report-copy" class="quiet">copy</button>
+      <button type="button" id="report-cancel" class="quiet">cancel</button>
+    </div>
+  </section>
+
+  <!-- the details, in a small popup (× / tap outside / Escape to close) -->
+  <section id="privacy-pop" class="popup" role="dialog" aria-labelledby="privacy-title" hidden>
+    <span class="frame-label" id="privacy-title">privacy</span>
+    <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+    <p>Morse is an encoding, not encryption: anyone who knows it,
+    or pastes it into a decoder, can read your message.</p>
+    <p>Shared links show the message decoded in their previews.</p>
+    <p>Your history stays on this device until you clear it, here
+    or at the top of the history.</p>
+    <button type="button" id="privacy-clear" class="quiet popup-clear">clear history</button>
+  </section>
+
+
+  <div class="controls">
+
+    <!--
+      on arrival: the privacy note sits over the keys until the first
+      tap anywhere (that tap doesn't key). It lives in share after that.
+    -->
+    <div id="notice" class="notice" role="note">
+      <p>Morse is an encoding, not encryption.<br>Don't send anything private.</p>
+      <p class="notice-foot">
+        <button type="button" class="info privacy-open" aria-label="more about privacy"
+                aria-expanded="false" aria-controls="privacy-pop">i</button>
+        <span>tap anywhere to start</span>
+      </p>
+    </div>
+
+    <!-- playback: the current line (or, if it's empty, the last message sent) -->
+    <div class="player">
+      <button type="button" id="play" class="play" aria-label="play" title="play / pause (K; Space while playing)"><svg class="ico" aria-hidden="true"><use href="#i-play"/></svg></button>
+      <span id="time" class="time">0.0s</span>
+      <!-- the scrub bar draws the message's signal (js/tx-trace.js);
+           hold it for a magnified pop-out around the playhead -->
+      <span class="seek-wrap">
+        <canvas class="trace" aria-hidden="true"></canvas>
+        <input type="range" id="seek" class="seek" min="0" max="0" step="1" value="0" aria-label="position" title="← → a letter, Shift or J L a word, Home End, 0–9 while playing">
+      </span>
+      <div class="seek-pop" hidden aria-hidden="true"><canvas></canvas></div>
+      <button type="button" id="repeat" class="repeat" aria-pressed="false" aria-label="repeat" title="repeat"><svg class="ico" aria-hidden="true"><use href="#i-repeat"/></svg></button>
+    </div>
+
+    <!--
+      under the player, in thumb's reach:
+
+        ⌃ settings              ♪ ☼ ≋ │ [.-] ⇄ [A]
+
+      the outputs sit by the settings they grey out; the input mode
+      (key Morse / type text) right above the pad or keyboard it swaps
+    -->
+    <div class="control-row">
+      <button type="button" id="tray-toggle" class="tray-toggle" aria-expanded="false" aria-controls="tray">
+        <svg class="ico chev" aria-hidden="true"><use href="#i-chev"/></svg> settings
+      </button>
+      <div class="actions">
+        <span class="outputs" role="group" aria-label="outputs">
+          <button type="button" data-out="sound" aria-pressed="true" title="sound"><svg class="ico" aria-hidden="true"><use href="#i-sound"/></svg></button>
+          <button type="button" data-out="light" aria-pressed="false" title="light"><svg class="ico" aria-hidden="true"><use href="#i-light"/></svg></button>
+          <button type="button" data-out="vibrate" aria-pressed="false" title="vibration"><svg class="ico" aria-hidden="true"><use href="#i-vibrate"/></svg></button>
+        </span>
+        <span class="divider" aria-hidden="true">│</span>
+        <!-- the input modes: one switch, a press anywhere on it flips
+             (hold the .- side for the list of keys) -->
+        <button type="button" class="input-mode" aria-label="keying Morse: switch to typing" title="key Morse ⇄ type text">
+          <span class="side on" data-mode="key">.-</span>
+          <span class="swap" aria-hidden="true">⇄</span>
+          <span class="side" data-mode="type">A</span>
+        </button>
+        <button type="button" id="keys-toggle" class="keys-toggle" aria-expanded="true" aria-controls="pad type" title="hide the keys (read mode)"><svg class="ico chev" aria-hidden="true"><use href="#i-chev"/></svg></button>
+      </div>
+    </div>
+
+    <!-- the slot: settings, or the timing bar and the pad, or the
+         keyboard; always the same height (--input-h), so nothing
+         above it moves when one takes another's place -->
+    <div class="slot">
+
+    <!--
+      settings
+
+        20     20      600   60     60      ← value on top
+        ┃      ┃       ┃     ┃      ┃
+        ●      ●       ┃     ●      ●
+        ┃      ┃       ●     ┃      ┃
+       wpm  farns.   pitch  vol  strength   ← label at the bottom
+       └─ speed ─┘   └─ sound ─┘  vibrate
+    -->
+    <section id="tray" class="tray" hidden>
+      <!--
+        what first, then how much: the choices across the top, the
+        faders under them; the look (color, invert) in a column at the
+        right. A setting whose output is off is greyed; touching it
+        switches that output on. The light level is never greyed: the
+        lamp (the glow round the message while the key is down) is
+        always on, and the level dims it.
+      -->
+      <div class="switches">
+        <!-- key and sound share the room up to the vol | pitch gap -->
+        <div class="lead">
+        <label>key
+          <select id="opt-key">
+            <option value="off">off</option>
+            <option value="tap" selected>tap</option>
+            <option value="straight">straight</option>
+            <option value="bug">bug</option>
+            <option value="iambic-a">iambic A</option>
+            <option value="iambic-b">iambic B</option>
+            <option value="ultimatic">ultimatic</option>
+            <option value="text">text</option>
+          </select>
+        </label>
+        <!-- Ctrl keys as paddles (a VBand USB adapter); not on touch screens -->
+        <label class="flag ctrl-flag" title="left / right Ctrl key dit / dah, for a VBand USB paddle adapter (off: Ctrl stays free for shortcuts)">ctrl
+          <span class="check"><input type="checkbox" id="opt-ctrl"></span>
+        </label>
+        <label data-needs="sound">sound
+          <select id="opt-sound">
+            <option value="off">off</option>
+            <option value="tone" selected>tone</option>
+            <option value="sounder">sounder</option>
+            <option value="voice" disabled title="coming soon">voice</option>
+          </select>
+        </label>
+        </div>
+        <label data-needs="sound">wave
+          <select id="opt-wave">
+            <option value="off">off</option>
+            <option value="sine" selected>sine</option>
+            <option value="triangle" title="triangle">tri</option>
+            <option value="square">square</option>
+            <option value="sawtooth" title="sawtooth">saw</option>
+          </select>
+        </label>
+        <label data-needs="light">light
+          <select id="opt-light">
+            <option value="off">off</option>
+            <option value="signal" selected>signal lamp</option>
+            <option value="invert">invert lamp</option>
+            <option value="torch" id="torch-choice">flashlight</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- the look, in a column of its own: red / blue marks, and the
+           light (inverted) theme. Both shared with the reference page. -->
+      <div class="flags">
+        <label class="flag">color
+          <span class="check"><input type="checkbox" id="opt-color" checked></span>
+        </label>
+        <label class="flag">invert
+          <span class="check"><input type="checkbox" id="opt-theme"></span>
+        </label>
+        <label class="flag" title="play back in textbook timing, not as it was keyed">pretty<br>play
+          <span class="check"><input type="checkbox" id="opt-pretty"></span>
+        </label>
+        <label class="flag" title="keyed as one letter, a prosign does its job: AR, BT, SK, BK and CL return (↵), HH erases a word (off: they're the symbols + = and the rest)">pro-<br>signs
+          <span class="check"><input type="checkbox" id="opt-prosigns" checked></span>
+        </label>
+      </div>
+
+      <div class="faders">
+        <div class="group">
+          <div class="pair">
+            <label class="fader"><output for="opt-wpm">10</output>
+              <input type="range" id="opt-wpm" min="5" max="40" value="10"><span>wpm</span></label>
+            <label class="fader"><output for="opt-fwpm">10</output>
+              <span class="track"><input type="range" id="opt-fwpm" min="5" max="40" value="10"><i class="cap" aria-hidden="true"></i></span><span>farns.</span></label>
+          </div>
+          <span class="group-name">speed</span>
+        </div>
+        <div class="group" data-needs="sound">
+          <div class="pair">
+            <label class="fader"><output for="opt-vol">50</output>
+              <input type="range" id="opt-vol" min="0" max="100" value="50"><span>vol</span></label>
+            <label class="fader"><output for="opt-hz">600</output>
+              <input type="range" id="opt-hz" min="300" max="1000" step="10" value="600"><span>pitch</span></label>
+          </div>
+          <span class="group-name">sound</span>
+        </div>
+        <div class="group">
+          <div class="pair">
+            <label class="fader"><output for="opt-glow">50</output>
+              <input type="range" id="opt-glow" min="10" max="100" step="5" value="50"><span>level</span></label>
+          </div>
+          <span class="group-name">light</span>
+        </div>
+        <div class="group" id="vibe-set" data-needs="vibrate" hidden>
+          <div class="pair">
+            <label class="fader"><output for="opt-vibe">50</output>
+              <input type="range" id="opt-vibe" min="0" max="100" value="50"><span>strength</span></label>
+          </div>
+          <span class="group-name">vibrate</span>
+        </div>
+      </div>
+
+      <!-- for support: what's running and how it's set, never a message -->
+      <div class="tray-foot">
+        <button type="button" id="report" class="quiet" title="the version, this device, the settings and the last errors; no messages" aria-haspopup="dialog">a report for support…</button>
+      </div>
+    </section>
+
+
+    <!--
+      timing train (timed keying), lined up with the keys below:
+      time starts at the dit key's left edge. Key down runs right
+      (a full dit at the dit key's edge, a full dah at the dah
+      key's); key up runs left (the word gap at the far edge).
+
+        ├/──┃─˽─┃──┼────.┃────┃────-┤
+          key up    │     key down
+      The side in use fills; the call you'd get right now lights.
+    -->
+    <div id="train" class="train" hidden aria-hidden="true">
+      <div class="seg off"><div class="fill"></div><div class="ticks"></div></div>
+      <div class="seg on"><div class="fill"></div><div class="ticks"></div></div>
+      <span class="origin" aria-hidden="true"></span>
+    </div>
+
+    <!-- keyer pad: ˽ / ⌫ ↵ down the side | dit | dah  (labels follow the key setting);
+         ⌫ and ↵ at the bottom left, where the text keyboard has them too -->
+    <div id="pad" class="pad">
+      <button type="button" class="key side" data-act="letter" aria-label="letter space" title="letter space (space)">˽</button>
+      <button type="button" class="key side" data-act="word" aria-label="word space" title="word space (/)">/</button>
+      <button type="button" class="key side" data-act="undo" aria-label="backspace" title="backspace: the last mark; hold for words (Backspace)">⌫</button>
+      <button type="button" class="key side" data-act="send" aria-label="return" title="return: a new line (Enter)">↵</button>
+      <button type="button" class="key dit" data-act="." aria-label="dit" title="dit: . [ A 1 (left Ctrl with ctrl keys on)"><b>.</b><span>dit</span></button>
+      <button type="button" class="key dah" data-act="-" aria-label="dah" title="dah: - ] D 3 (right Ctrl with ctrl keys on)"><b>-</b><span>dah</span></button>
+    </div>
+
+    <!--
+      type mode: our own keyboard, so the phone's never pops up
+      (and shoves the page around). Morse-first: each key's code
+      sits above its letter. What you type appears in the message
+      above, with the caret on the letters' line.
+
+        --.-  .--   .   .-.   -   -.--  ..-   ..   ---  .--.
+         Q     W    E    R    T    Y     U    I     O    P
+           A  S  D  F  G  H  J  K  L
+        ⌫  Z  X  C  V  B  N  M  (i)
+        [ ↵ ][      space      ][123]
+    -->
+    <div id="type" class="type" hidden>
+      <div id="kbd" class="kbd" aria-label="keyboard"></div>
+    </div>
+    </div><!-- /slot -->
+
+  </div>
+
+  <!--
+    waiting: a skeleton of the station, the brass box and its switch,
+    a lamp keying AS (.-..., "wait") over and over. Drawn by the HTML
+    and CSS alone, so it shows even if the scripts never run; it fades
+    in only after a second (a normal start never sees it), and the
+    station takes it away once it's ready (js/tx/main.js). Last in
+    the page, so the station's own .logo is the one found first.
+  -->
+  <div id="waiting" class="waiting" aria-hidden="true">
+    <div class="waiting-box">
+      <span class="wait-note"><span class="wait-lamp"></span><span class="wait-label"> AS  wait…</span></span>
+      <span class="logo switch">
+        <svg viewBox="0 0 73 79" fill="none">
+          <circle cx="13.66" cy="52.81" r="7" stroke="currentColor" stroke-width="6"/>
+          <rect class="arm" x="16.02" y="47.22" width="56" height="7" rx="3.5" fill="currentColor"/>
+          <circle class="led" cx="13.66" cy="52.81" r="3.6"/>
+        </svg>
+      </span>
+    </div>
+  </div>
+
+  <script type="module" src="/js/tx/main.js"></script>
 </body>
 </html>

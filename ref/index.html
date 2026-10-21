@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#1c1916">
+  <!-- installable: add to home screen (see sw.js) -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="dot-da.sh">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <title>dot-da.sh</title>
+
+  <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
+
+  <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
+  <link rel="stylesheet" href="/style.css">
+
+  <!-- Primary Meta Tags -->
+<meta name="title" content="dot-da.sh" />
+<meta name="description" content=".... . .-.. .-.. --- / .-- --- .-. .-.. -.." />
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://dot-da.sh/ref/" />
+<meta property="og:title" content="dot-da.sh" />
+<meta property="og:description" content=".... . .-.. .-.. --- / .-- --- .-. .-.. -.." />
+<meta property="og:image" content="https://dot-da.sh/preview.png" />
+
+<!-- X (Twitter) -->
+<meta property="twitter:card" content="summary_large_image" />
+<meta property="twitter:url" content="https://dot-da.sh/ref/" />
+<meta property="twitter:title" content="dot-da.sh" />
+<meta property="twitter:description" content=".... . .-.. .-.. --- / .-- --- .-. .-.. -.." />
+<meta property="twitter:image" content="https://dot-da.sh/preview.png" />
+
+<!-- Meta Tags Generated with https://metatags.io -->
+  
+</head>
+
+<body>
+  <header class="top">
+    <a href="/" class="logo" aria-label="dot-da.sh home">
+      <svg viewBox="0 0 73 79" width="27" height="29" aria-hidden="true" fill="none">
+        <circle cx="13.66" cy="52.81" r="7" stroke="currentColor" stroke-width="6"/>
+        <rect class="arm" x="16.02" y="47.22" width="56" height="7" rx="3.5" fill="currentColor"/>
+        <circle class="led" cx="13.66" cy="52.81" r="3.6"/>
+      </svg>
+      <span>dot-da.sh</span>
+    </a>
+  </header>
+
+  <main>
+
+    <!-- ───────────── tree ───────────── -->
+    <section class="frame tree-frame" aria-labelledby="tree-label">
+      <h2 class="frame-label" id="tree-label">tree</h2>
+
+      <fieldset class="options">
+        <legend class="visually-hidden">What the tree shows</legend>
+        <label class="check"><input type="checkbox" id="opt-letters" checked> letters</label>
+        <label class="pick">numbers
+          <select id="opt-numbers">
+            <option value="off">off</option>
+            <option value="on">standard</option>
+            <option value="cut">cut</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="opt-symbols"> symbols</label>
+        <label class="check"><input type="checkbox" id="opt-prune"> prune empty</label>
+        <label class="check" title="each character's cost in units: its marks, the gaps inside it, and the letter gap after"><input type="checkbox" id="opt-weights"> weights</label>
+      </fieldset>
+
+      <pre class="tree tree-h" id="tree-h" aria-label="Morse tree: dot branches left, dash branches right"></pre>
+      <pre class="tree tree-v" id="tree-v" aria-label="Morse tree: dot branches up, dash branches down"></pre>
+
+      <fieldset class="options options-look">
+        <legend class="visually-hidden">How the tree looks</legend>
+        <label class="pick">style
+          <select id="opt-style">
+            <option value="branches">branches</option>
+            <option value="classic" selected>classic</option>
+          </select>
+        </label>
+        <label class="pick">size
+          <select id="opt-size">
+            <option value="auto">auto</option>
+            <option value="roomy" selected>roomy</option>
+            <option value="compact">compact</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="opt-signal" checked> dot/dash colors</label>
+        <label class="check"><input type="checkbox" id="opt-category" checked> character colors</label>
+      </fieldset>
+    </section>
+
+    <!-- ───────────── one character: tap a node, or type it ───────────── -->
+    <section class="frame selected-frame" id="selected-frame" aria-labelledby="selected-label">
+      <h2 class="frame-label" id="selected-label">selected character</h2>
+      <p id="selected-none" class="empty">none</p>
+      <pre id="selected-card" class="overview about-card" hidden></pre>
+    </section>
+
+    <!-- ───────────── reference ───────────── -->
+    <section class="frame chart-frame" aria-labelledby="chart-label">
+      <h2 class="frame-label" id="chart-label">all characters</h2>
+  <div class="morse-code">
+
+  <h2>Letters</h2>
+  <div class="group-row morse-letters">
+    <ul class="col-left">
+    <li><a href="/ref/?/.-"><span class="code">.-</span><span class="say">Alfa</span><span class="label">A</span></a></li>
+    <li><a href="/ref/?/-..."><span class="code">-...</span><span class="say">Bravo</span><span class="label">B</span></a></li>
+    <li><a href="/ref/?/-.-."><span class="code">-.-.</span><span class="say">Charlie</span><span class="label">C</span></a></li>
+    <li><a href="/ref/?/-.."><span class="code">-..</span><span class="say">Delta</span><span class="label">D</span></a></li>
+    <li><a href="/ref/?/."><span class="code">.</span><span class="say">Echo</span><span class="label">E</span></a></li>
+    <li><a href="/ref/?/..-."><span class="code">..-.</span><span class="say">Foxtrot</span><span class="label">F</span></a></li>
+    <li><a href="/ref/?/--."><span class="code">--.</span><span class="say">Golf</span><span class="label">G</span></a></li>
+    <li><a href="/ref/?/...."><span class="code">....</span><span class="say">Hotel</span><span class="label">H</span></a></li>
+    <li><a href="/ref/?/.."><span class="code">..</span><span class="say">India</span><span class="label">I</span></a></li>
+    <li><a href="/ref/?/.---"><span class="code">.---</span><span class="say">Juliett</span><span class="label">J</span></a></li>
+    <li><a href="/ref/?/-.-"><span class="code">-.-</span><span class="say">Kilo</span><span class="label">K</span></a></li>
+    <li><a href="/ref/?/.-.."><span class="code">.-..</span><span class="say">Lima</span><span class="label">L</span></a></li>
+    <li><a href="/ref/?/--"><span class="code">--</span><span class="say">Mike</span><span class="label">M</span></a></li>
+    </ul>
+    <ul class="col-right">
+    <li><a href="/ref/?/-."><span class="label">N</span><span class="say">November</span><span class="code">-.</span></a></li>
+    <li><a href="/ref/?/---"><span class="label">O</span><span class="say">Oscar</span><span class="code">---</span></a></li>
+    <li><a href="/ref/?/.--."><span class="label">P</span><span class="say">Papa</span><span class="code">.--.</span></a></li>
+    <li><a href="/ref/?/--.-"><span class="label">Q</span><span class="say">Quebec</span><span class="code">--.-</span></a></li>
+    <li><a href="/ref/?/.-."><span class="label">R</span><span class="say">Romeo</span><span class="code">.-.</span></a></li>
+    <li><a href="/ref/?/..."><span class="label">S</span><span class="say">Sierra</span><span class="code">...</span></a></li>
+    <li><a href="/ref/?/-"><span class="label">T</span><span class="say">Tango</span><span class="code">-</span></a></li>
+    <li><a href="/ref/?/..-"><span class="label">U</span><span class="say">Uniform</span><span class="code">..-</span></a></li>
+    <li><a href="/ref/?/...-"><span class="label">V</span><span class="say">Victor</span><span class="code">...-</span></a></li>
+    <li><a href="/ref/?/.--"><span class="label">W</span><span class="say">Whiskey</span><span class="code">.--</span></a></li>
+    <li><a href="/ref/?/-..-"><span class="label">X</span><span class="say">X-ray</span><span class="code">-..-</span></a></li>
+    <li><a href="/ref/?/-.--"><span class="label">Y</span><span class="say">Yankee</span><span class="code">-.--</span></a></li>
+    <li><a href="/ref/?/--.."><span class="label">Z</span><span class="say">Zulu</span><span class="code">--..</span></a></li>
+    </ul>
+  </div>
+
+  <h2>Numbers</h2>
+  <div class="group-row morse-numbers">
+    <ul class="col-left">
+    <li><a href="/ref/?/-----"><span class="code">-----</span><span class="say">Zero</span><span class="label">0</span></a></li>
+    <li><a href="/ref/?/.----"><span class="code">.----</span><span class="say">Wun</span><span class="label">1</span></a></li>
+    <li><a href="/ref/?/..---"><span class="code">..---</span><span class="say">Too</span><span class="label">2</span></a></li>
+    <li><a href="/ref/?/...--"><span class="code">...--</span><span class="say">Tree</span><span class="label">3</span></a></li>
+    <li><a href="/ref/?/....-"><span class="code">....-</span><span class="say">Fower</span><span class="label">4</span></a></li>
+    </ul>
+    <ul class="col-right">
+    <li><a href="/ref/?/....."><span class="label">5</span><span class="say">Fife</span><span class="code">.....</span></a></li>
+    <li><a href="/ref/?/-...."><span class="label">6</span><span class="say">Six</span><span class="code">-....</span></a></li>
+    <li><a href="/ref/?/--..."><span class="label">7</span><span class="say">Seven</span><span class="code">--...</span></a></li>
+    <li><a href="/ref/?/---.."><span class="label">8</span><span class="say">Ait</span><span class="code">---..</span></a></li>
+    <li><a href="/ref/?/----."><span class="label">9</span><span class="say">Niner</span><span class="code">----.</span></a></li>
+    </ul>
+  </div>
+
+  <h2>Symbols</h2>
+  <div class="group-row morse-symbols">
+    <ul class="col-left">
+    <li><a href="/ref/?/.-.-.-"><span class="code">.-.-.-</span><span class="label">.</span></a></li>
+    <li><a href="/ref/?/--..--"><span class="code">--..--</span><span class="label">,</span></a></li>
+    <li><a href="/ref/?/..--.."><span class="code">..--..</span><span class="label">?</span></a></li>
+    <li><a href="/ref/?/-.-.--"><span class="code">-.-.--</span><span class="label">!</span></a></li>
+    <li><a href="/ref/?/.----."><span class="code">.----.</span><span class="label">'</span></a></li>
+    <li><a href="/ref/?/.-..-."><span class="code">.-..-.</span><span class="label">"</span></a></li>
+    <li><a href="/ref/?/-.--."><span class="code">-.--.</span><span class="label">(</span></a></li>
+    <li><a href="/ref/?/-.--.-"><span class="code">-.--.-</span><span class="label">)</span></a></li>
+    <li><a href="/ref/?/.-..."><span class="code">.-...</span><span class="label">&amp;</span></a></li>
+    </ul>
+    <ul class="col-right">
+    <li><a href="/ref/?/---..."><span class="label">:</span><span class="code">---...</span></a></li>
+    <li><a href="/ref/?/-.-.-."><span class="label">;</span><span class="code">-.-.-.</span></a></li>
+    <li><a href="/ref/?/-..-."><span class="label">/</span><span class="code">-..-.</span></a></li>
+    <li><a href="/ref/?/..--.-"><span class="label">_</span><span class="code">..--.-</span></a></li>
+    <li><a href="/ref/?/-...-"><span class="label">=</span><span class="code">-...-</span></a></li>
+    <li><a href="/ref/?/.-.-."><span class="label">+</span><span class="code">.-.-.</span></a></li>
+    <li><a href="/ref/?/-....-"><span class="label">-</span><span class="code">-....-</span></a></li>
+    <li><a href="/ref/?/...-..-"><span class="label">$</span><span class="code">...-..-</span></a></li>
+    <li><a href="/ref/?/.--.-."><span class="label">@</span><span class="code">.--.-.</span></a></li>
+    </ul>
+  </div>
+
+  <h2>Prosigns</h2>
+  <div class="group-row morse-prosigns">
+    <ul class="col-left">
+    <li><a href="/ref/?/...---..."><span class="code">...---...</span><span class="label">SOS</span></a></li>
+    <li><a href="/ref/?/.-.-"><span class="code">.-.-</span><span class="label">New Line</span></a></li>
+    <li><a href="/ref/?/.-.-."><span class="code">.-.-.</span><span class="label">New Page</span></a></li>
+    <li><a href="/ref/?/-...-"><span class="code">-...-</span><span class="label">New Paragraph</span></a></li>
+    <li><a href="/ref/?/-.-.-"><span class="code">-.-.-</span><span class="label">Attention</span></a></li>
+    <li><a href="/ref/?/........"><span class="code">........</span><span class="label">Error</span></a></li>
+    <li><a href="/ref/?/.-..."><span class="code">.-...</span><span class="label">Wait</span></a></li>
+    </ul>
+    <ul class="col-right">
+    <li><a href="/ref/?/-...-.-"><span class="label">Break</span><span class="code">-...-.-</span></a></li>
+    <li><a href="/ref/?/-.-..-.."><span class="label">Closing</span><span class="code">-.-..-..</span></a></li>
+    <li><a href="/ref/?/-..---"><span class="label">Shift to Wabun code</span><span class="code">-..---</span></a></li>
+    <li><a href="/ref/?/...-.-"><span class="label">End of contact</span><span class="code">...-.-</span></a></li>
+    <li><a href="/ref/?/...-."><span class="label">Understood</span><span class="code">...-.</span></a></li>
+    <li><a href="/ref/?/-.--."><span class="label">Invitation for named station to transmit</span><span class="code">-.--.</span></a></li>
+    <li><a href="/ref/?/-.-"><span class="label">Invitation for any station to transmit</span><span class="code">-.-</span></a></li>
+    </ul>
+  </div>
+
+  <h2>Q codes</h2>
+  <p class="cheat-note">Three letters for a whole sentence. Sent with <b>?</b> they ask instead: QRS? is "should I send slower?"</p>
+  <ul class="cheat">
+    <li><a href="/ref/?/_--.-_.-._.-.._"><b class="term">QRL</b><span class="code">--.- .-. .-..</span></a><span class="means">this frequency is in use</span></li>
+    <li><a href="/ref/?/_--.-_.-._--_"><b class="term">QRM</b><span class="code">--.- .-. --</span></a><span class="means">man-made interference</span></li>
+    <li><a href="/ref/?/_--.-_.-._-._"><b class="term">QRN</b><span class="code">--.- .-. -.</span></a><span class="means">static, natural noise</span></li>
+    <li><a href="/ref/?/_--.-_.-._---_"><b class="term">QRO</b><span class="code">--.- .-. ---</span></a><span class="means">increase power</span></li>
+    <li><a href="/ref/?/_--.-_.-._.--._"><b class="term">QRP</b><span class="code">--.- .-. .--.</span></a><span class="means">reduce power; low power</span></li>
+    <li><a href="/ref/?/_--.-_.-._--.-_"><b class="term">QRQ</b><span class="code">--.- .-. --.-</span></a><span class="means">send faster</span></li>
+    <li><a href="/ref/?/_--.-_.-._..._"><b class="term">QRS</b><span class="code">--.- .-. ...</span></a><span class="means">send slower</span></li>
+    <li><a href="/ref/?/_--.-_.-._-_"><b class="term">QRT</b><span class="code">--.- .-. -</span></a><span class="means">stop sending; closing down</span></li>
+    <li><a href="/ref/?/_--.-_.-._..-_"><b class="term">QRU</b><span class="code">--.- .-. ..-</span></a><span class="means">I have nothing for you</span></li>
+    <li><a href="/ref/?/_--.-_.-._...-_"><b class="term">QRV</b><span class="code">--.- .-. ...-</span></a><span class="means">I am ready</span></li>
+    <li><a href="/ref/?/_--.-_.-._-..-_"><b class="term">QRX</b><span class="code">--.- .-. -..-</span></a><span class="means">wait, stand by</span></li>
+    <li><a href="/ref/?/_--.-_.-._--.._"><b class="term">QRZ</b><span class="code">--.- .-. --..</span></a><span class="means">who is calling me?</span></li>
+    <li><a href="/ref/?/_--.-_..._-..._"><b class="term">QSB</b><span class="code">--.- ... -...</span></a><span class="means">your signal is fading</span></li>
+    <li><a href="/ref/?/_--.-_..._-.-_"><b class="term">QSK</b><span class="code">--.- ... -.-</span></a><span class="means">I can hear you between my signals (break-in)</span></li>
+    <li><a href="/ref/?/_--.-_..._.-.._"><b class="term">QSL</b><span class="code">--.- ... .-..</span></a><span class="means">I confirm receipt</span></li>
+    <li><a href="/ref/?/_--.-_..._---_"><b class="term">QSO</b><span class="code">--.- ... ---</span></a><span class="means">a contact, a conversation</span></li>
+    <li><a href="/ref/?/_--.-_..._-.--_"><b class="term">QSY</b><span class="code">--.- ... -.--</span></a><span class="means">change frequency</span></li>
+    <li><a href="/ref/?/_--.-_-_...._"><b class="term">QTH</b><span class="code">--.- - ....</span></a><span class="means">my location is</span></li>
+    <li><a href="/ref/?/_--.-_-_.-._"><b class="term">QTR</b><span class="code">--.- - .-.</span></a><span class="means">the correct time is</span></li>
+  </ul>
+
+  <h2>Abbreviations</h2>
+  <p class="cheat-note">What operators send to save time; prosigns (above) and Q codes mix right in.</p>
+  <ul class="cheat">
+    <li><a href="/ref/?/_-.-._--.-_"><b class="term">CQ</b><span class="code">-.-. --.-</span></a><span class="means">calling any station</span></li>
+    <li><a href="/ref/?/_-.._._"><b class="term">DE</b><span class="code">-.. .</span></a><span class="means">from; this is</span></li>
+    <li><a href="/ref/?/_-.-_"><b class="term">K</b><span class="code">-.-</span></a><span class="means">over, go ahead</span></li>
+    <li><a href="/ref/?/_.-._"><b class="term">R</b><span class="code">.-.</span></a><span class="means">received, roger</span></li>
+    <li><a href="/ref/?/_-..._-.-_"><b class="term">BK</b><span class="code">-... -.-</span></a><span class="means">break, back to you</span></li>
+    <li><a href="/ref/?/_.-._..._-_"><b class="term">RST</b><span class="code">.-. ... -</span></a><span class="means">signal report: readability, strength, tone</span></li>
+    <li><a href="/ref/?/_....._-._-._"><b class="term">5NN</b><span class="code">..... -. -.</span></a><span class="means">599, a perfect report (cut numbers)</span></li>
+    <li><a href="/ref/?/_--..._...--_"><b class="term">73</b><span class="code">--... ...--</span></a><span class="means">best regards</span></li>
+    <li><a href="/ref/?/_---.._---.._"><b class="term">88</b><span class="code">---.. ---..</span></a><span class="means">love and kisses</span></li>
+    <li><a href="/ref/?/_-_..-_"><b class="term">TU</b><span class="code">- ..-</span></a><span class="means">thank you</span></li>
+    <li><a href="/ref/?/_-_-._-..-_"><b class="term">TNX</b><span class="code">- -. -..-</span></a><span class="means">thanks</span></li>
+    <li><a href="/ref/?/_..-._-..._"><b class="term">FB</b><span class="code">..-. -...</span></a><span class="means">fine business: great</span></li>
+    <li><a href="/ref/?/_---_--_"><b class="term">OM</b><span class="code">--- --</span></a><span class="means">old man: any operator</span></li>
+    <li><a href="/ref/?/_-.--_.-.._"><b class="term">YL</b><span class="code">-.-- .-..</span></a><span class="means">young lady: any operator</span></li>
+    <li><a href="/ref/?/_...._.-._"><b class="term">HR</b><span class="code">.... .-.</span></a><span class="means">here</span></li>
+    <li><a href="/ref/?/_..-_.-._"><b class="term">UR</b><span class="code">..- .-.</span></a><span class="means">your, you&#x27;re</span></li>
+    <li><a href="/ref/?/_._..._"><b class="term">ES</b><span class="code">. ...</span></a><span class="means">and</span></li>
+    <li><a href="/ref/?/_.--_-..-_"><b class="term">WX</b><span class="code">.-- -..-</span></a><span class="means">weather</span></li>
+    <li><a href="/ref/?/_.-._.._--._"><b class="term">RIG</b><span class="code">.-. .. --.</span></a><span class="means">radio</span></li>
+    <li><a href="/ref/?/_.-_-._-_"><b class="term">ANT</b><span class="code">.- -. -</span></a><span class="means">antenna</span></li>
+    <li><a href="/ref/?/_.--._..._._"><b class="term">PSE</b><span class="code">.--. ... .</span></a><span class="means">please</span></li>
+    <li><a href="/ref/?/_.-_--._-._"><b class="term">AGN</b><span class="code">.- --. -.</span></a><span class="means">again</span></li>
+    <li><a href="/ref/?/_-.-._..-_.-.._"><b class="term">CUL</b><span class="code">-.-. ..- .-..</span></a><span class="means">see you later</span></li>
+    <li><a href="/ref/?/_...._.._"><b class="term">HI</b><span class="code">.... ..</span></a><span class="means">laughter</span></li>
+    <li><a href="/ref/?/_--._--_"><b class="term">GM</b><span class="code">--. --</span></a><span class="means">good morning</span></li>
+    <li><a href="/ref/?/_--._.-_"><b class="term">GA</b><span class="code">--. .-</span></a><span class="means">good afternoon</span></li>
+    <li><a href="/ref/?/_--._._"><b class="term">GE</b><span class="code">--. .</span></a><span class="means">good evening</span></li>
+  </ul>
+
+</div>
+    </section>
+
+  </main>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

@@ -8,7 +8,7 @@
  * loads is also kept in a cache, so with no signal the app opens
  * from what was there last time.
  *
- *   pages (/, /tx/)  kept by path, without the ?/… message,
+ *   pages (/, /ref/)  kept by path, without the ?/… message,
  *                    since each page reads its message itself
  *   /og/…            the link-preview images: never cached here
  *   other sites      left alone
@@ -16,15 +16,18 @@
  * Bump VERSION to clear the old cache after a big change.
  */
 
-const VERSION = "dot-dash-2";
+const VERSION = "dot-dash-5";
 
 /* fetched on install, so the first offline open works too */
 const CORE = [
-  "/", "/tx/",
+  "/", "/ref/",
   "/style.css", "/tx/tx.css", "/switch.svg", "/manifest.webmanifest",
   "/icons/icon-192.png", "/icons/icon-512.png",
-  "/js/main.js", "/js/morse.js", "/js/tree.js", "/js/message.js", "/js/overview.js", "/js/keyer.js",
-  "/js/tx.js", "/js/tx-keyer.js", "/js/tx-sound.js", "/js/tx-player.js", "/js/tx-share.js", "/js/tx-outputs.js", "/js/tx-trace.js"
+  "/js/main.js", "/js/morse.js", "/js/tree.js", "/js/overview.js", "/js/keyer.js",
+  "/js/tx-keyer.js", "/js/tx-sound.js", "/js/tx-player.js", "/js/tx-share.js", "/js/tx-files.js", "/js/tx-outputs.js", "/js/tx-trace.js",
+  "/js/tx/main.js", "/js/tx/dom.js", "/js/tx/state.js", "/js/tx/keyboard.js", "/js/tx/about.js",
+  "/js/tx/player.js", "/js/tx/share.js", "/js/tx/settings.js", "/js/tx/tree.js", "/js/tx/layer.js", "/js/tx/tape.js", "/js/tx/keys.js", "/js/tx/typing.js", "/js/tx/media.js", "/js/tx/tab.js",
+  "/js/characters.js"
 ];
 
 self.addEventListener("install", event => {
@@ -61,7 +64,7 @@ self.addEventListener("fetch", event => {
     } catch {
       const kept = await cache.match(key);
       if (kept) return kept;
-      if (request.mode === "navigate") return (await cache.match(url.origin + "/tx/")) ?? Response.error();
+      if (request.mode === "navigate") return (await cache.match(url.origin + "/")) ?? Response.error();
       return Response.error();
     }
   })());
