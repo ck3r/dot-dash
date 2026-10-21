@@ -155,8 +155,10 @@ export function createPlayer({ sound, timing, frame, end, rounds = () => 1, gap 
       const m = marks[mark];
       down = pos < m.end;
       const l = letters[letter];
-      /* inside the letter (or its inner gaps): the path so far */
-      if (pos < l.end + 1) path = l.code.slice(0, m.index + 1);
+      /* inside the letter (or its inner gaps): the path so far;
+         at the very end the last letter is over too, so it lands
+         (between rounds and when the message ends, not just mid-way) */
+      if (pos < l.end + 1 && pos < duration) path = l.code.slice(0, m.index + 1);
     }
     const symbol = down ? marks[mark].mark : null;
 

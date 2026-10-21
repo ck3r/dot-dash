@@ -106,12 +106,13 @@ export function decode(words) {
     .join(" ");
 }
 
+/* a prosign is written in its brackets, <SK>, one letter */
 export function encode(text) {
   return text
     .toUpperCase()
     .trim()
     .split(/\s+/)
-    .map(word => [...word].map(char => ENCODE[char]).filter(Boolean))
+    .map(word => (word.match(/<[A-Z]+>|./g) ?? []).map(char => ENCODE[char]).filter(Boolean))
     .filter(word => word.length);
 }
 
@@ -198,3 +199,26 @@ export function cost(code) {
   for (const s of code) units += s === "." ? 2 : 4;
   return units;
 }
+
+
+/*
+ * Cut numbers: digits sent as shorter letters (contest style).
+ * Same nodes, different reading. 4 and 6 keep their codes.
+ */
+
+export const CUT = {
+  ".": "5", "-": "0",
+  ".-": "1", "-.": "9",
+  "..-": "2", "-..": "8",
+  "...-": "3", "-...": "7",
+  "....-": "4", "-....": "6"
+};
+
+
+/*
+ * The site's own: · − − · −, a dot and a dash and so on, is dot-da.sh
+ * keying its name (the tab does it on a visit with no message). The
+ * node is empty here; in some alphabets it's À / Å, which can still
+ * have it later. Keyed, it greets; its about names it.
+ */
+export const NAME_CODE = ".--.-";

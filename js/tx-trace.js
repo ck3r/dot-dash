@@ -83,9 +83,16 @@ export function createTrace({ canvas, pop, popCanvas, thumb, colors, unit }) {
     ctx.fillRect(inset, mid - 0.5, playX - inset, 1);
 
     /* marks, or letters as blocks when marks get too thin */
+    /* one look for the whole message, held key or not (switching on
+       each press made the line flicker): as blocks, the marks of a
+       letter not yet finished, the held one too, follow the last
+       block at the blocks' height */
     const pxPerUnit = span / m.duration * unit();
-    const blocks = pxPerUnit < MIN_MARK && !held;
-    const items = blocks ? m.letters.map(l => ({ start: l.start, end: l.end })) : m.marks;
+    const blocks = pxPerUnit < MIN_MARK;
+    const lettered = m.letters.length ? m.letters[m.letters.length - 1].end : -Infinity;
+    const items = blocks
+      ? [...m.letters.map(l => ({ start: l.start, end: l.end })), ...m.marks.filter(k => k.start >= lettered)]
+      : m.marks;
     const tall = blocks ? Math.round(h * 0.42) : Math.round(h * 0.62);
     const top = mid - tall / 2;
     const clicks = c.sounder && !blocks;

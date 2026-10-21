@@ -3,14 +3,28 @@
  * KEYER — the browser tab transmits the message
  * ============================================================
  *
- * The favicon switch closes on every mark, and the page
+ * The site's one tab animation (the reference and the station both
+ * use it). The favicon switch closes on every mark, and the page
  * title types each character as it walks the tree:
  *
  *   signal   ███ █ ███ █
  *   title    T N K C        (each beat revises the guess)
  *
- * It also announces each step, so anything else (the trees,
- * later sound or vibration) can follow along:
+ * A long message: the tab keys the first 13 characters, then the
+ * switch rests and the title holds them with an ellipsis. (The
+ * events carry on to the end, for whatever follows them.)
+ *
+ * No message (a visit with nothing in the address): the name keys
+ * itself instead, in plain text, a dot and a dash at a time:
+ *
+ *   ▪      dot
+ *   ▬      dot-
+ *   ▬      dot-da
+ *   ▪      dot-da.
+ *   ▬      dot-da.sh            (· − − · −, a node with nothing in it)
+ *
+ * It also announces each step of a message (not the name), so
+ * anything else (the trees, later sound or vibration) can follow:
  *
  *   keyer.on(event => …)
  *
@@ -19,7 +33,12 @@
  *   { type: "letter", path: ".-" }   letter finished (gap begins)
  *   { type: "word" }                 word gap begins
  *   { type: "end",    path: "." }    message finished
- *   { type: "key",    down: true }   key closed / opened (the switch)
+ *   { type: "key",    down: true }   key closed / opened (the switch;
+ *                                    name: true while the name keys)
+ *
+ *   keyer.play(words)   key a message ([] or · − − · − for the name)
+ *   keyer.rest()        stop, and the tab says the name
+ *   keyer.hold(down)    the station playing: the icon keys the name, on a loop
  *
  * Morse timing (units):
  *
@@ -30,14 +49,22 @@
  *   word gap     7
  */
 
-import { nodeAt, DECODE } from "./morse.js";
+import { nodeAt, DECODE, NAME_CODE } from "./morse.js";
 
 
 const IDLE_TITLE = "dot-da.sh";
 
+/* browsers redraw a tab's title and icon about this often at best
+   (once a second in the background), whatever the page's own speed */
 const ACTIVE_FRAME_MS = 210;
 const INACTIVE_FRAME_MS = 1000;
 const TITLE_LATENCY_MS = 30;
+
+/* the tab keys this many characters, then rests with an ellipsis */
+const TAB_CHARS = 13;
+
+/* the name: its five marks (NAME_CODE), and the title as each starts */
+const NAME_TITLES = ["dot", "dot-", "dot-da", "dot-da.", "dot-da.sh"];
 
 
 /*
@@ -92,17 +119,6 @@ const faviconURLs = {
   open:   "data:image/svg+xml," + encodeURIComponent(FAVICON_OPEN),
   closed: "data:image/svg+xml," + encodeURIComponent(FAVICON_CLOSED)
 };
-
-const favicon = document.querySelector("#favicon");
-
-let faviconState = null;
-
-function setFavicon(closed) {
-  if (faviconState === closed) return;   // only touch the DOM on change
-  faviconState = closed;
-  favicon.href = closed ? faviconURLs.closed : faviconURLs.open;
-  emit({ type: "key", down: closed });   // anything else drawing the switch follows
-}
 
 
 /*
@@ -234,6 +250,31 @@ function getKeyerEvents(words) {
 
 /*
  * ============================================================
+ * THE SWITCH
+ * ============================================================
+ */
+
+let faviconState = null;
+let held = false;    // the station playing: the icon keys the name, on a loop
+
+/* the icon alone, nothing told (the playing loop) */
+function showIcon(closed) {
+  if (faviconState === closed) return;   // only touch the DOM on change
+  faviconState = closed;
+  const favicon = document.querySelector("#favicon");
+  if (favicon) favicon.href = closed ? faviconURLs.closed : faviconURLs.open;
+}
+
+function setFavicon(closed) {
+  if (held) return;                      // the playing loop has the icon
+  if (faviconState === closed) return;
+  showIcon(closed);
+  emit({ type: "key", down: closed, name: quiet });   // anything else drawing the switch follows
+}
+
+
+/*
+ * ============================================================
  * PLAYBACK
  * ============================================================
  */
@@ -245,10 +286,14 @@ let events = [];
 let frames = [];
 let paths = [];
 let eventIndex = 0;
+let quiet = false;     // the name: no events for the trees
+let capAt = -1;        // the event where the tab's 13 characters are done
+let capped = false;
 
 const listeners = [];
 
 function emit(event) {
+  if (quiet && event.type !== "key") return;
   for (const fn of listeners) fn(event);
 }
 
@@ -270,20 +315,43 @@ function stop() {
   }
 }
 
+/* the title, unless the tab has rested at its 13 characters */
+function title(text) {
+  if (capped) return;
+  setTimeout(() => { if (!capped) document.title = text; }, TITLE_LATENCY_MS);
+}
+
+/* where the tab ends up: the last frame, or the 13 characters and … */
+function lastTitle() {
+  if (!frames.length) return IDLE_TITLE;
+  if (capAt < 0) return frames[frames.length - 1];
+  let n = 0;
+  for (let i = 0; i < capAt; i++) if (events[i].state === "closed") n += events[i].units;
+  return frames[n - 1] + "…";
+}
+
 function tick() {
 
   /* Finished: open switch, final title. */
   if (eventIndex >= events.length) {
     stop();
     setFavicon(false);
-    if (frames.length) document.title = frames[frames.length - 1];
+    if (frames.length && !capped) document.title = frames[frames.length - 1];
     emit({ type: "end", path: lastCode() });
     return;
   }
 
+  /* 13 characters keyed: the switch rests, the title says there's more */
+  if (eventIndex === capAt && unit === 0) {
+    setFavicon(false);
+    document.title = lastTitle();
+    capped = true;
+    if (!listeners.length) return stop();   // nothing else follows: done
+  }
+
   const event = events[eventIndex];
 
-  setFavicon(event.state === "closed");
+  if (!capped) setFavicon(event.state === "closed");
 
   /*
    * The word space is painted once the last letter's own
@@ -292,9 +360,7 @@ function tick() {
    */
   if (event.state === "open" && event.units === 7 && unit === 3) {
     const shown = frames[frameIndex - 1];
-    if (shown !== undefined) {
-      setTimeout(() => { document.title = shown + WORD_SPACE; }, TITLE_LATENCY_MS);
-    }
+    if (shown !== undefined) title(shown + WORD_SPACE);
   }
 
   /* A gap is announced as it begins. */
@@ -310,10 +376,7 @@ function tick() {
     frameIndex++;
 
     emit({ type: "beat", path });
-
-    setTimeout(() => {
-      if (frame !== undefined) document.title = frame;
-    }, TITLE_LATENCY_MS);
+    if (frame !== undefined) title(frame);
   }
 
   if (++unit >= event.units) {
@@ -327,6 +390,7 @@ function start() {
   eventIndex = 0;
   unit = 0;
   frameIndex = 0;
+  capped = false;
 
   setFavicon(false);
   emit({ type: "start" });
@@ -337,13 +401,14 @@ function start() {
     return;
   }
 
-  if (reducedMotion.matches) {
-    document.title = frames[frames.length - 1];
+  /* reduced motion, or held (the station playing): the last title */
+  if (reducedMotion.matches || held) {
+    document.title = lastTitle();
     emit({ type: "end", path: lastCode() });
     return;
   }
 
-  document.title = "​";   // zero-width: blank tab before the first mark
+  document.title = "\u200b";   // zero-width: blank tab before the first mark
   tick();
   timer = setInterval(tick, frameInterval());
 }
@@ -358,10 +423,69 @@ document.addEventListener("visibilitychange", start);
 reducedMotion.addEventListener("change", start);
 
 
+/* where the tab's 13 characters end: the gap after the 13th */
+function findCap(evs) {
+  let chars = 0;
+  for (let i = 0; i < evs.length; i++) {
+    if (evs[i].state === "open" && evs[i].units >= 3 && ++chars === TAB_CHARS) return i;
+  }
+  return -1;
+}
+
 export function play(words) {
+  /* no message, or the name's own marks: the name keys itself */
+  if (!words.length || (words.length === 1 && words[0].length === 1 && words[0][0] === NAME_CODE)) return greet();
+  quiet = false;
   ({ frames, paths } = getTitleFrames(words));
   events = getKeyerEvents(words);
+  capAt = findCap(events);
   start();
+}
+
+/* the name, keying itself: the marks of · − − · −, its own titles */
+function greet() {
+  quiet = true;
+  events = getKeyerEvents([[NAME_CODE]]);
+  frames = [];
+  [...NAME_CODE].forEach((m, i) => { for (let u = 0; u < (m === "." ? 1 : 3); u++) frames.push(NAME_TITLES[i]); });
+  paths = frames.map(() => null);
+  capAt = -1;
+  start();
+}
+
+/* stop, and the tab just says the name (the station: a new message) */
+export function rest() {
+  events = [];
+  frames = [];
+  capAt = -1;
+  start();
+}
+
+/*
+ * The station playing: the tab can't keep pace with the message
+ * itself, so the icon keys the name instead, · − − · − and a word
+ * space, round and round until it stops; the title stays as it is
+ * (a greeting or a link still keying cuts to its last title).
+ *
+ *   ▮ ▮▮▮ ▮▮▮ ▮ ▮▮▮ _______  ▮ ▮▮▮ …
+ */
+const PLAYING = [...NAME_CODE].flatMap((m, i) => [...(i ? [false] : []), ...Array(m === "." ? 1 : 3).fill(true)])
+  .concat(Array(7).fill(false));
+let playTimer = null;
+
+export function hold(down) {
+  if (held === down) return;
+  if (down) {
+    if (timer) { stop(); document.title = lastTitle(); }
+    held = true;
+    let u = 0;
+    showIcon(PLAYING[0]);
+    playTimer = setInterval(() => showIcon(PLAYING[++u % PLAYING.length]), frameInterval());
+  } else {
+    clearInterval(playTimer);
+    held = false;
+    showIcon(false);
+  }
 }
 
 export function on(fn) {

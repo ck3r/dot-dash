@@ -35,25 +35,15 @@
  *  .I│A-                  blue: the │ between I and A, then A
  */
 
-import { TREE } from "./morse.js";
+import { TREE, CUT } from "./morse.js";
+export { CUT };   // (it used to live here)
 
 
 const BLANK = "_";    // nothing lives here
 const HIDDEN = "*";   // something lives here, but its set is switched off
 
 
-/*
- * Cut numbers: digits sent as shorter letters (contest style).
- * Same nodes, different reading. 4 and 6 keep their codes.
- */
-
-export const CUT = {
-  ".": "5", "-": "0",
-  ".-": "1", "-.": "9",
-  "..-": "2", "-..": "8",
-  "...-": "3", "-...": "7",
-  "....-": "4", "-....": "6"
-};
+/* (cut numbers, CUT: in morse.js, shared with the about column) */
 
 
 /*
@@ -819,6 +809,12 @@ export function createTree(element, initialLayout, { legend: showLegend = true }
     land(null);
   }
 
+  /* the whole way to a character, lit at once (before it's traced) */
+  function flash(path) {
+    show(path);
+    land(path);
+  }
+
   /*
    * Keyer events → highlight.
    */
@@ -836,7 +832,7 @@ export function createTree(element, initialLayout, { legend: showLegend = true }
     layout = name;
   }
 
-  return { render, handle, setLayout, element };
+  return { render, handle, setLayout, flash, element };
 }
 
 

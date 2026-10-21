@@ -12,7 +12,7 @@
  * message area (never the whole screen: safe at any speed).
  *
  * Light (☼), one of, picked in settings:
- *   signal lamp  full screen, for playback (see tx.js: it asks
+ *   signal lamp  full screen, for playback (see tx/settings.js: it asks
  *                first, and twice if it would flash faster than
  *                3 times a second)
  *   invert       the whole screen flips while the key is down (asks
