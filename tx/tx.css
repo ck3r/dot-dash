@@ -712,6 +712,7 @@ body.tree-open .tree-edge {
   touch-action: none;
   transition: opacity 0.25s;
 }
+.tx .tape-thumb { touch-action: none; }   /* a drag (outranks .tx button's manipulation) */
 .tape-thumb::before { content: ""; position: absolute; inset: -0.4rem -1rem -0.4rem -1.4rem; }   /* the finger's room */
 .tape-thumb.up { opacity: 1; pointer-events: auto; }
 .tape-thumb.held { background: var(--brass); }
@@ -1924,8 +1925,13 @@ body.reading .slot { display: none; }
   color: var(--paper);
   padding: 0;
   font-size: var(--fs-l);
-  touch-action: none;   /* a press is a press, never a scroll */
 }
+
+/* a press is a press, never a scroll: a finger can slide from dit
+   onto dah (heavy fists, tx/keys.js). (.tx here to outrank .tx
+   button's manipulation, which let the browser take a sliding finger
+   for a scroll and cancel the press.) */
+.tx .key { touch-action: none; }
 
 .key.side { grid-column: 1; }
 .key.dit  { grid-column: 2; }
