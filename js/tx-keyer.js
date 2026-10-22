@@ -160,6 +160,14 @@ export function createKeyer(cb, clock = realClock) {
 
     if (mode === "bug") {
       n = held["."] ? "." : null;
+      /* dah pressed while a dit was still going (a quick hand, or a
+         finger sliding over): its contact closes as the dit ends */
+      if (!n && held["-"] && downAt === null) {
+        busy = false;
+        current = null;
+        closeStraight();
+        return;
+      }
     } else if (memory[other(current)]) {
       /* paddle memory comes first: the other paddle was tapped
          during this mark, so it goes next even if this one is held */
