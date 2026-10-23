@@ -2063,7 +2063,8 @@ body:has(#train:not([hidden])) .pad {
   letter-spacing: 0;
 }
 
-/* keys that hold digits / symbols (long-press): a tick in the corner */
+/* keys that hold more (long-press): a tick in the corner. Letters hold
+   their digits / symbols, 123 / ABC the layouts menu */
 .kbd .more::after {
   content: "";
   position: absolute;
