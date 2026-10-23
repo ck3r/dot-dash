@@ -147,7 +147,7 @@ export function createKeyboard({ typeKey }) {
           b.append(el("b", "", "↵"));
           b.setAttribute("aria-label", "return");
         } else if (k === "layout") {
-          b.className = "k-layout";
+          b.className = "k-layout more";      // the corner tick: it holds the layouts menu
           b.append(el("b", "", layout === "abc" ? "123" : "ABC"));
           b.setAttribute("aria-label", `${layout === "abc" ? "numbers and symbols" : "letters"} (hold for prosigns, Q codes)`);
         } else if (layout === "pro" || layout === "q") {
