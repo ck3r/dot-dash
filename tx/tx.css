@@ -41,15 +41,17 @@ html.inverted {
  *                (chevrons, close and remove ×, the eye, play / pause,
  *                repeat, ♪ ☼ ≋, the tree's ><, the (i)) is drawn this
  *                size, centred in --icon-box, roomier to tap
- *   --pad-cols   side keys | dit | dah, shared by the pad and the
- *                timing train above it
+ *   --pad-cols   dit | dah | side keys; the side keys as wide as
+ *                the tree column (--edge-w), so the pad's ↵ sits
+ *                right under the one on the rule
  *   --key-lit    a key lit while pressed, dimmed with the light level
  *                (--glow, 0.1 … 1)
  *   --bar        what the eye hides, drawn as a bar in the tape's colour
  */
 /* the collapsed tree column's width, as a length (so a ch here is
    the station's, wherever it's used): the ↵ in the far corner keeps a
-   column as wide, so the counts sit as far in from either edge */
+   column as wide, so the counts sit as far in from either edge, and
+   so do the pad's side keys below, its ↵ right under that one */
 @property --edge-w {
   syntax: "<length>";
   inherits: true;
@@ -63,7 +65,8 @@ html.inverted {
   --fs-l: 1.3rem;
   --icon: 1.2rem;
   --icon-box: 1.9rem;
-  --pad-cols: 1fr 1.7fr 2.4fr;
+  --edge-w: 6.5ch;
+  --pad-cols: 1.7fr 2.4fr var(--edge-w);
   --key-lit: color-mix(in srgb, var(--paper) calc(var(--glow, 1) * 100%), var(--bakelite));
   --bar: color-mix(in srgb, var(--paper) 80%, var(--bakelite));
 }
@@ -202,7 +205,6 @@ body.tx {
      2.7em of --fs-xs) and the borders. Squeezed, the input area
      gives way instead (--input-h) */
 .station {
-  --edge-w: 6.5ch;
   position: relative;
   flex: 1;
   min-height: calc(0.75rem + 1.1rem + 2.4 * var(--fs-m) + 0.75rem + 2.7 * var(--fs-xs) + 3px);
@@ -210,8 +212,7 @@ body.tx {
   border: 1px solid var(--wire);
 }
 
-.station .switch,
-.waiting-box .switch {
+.station .switch {
   position: absolute;
   z-index: 3;
   top: calc(100% + 0.5px);
@@ -241,16 +242,14 @@ body.tx {
   inset: -6px -8px;          /* a little more to aim at than the drawing */
 }
 
-.station .switch svg,
-.waiting-box .switch svg {
+.station .switch svg {
   position: relative;
   width: 30px;
   height: 32.5px;
   overflow: visible;
 }
 
-.station .switch::before,
-.waiting-box .switch::before {
+.station .switch::before {
   content: "";
   position: absolute;
   left: 1px;
@@ -1000,7 +999,7 @@ body.reading .caret { visibility: hidden; }
   opacity: 1;
 }
 
-.line.live .landed .p {
+.line.live .landed .p .n {   /* the name, not the space before it */
   text-decoration: underline;
   text-underline-offset: 4px;
 }
@@ -1769,43 +1768,27 @@ body.reading .caret { visibility: hidden; }
  * ============================================================
  */
 
-/* key up over the side keys, key down over dit and dah; time zero
-   sits in the middle of the gap between the side keys and the dit
-   key, marked by an upright bar, and each half reaches it. A tap
-   says what it shows (a popup) */
+/* one bar over the whole pad: time zero at its left edge (the dit
+   key's), marked by an upright line; key down and key up both fill
+   rightward from it (tx/keys.js: the timing train). A tap says what
+   it shows (a popup) */
 .train {
   position: relative;
   cursor: pointer;
   flex: none;
   height: 1.6rem;   /* exactly what the pad gives up for it (THE PAD): the slot's height
                        never changes, so the player above stays put on a switch */
-  display: grid;
-  grid-template-columns: var(--pad-cols);   /* the pad's columns, so it lines up with the keys */
-  column-gap: 6px;
   font-size: var(--fs-xs);
   color: var(--graphite);
 }
 
 .train .seg {
   position: relative;
-  min-width: 0;
   height: 1.6rem;
   border: 1px solid var(--wire);
+  border-left: 0;   /* the origin line is its left edge */
   overflow: hidden;
-}
-
-/* key up: over the side keys, reaching across the gap to the dit key's edge */
-.train .seg.off {
-  grid-column: 1;
-  margin-right: -3px;
-  border-right: 0;
-}
-
-/* key down: from time zero to the dah key's right edge */
-.train .seg.on {
-  grid-column: 2 / span 2;
-  margin-left: -3px;
-  border-left: 0;
+  isolation: isolate;   /* so a finished fill can sit under the running one, but over the bar */
 }
 
 /* the note on arrival covers the train; its origin line pokes out above */
@@ -1815,9 +1798,8 @@ body.reading .caret { visibility: hidden; }
   position: absolute;
   top: -3px;
   bottom: -3px;
+  left: 0;
   width: 2px;
-  margin-left: -1px;
-  left: 0;                 /* set from the keys (tx/keys.js: the timing train) */
   background: var(--graphite);
   border-radius: 1px;
   pointer-events: none;
@@ -1827,16 +1809,23 @@ body.reading .caret { visibility: hidden; }
   position: absolute;
   inset: 0 auto 0 0;
   width: 0;
-  background: color-mix(in srgb, var(--paper) 22%, var(--bakelite));
+  background: color-mix(in srgb, var(--paper) 22%, var(--bakelite));   /* key up: grey */
 }
 
-.train .seg.off .fill { inset: 0 0 0 auto; }   /* key up grows leftward */
 .signal .train .fill.dot  { background: color-mix(in srgb, var(--dot) 55%, var(--bakelite)); }
 .signal .train .fill.dash { background: color-mix(in srgb, var(--dash) 55%, var(--bakelite)); }
-.train .fill.past         { opacity: 0.4; }   /* the last mark, kept while you wait */
+/* the length just finished (a mark, or a space), kept dimmed under
+   the running one */
+.train .fill.past         { opacity: 0.4; z-index: -1; }
+/* on time (tx/keys.js): a brass edge inside the fill, so it never
+   changes size; a length finished on time stays brighter */
+.train .fill.landed       { box-shadow: inset 0 0 0 2px var(--brass); }
+.train .fill.past.landed  { opacity: 0.75; }
 
-/* a tick: a dotted line through the bar with its symbol on the
-   side it ends (key down: left of the line; key up: right of it) */
+/* a tick: a dotted line through the bar, its symbol beside it. Key
+   down's sit left of the line (the stretch they end), key up's right
+   of it (the stretch they start), so the dit's . and the letter
+   space's ˽ share one line: .┊˽ */
 .train .tick {
   position: absolute;
   top: 0;
@@ -1850,13 +1839,14 @@ body.reading .caret { visibility: hidden; }
   transition: color 0.05s linear;
 }
 
-.train .seg.on .tick  { border-right: 1px dotted var(--wire); padding-right: 0.4ch; }
-.train .seg.off .tick { border-left: 1px dotted var(--wire);  padding-left: 0.4ch; }
+.train .tick.down { transform: translateX(-100%); border-right: 1px dotted var(--wire); padding-right: 0.4ch; }
+.train .tick.up   { border-left: 1px dotted var(--wire); padding-left: 0.4ch; }
+.train .tick.edge { border-right: 0; }   /* the word space: the bar's own edge is its line */
 
-/* where one call turns into the next (dit → dah, ˽ → /) */
-.train .seg.on .tick.split  { padding: 0; border-right: 1px solid var(--brass); }
-.train .seg.off .tick.split { padding: 0; border-left: 1px solid var(--brass); }
-.train .tick.lit                 { color: var(--paper); border-color: var(--graphite); }
+/* where one call turns into the next (dit → dah, nothing → ˽ → /) */
+.train .tick.down.split { padding: 0; border-right: 1px solid var(--brass); }
+.train .tick.up.split   { padding: 0; border-left: 1px solid var(--brass); }
+.train .tick.lit        { color: var(--paper); border-color: var(--graphite); }
 
 /* playback: where the ideal length ends (a bright notch top and bottom) */
 .train .ideal {
@@ -1910,7 +1900,7 @@ body.reading .slot { display: none; }
 .pad {
   display: grid;
   grid-template-columns: var(--pad-cols);
-  grid-template-rows: repeat(4, minmax(0, 1fr));   /* the side: ˽ / ⌫ ↵ */
+  grid-template-rows: repeat(4, minmax(0, 1fr));   /* the side, at the right: ˽ / ⌫ ↵ */
   min-height: 0;   /* its set height, never its keys' (or the station above moves) */
   gap: 6px;
   height: var(--input-h);
@@ -1933,9 +1923,9 @@ body.reading .slot { display: none; }
    for a scroll and cancel the press.) */
 .tx .key { touch-action: none; }
 
-.key.side { grid-column: 1; }
-.key.dit  { grid-column: 2; }
-.key.dah  { grid-column: 3; }
+.key.dit  { grid-column: 1; }
+.key.dah  { grid-column: 2; }
+.key.side { grid-column: 3; }
 
 .key.dit,
 .key.dah {
@@ -1962,7 +1952,7 @@ body.reading .slot { display: none; }
 
 /* straight key: one big key across both columns */
 body[data-key="straight"] .key.dah { display: none; }
-body[data-key="straight"] .key.dit { grid-column: 2 / span 2; }
+body[data-key="straight"] .key.dit { grid-column: 1 / span 2; }
 
 /* playback: the key that makes the sound, half-lit */
 .key.ghost,
@@ -2452,47 +2442,174 @@ body:has(#train:not([hidden])) .pad {
 .wait-label { color: var(--graphite); }
 
 /*
- * The waiting screen (index.html, #waiting): the station's skeleton
- * while the scripts start. Hidden for the first second, so a normal
- * start never shows it; if the page is stuck, it stays, the lamp
- * keying AS at 10 wpm (a 100 ms unit) until it isn't:
+ * ============================================================
+ * AUXILIARY PAGES
+ * ============================================================
  *
- *   .  -    .  .  .        on 1, 3, 1, 1, 1; off 1 between, then 7
- *   ▮ ▮▮▮ ▮ ▮ ▮ _______    18 units, 1.8 s
+ * The waiting screen, the 404 page (and any other error page) are
+ * one skeleton: the station's own shape, its parts at rest, keying a
+ * short message over and over.
+ *
+ *   dot-da.sh                         (◯)    the header: home, profile
+ *   ┌──────────────────────────────────┐
+ *   │                                  │
+ *   │        .... . / ....- - ....-    │    the message, centred, as the
+ *   │        <HH>      4    0    4     │    tape plays it back: marks lit
+ *   │                                  │    as they're keyed, a letter
+ *   └──────────────o⁄──────────────────┘    white once sent (the newest
+ *                                            underlined); the edge and
+ *              error 404                     the switch key with it
+ *        Nothing for you here.               the note, where the player
+ *     back to the station · the reference    and the keys would be
+ *
+ * The switch is a link home. 404.html (and the like) key with
+ * js/skeleton.js; the waiting screen (#waiting in index.html, and its demo
+ * wait.html) keys AS by the CSS alone, so it shows even when the
+ * scripts never run.
+ */
+
+/* the page: the station's column (body.tx gives the width and padding) */
+.aux-page {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.aux-page .tx-top .home { color: var(--paper); }
+.aux-page .profile { cursor: default; }
+
+/* the box: no tree column, the message in the middle */
+.aux-station .aux-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 1.2rem 1.6rem;
+}
+.aux-field .line {
+  width: 100%;   /* the field's width, as on the tape (shrunk to fit, a lone letter's marks wrapped) */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 0.9rem 0;
+}
+
+/* the status number ends its line (skeleton.js) */
+.aux-field .line .break { flex-basis: 100%; height: 0; }
+
+/* the switch: home */
+a.switch { text-decoration: none; }
+
+/* where the player and the keys would be: the note (or nothing),
+   so the box is the size it is on the station */
+.aux-note {
+  flex: none;
+  height: calc(var(--input-h) + 6rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  text-align: center;
+}
+.aux-note h1 { font-size: var(--fs-l); font-weight: 700; color: var(--paper); }
+.aux-note p { font-size: var(--fs-s); color: var(--graphite); }
+.aux-note .aux-links { margin-top: 0.6rem; font-size: var(--fs-xs); }
+.aux-note .aux-links a { color: var(--graphite); }
+@media (hover: hover) {
+  .aux-note .aux-links a:hover { color: var(--brass); background: transparent; }
+}
+
+/*
+ * The waiting screen (index.html, #waiting): hidden for the first
+ * second, so a normal start never shows it; if the page is stuck, it
+ * covers the station with its skeleton until it isn't.
  */
 .waiting {
   position: fixed;
   inset: 0;
   z-index: 30;
   display: flex;
-  align-items: center;
   justify-content: center;
-  padding: 1rem 1rem 3rem;
   background: var(--bakelite);
   opacity: 0;
   visibility: hidden;
   animation: waiting-in 0.3s 1s forwards;
 }
 @keyframes waiting-in { to { opacity: 1; visibility: visible; } }
+.waiting.wait-demo { animation: none; opacity: 1; visibility: visible; }   /* wait.html: shown at once */
 
-.waiting-box {
-  position: relative;
-  width: min(100%, 22rem);
-  height: min(60vh, 26rem);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--brass);
-  font-size: var(--fs-s);
+/* over the station, the skeleton takes body.tx's place: the same column */
+.waiting .aux-page {
+  flex: none;
+  max-width: 520px;
+  height: 100dvh;
+  padding: 0.75rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom));
 }
 
-.waiting .wait-lamp { animation: key-as 1.8s step-end infinite; }
-@keyframes key-as {
-  0%, 11.11%, 33.33%, 44.44%, 55.56% { background: var(--brass); border-color: var(--brass); box-shadow: 0 0 6px color-mix(in srgb, var(--brass) 70%, transparent); }
-  5.56%, 27.78%, 38.89%, 50%, 61.11% { background: transparent; border-color: var(--wire); box-shadow: none; }
+/*
+ * AS (.-..., "wait"), by the CSS alone, at 20 wpm (a 60 ms unit):
+ * two units' rest, the marks, then a long rest with the letter lit,
+ * and round again.
+ *
+ *   __ ▮ ▮▮▮ ▮ ▮ ▮ ______________     2 + 11 + 12 = 25 units, 1.5 s
+ *      8 16  32 40 48 %  ┃ 52 %: AS sent, underlined
+ */
+.aux-wait .line .m span { animation: 1.5s step-end infinite; }
+.aux-wait .line .m span:nth-child(1) { animation-name: as-1; }
+.aux-wait .line .m span:nth-child(2) { animation-name: as-2; }
+.aux-wait .line .m span:nth-child(3) { animation-name: as-3; }
+.aux-wait .line .m span:nth-child(4) { animation-name: as-4; }
+.aux-wait .line .m span:nth-child(5) { animation-name: as-5; }
+@keyframes as-1 { 0% { opacity: 0.25; } 8%  { opacity: 1; } }
+@keyframes as-2 { 0% { opacity: 0.25; } 16% { opacity: 1; } }
+@keyframes as-3 { 0% { opacity: 0.25; } 32% { opacity: 1; } }
+@keyframes as-4 { 0% { opacity: 0.25; } 40% { opacity: 1; } }
+@keyframes as-5 { 0% { opacity: 0.25; } 48% { opacity: 1; } }
+
+.aux-wait .line .p {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  animation: as-sent 1.5s step-end infinite;
 }
+@keyframes as-sent {
+  0%  { opacity: 0.25; text-decoration-color: transparent; }
+  52% { opacity: 1; text-decoration-color: currentColor; }
+}
+
+.aux-wait .aux-station { animation: as-lit 1.5s step-end infinite; }
+.aux-wait .switch .arm { animation: as-arm 1.5s step-end infinite; }
+.aux-wait .switch .led { animation: as-led 1.5s step-end infinite; }
+@keyframes as-lit {
+  0%, 12%, 28%, 36%, 44%, 52% { border-color: var(--wire); box-shadow: none; }
+  8%, 16%, 32%, 40%, 48% {
+    border-color: var(--brass);
+    box-shadow: 0 0 0 1px var(--brass), 0 0 18px color-mix(in srgb, var(--brass) 45%, transparent),
+      inset 0 0 28px color-mix(in srgb, var(--brass) 18%, transparent);
+  }
+}
+@keyframes as-arm {
+  0%, 12%, 28%, 36%, 44%, 52% { transform: rotate(-30deg); }
+  8%, 16%, 32%, 40%, 48% { transform: rotate(0deg); }
+}
+@keyframes as-led {
+  0%, 12%, 28%, 36%, 44%, 52% { fill: transparent; }
+  8%, 16%, 32%, 40%, 48% { fill: var(--brass); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .waiting .wait-lamp { animation: none; background: var(--brass); border-color: var(--brass); }
+  .aux-wait .line .m span,
+  .aux-wait .line .p,
+  .aux-wait .aux-station,
+  .aux-wait .switch .arm,
+  .aux-wait .switch .led { animation: none; }
+  .aux-wait .line .m span,
+  .aux-wait .line .p { opacity: 1; }
 }
 
 /* the long-press bubble */

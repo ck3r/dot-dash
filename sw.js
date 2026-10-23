@@ -8,6 +8,12 @@
  * loads is also kept in a cache, so with no signal the app opens
  * from what was there last time.
  *
+ * "Network" means the server, not the browser's own cache: each
+ * fetch asks the server whether the file has changed (a cheap "not
+ * modified" when it hasn't). Without that, a page could arrive fresh
+ * while its CSS or a module came from the browser's cache, minutes
+ * old, and the two wouldn't match (new keys drawn with old styles).
+ *
  *   pages (/, /ref/)  kept by path, without the ?/… message,
  *                    since each page reads its message itself
  *   /og/…            the link-preview images: never cached here
@@ -16,7 +22,7 @@
  * Bump VERSION to clear the old cache after a big change.
  */
 
-const VERSION = "dot-dash-5";
+const VERSION = "dot-dash-6";
 
 /* fetched on install, so the first offline open works too */
 const CORE = [
@@ -33,8 +39,10 @@ const CORE = [
 self.addEventListener("install", event => {
   event.waitUntil((async () => {
     const cache = await caches.open(VERSION);
-    /* one at a time, so a single missing file doesn't stop the install */
-    await Promise.all(CORE.map(path => cache.add(path).catch(() => { })));
+    /* each on its own, so a single missing file doesn't stop the
+       install; from the server, never the browser's cache, so a new
+       version starts with all its files from the same deploy */
+    await Promise.all(CORE.map(path => cache.add(new Request(path, { cache: "reload" })).catch(() => { })));
     await self.skipWaiting();
   })());
 });
@@ -58,7 +66,7 @@ self.addEventListener("fetch", event => {
   event.respondWith((async () => {
     const cache = await caches.open(VERSION);
     try {
-      const response = await fetch(request);
+      const response = await fetch(request, { cache: "no-cache" });   // checked with the server (above)
       if (response.ok && response.type === "basic") cache.put(key, response.clone());
       return response;
     } catch {

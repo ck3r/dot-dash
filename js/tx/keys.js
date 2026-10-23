@@ -333,84 +333,143 @@ export function createKeys({
    * TIMING TRAIN
    * ============================================================
    *
-   * The bar lines up with the keys under it. Time runs out from
-   * the left edge of the dit key: key DOWN runs right, key UP
-   * runs left.
+   * One bar over the pad, lined up with the keys under it. Time
+   * runs right from the far left (the dit key's left edge), key
+   * down and key up alike:
    *
-   *    ← key up                 key down →
-   *   ├/───────┃──˽──┃───┼──────────.┃────────┃────────-┤
-   *   │ ˽ / ⌫ ↵│                   │  dit     │    dah   │
-   *    7      5   3  2  0           1     2           3   units
+   *    ┃              .┊˽                 -┊          /┃
+   *    ┃   dit         │   dah             │  ˽ / ⌫ ↵  ┃
+   *    0               1                   3              units, key down
+   *    0               3                              7   units, key up
    *
-   * Key down: a full dit ends at the dit key's right edge, a full
-   * dah at the dah key's. The keys aren't 1:3 wide, so the dah
-   * stretch runs slower (1 unit across the dit key, 2 across the
-   * rest). Key up runs evenly: the word gap (7) at the far left,
-   * the letter gap (3) at 3/7 of the way. Brass lines mark where
-   * one call turns into the next (dit → dah, ˽ → /).
+   * Key down (a colour): a full dit ends at the dit key's right
+   * edge, a full dah at the dah key's (1 unit across the dit key,
+   * 2 across the dah). Key up (grey): the letter space at the dit's
+   * edge too, the word space at the far right. A brass line marks
+   * where one call turns into the next (dit → dah, nothing → ˽,
+   * ˽ → /); the call you'd get right now lights.
+   *
+   * The keys aren't as wide as the units they stand for, so key up
+   * can't run at one speed. It runs at each stretch's own speed and
+   * eases from one to the next along a bell curve (see eased), so
+   * it slows or quickens smoothly instead of jumping. The time is
+   * always true: it passes ˽ at exactly a letter space, and reaches
+   * the edge at exactly a word space.
    */
 
+  /*
+   * A time → place map through fixed points, its speed easing from
+   * one stretch's to the next around each point:
+   *
+   *   speed                     place
+   *     │      ╭───────            │              ╭──── edge
+   *     │ ─────╯                   │         ˽ ╭──╯
+   *     │      ˽                   │      ╭────╯
+   *     │                          │ ─────╯
+   *     └──────┼────── time        └──────┼────── time
+   *
+   * Each stretch runs at a speed of its own, and gives way to the
+   * next as a Gaussian: at the point between them, their average.
+   * Each stretch's speed is chosen so that, with its bells, it still
+   * covers exactly its distance in exactly its time (found in a few
+   * rounds, since the averages depend on the speeds). σ is at most a
+   * quarter of a stretch, so a bell never reaches the far end, and
+   * the speed only ever climbs or falls from one stretch's to the
+   * next: no dip or overshoot on the way.
+   */
+  const erf = x => {              // Abramowitz & Stegun 7.1.26: within 1.5e-7
+    const t = 1 / (1 + 0.3275911 * Math.abs(x));
+    const y = 1 - t * (0.254829592 + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429)))) * Math.exp(-x * x);
+    return x < 0 ? -y : y;
+  };
+  function eased(times, places, sigma) {
+    const n = times.length - 1;
+    const len = [], dist = [];
+    for (let i = 0; i < n; i++) {
+      len.push(times[i + 1] - times[i]);
+      dist.push(places[i + 1] - places[i]);
+    }
+    const s = Math.min(sigma, ...len.map(l => l / 4));
+    const G = u => s * Math.sqrt(Math.PI / 2) * erf(u / (s * Math.SQRT2));   // the bell's area, 0 … u
+    /* each stretch's speed, and at each point the speed there: the
+       ends keep their stretch's, between two it's their average */
+    let base = dist.map((d, i) => d / len[i]);
+    let at = [];
+    for (let round = 0; round < 40; round++) {
+      at = times.map((_, i) => i === 0 ? base[0] : i === n ? base[n - 1] : (base[i - 1] + base[i]) / 2);
+      base = len.map((L, i) => (dist[i] - (at[i] + at[i + 1]) * G(L)) / (L - 2 * G(L)));
+    }
+    return ms => {
+      if (ms <= times[0]) return places[0];
+      if (ms >= times[n]) return places[n];
+      let i = 0;
+      while (ms > times[i + 1]) i++;
+      const u = ms - times[i], L = len[i], c = base[i];
+      return places[i] + c * u + (at[i] - c) * G(u) + (at[i + 1] - c) * (G(L) - G(L - u));
+    };
+  }
+
   const trainView = (() => {
-    const onSeg = $("#train .seg.on"), offSeg = $("#train .seg.off");
-    const onFill = onSeg.querySelector(".fill"), offFill = offSeg.querySelector(".fill");
+    const seg = $("#train .seg");
+    const onFill = seg.querySelector(".fill.on"), offFill = seg.querySelector(".fill.off");
     let ticks = {};
     let event = null;
     let frame = 0;
 
-    /* how much of the key-down half the dit key takes (1 unit of 3);
-       measured from the pad, or a true 1:3 for the one-key straight key */
-    let ditShare = 1 / 3;
+    /* where the keys end, as fractions of the bar: the dit key's right
+       edge and the dah key's (the straight key's one key covers both
+       columns, but the line between them still marks a full dit) */
+    let dotAt = 1 / 3, dashAt = 0.8;
     function measure() {
-      const dit = $("#pad .key.dit").getBoundingClientRect();
-      const dah = $("#pad .key.dah").getBoundingClientRect();
-      if (!dit.width) return;                       // pad not shown
-      const zero = dit.left - 3;                    // time zero: the middle of the 6px gap
-      ditShare = dah.width ? (dit.right - zero) / (dah.right - zero) : 1 / 3;
-      const train = $("#train").getBoundingClientRect();
-      if (train.width) $("#train .origin").style.left = (zero - train.left) + "px";
+      const pad = $("#pad");
+      const box = pad.getBoundingClientRect();
+      if (!box.width || !seg.clientWidth) return;   // not shown
+      const cols = getComputedStyle(pad).gridTemplateColumns.split(" ").map(parseFloat);
+      const gap = parseFloat(getComputedStyle(pad).columnGap) || 0;
+      const left = seg.getBoundingClientRect().left + seg.clientLeft, width = seg.clientWidth;
+      dotAt = (box.left + cols[0] - left) / width;
+      dashAt = (box.left + cols[0] + gap + cols[1] - left) / width;
     }
 
-    /* where a time falls, as % of its half */
+    /* where a time falls, as % of the bar: key down at one speed
+       across each key, key up eased (above) */
     const holdPct = (ms, t) => {
       const u = Math.max(0, ms / t.unit);
-      const at = u <= 1 ? u * ditShare : ditShare + (Math.min(u, 3) - 1) / 2 * (1 - ditShare);
+      const at = u <= 1 ? u * dotAt : dotAt + (Math.min(u, 3) - 1) / 2 * (dashAt - dotAt);
       return at * 100;
     };
-    const gapPct = (ms, t) => Math.min(1, Math.max(0, ms / t.word)) * 100;
+    let gapAt = () => 0;
+    const gapPct = ms => gapAt(ms) * 100;
 
     /* playback only: where the ideal length would have ended */
     const onIdeal = el("span", "ideal");
     const offIdeal = el("span", "ideal");
-    onSeg.append(onIdeal);
-    offSeg.append(offIdeal);
+    seg.append(onIdeal, offIdeal);
     onIdeal.hidden = offIdeal.hidden = true;
 
-    /* each label sits inside the stretch it ends: left of its line
-       on the key-down side, right of it on the key-up side */
+    /* the labels: key down's left of its line (the stretch it ends),
+       key up's right of it (the stretch it starts), but the word
+       space's, at the far edge, inside */
     function build() {
       measure();
       const t = timingNow();
+      gapAt = eased([0, t.letter, t.word], [0, dotAt, 1], 0.6 * t.unit);
       ticks = {};
-      for (const seg of [onSeg, offSeg]) seg.querySelector(".ticks").textContent = "";
-      const hold = (ms, key, label, cls) => {
+      const box = seg.querySelector(".ticks");
+      box.textContent = "";
+      const tick = (pct, key, label, cls) => {
         const tick = el("span", "tick " + cls, label);
-        tick.style.right = (100 - holdPct(ms, t)) + "%";
-        onSeg.querySelector(".ticks").append(tick);
+        tick.style.left = pct + "%";
+        box.append(tick);
         if (key) ticks[key] = tick;
       };
-      const wait = (ms, key, label, cls = "") => {
-        const tick = el("span", "tick " + cls, label);
-        tick.style.left = (100 - gapPct(ms, t)) + "%";
-        offSeg.querySelector(".ticks").append(tick);
-        if (key) ticks[key] = tick;
-      };
-      hold(t.unit, ".", ".", "dot");
-      hold(t.dahAt, null, "", "split");
-      hold(3 * t.unit, "-", "-", "dash");
-      wait(t.letterAt, null, "", "split");
-      wait(t.letter, "letter", "˽");
-      wait(t.wordAt, null, "", "split");
-      wait(t.word, "word", "/");
+      tick(holdPct(t.unit, t), ".", ".", "down dot");
+      tick(holdPct(t.dahAt, t), null, "", "down split");
+      tick(holdPct(3 * t.unit, t), "-", "-", "down dash");
+      tick(gapPct(t.letterAt), null, "", "up split");
+      tick(gapPct(t.letter), "letter", "˽", "up");
+      tick(gapPct(t.wordAt), null, "", "up split");
+      tick(100, "word", "/", "down edge");
     }
 
     function light(key) {
@@ -419,13 +478,42 @@ export function createKeys({
 
     const gapCall = (ms, t) => (ms >= t.wordAt ? "word" : ms >= t.letterAt ? "letter" : null);
 
+    /*
+     * On time: a length is judged once it's decided, a mark when you
+     * let go, a space when you press again, and if it ended within a
+     * tenth of a unit of its line, either side (90%: an A), the fill
+     * just finished takes a brass edge. It stays, dimmed with the
+     * fill, under the next one, until that one is decided in turn.
+     * Nothing is judged on the way: holding past a line, or waiting
+     * on at a full word space, is never brass by itself.
+     *
+     *                ⅒ ⅒
+     *   ┃▓▓▓▓▓▓▓▓▓▓▓▓[.┊]˽     let go here: the dit edged
+     *   ┃░░░░░░░░░░░░[.┊]˽     pressed again here: the letter space edged
+     *
+     * Only your own timing: a paddle's dits and dahs are the keyer's,
+     * always exact, so they're never judged (the spaces between are).
+     * Drawn inside the fill, so nothing moves.
+     */
+    const WINDOW = 0.1;   // units, either side of a line
+    const holdLines = t => [t.unit, 3 * t.unit];
+    const gapLines = t => [t.letter, t.word];
+    /* which line a length ended on (1, 2), or none (0) */
+    function judged(ms, lines, t) {
+      return lines.findIndex(at => Math.abs(ms - at) <= WINDOW * t.unit) + 1;
+    }
+    function edge(fill, line) {
+      fill.classList.toggle("landed", line > 0);
+      fill.dataset.line = line || "";
+    }
+
     function draw() {
       if (!event) return;
       const t = timingNow();
       let elapsed = performance.now() - event.t0;
 
       if (event.phase === "gap") {
-        offFill.style.width = gapPct(elapsed, t) + "%";
+        offFill.style.width = gapPct(elapsed) + "%";
         light(gapCall(elapsed, t));
         if (elapsed >= t.word) return;                 // a full word space: rest
       } else {
@@ -436,7 +524,7 @@ export function createKeys({
         } else {
           mark = elapsed >= t.dahAt ? "-" : ".";
         }
-        onFill.className = "fill " + (mark === "." ? "dot" : "dash");
+        onFill.className = "fill on " + (mark === "." ? "dot" : "dash");
         onFill.style.width = holdPct(elapsed, t) + "%";
         light(mark);
       }
@@ -446,15 +534,29 @@ export function createKeys({
     function show(e) {
       cancelAnimationFrame(frame);
       onIdeal.hidden = offIdeal.hidden = true;
+      const was = event;
       event = e.phase ? e : null;
+      const t = timingNow();
       if (!event) {
         onFill.style.width = offFill.style.width = "0";
         onFill.classList.remove("past");
+        offFill.classList.remove("past");
+        edge(onFill, 0);
+        edge(offFill, 0);
         light(null);
         return;
       }
-      onFill.classList.toggle("past", event.phase === "gap");   // keep the mark just made, dimmed
-      offFill.style.width = "0";
+      /* let go: the mark just made stays, dimmed, under the gap; your
+         own mark (not a paddle's) judged */
+      const letGo = event.phase === "gap" && was?.phase === "hold";
+      onFill.classList.toggle("past", event.phase === "gap");
+      edge(onFill, letGo ? judged(event.t0 - was.t0, holdLines(t), t) : 0);
+      /* pressed again: the gap just waited stays, dimmed, under the
+         new mark, judged; a new gap starts from nothing */
+      const pressed = event.phase !== "gap" && was?.phase === "gap";
+      offFill.classList.toggle("past", pressed);
+      edge(offFill, pressed ? judged(event.t0 - was.t0, gapLines(t), t) : 0);
+      offFill.style.width = pressed ? gapPct(event.t0 - was.t0) + "%" : "0";
       draw();
     }
 
@@ -466,6 +568,9 @@ export function createKeys({
     function replay(ph) {
       cancelAnimationFrame(frame);
       event = null;
+      edge(onFill, 0);                                  // playback has its own notch: no judging
+      edge(offFill, 0);
+      offFill.classList.remove("past");
       if (!ph) {
         onFill.style.width = offFill.style.width = "0";
         onFill.classList.remove("past");
@@ -475,7 +580,7 @@ export function createKeys({
       }
       const t = timingNow();
       if (ph.kind === "hold") {
-        onFill.className = "fill " + (ph.symbol === "." ? "dot" : "dash");
+        onFill.className = "fill on " + (ph.symbol === "." ? "dot" : "dash");
         onFill.style.width = holdPct(ph.elapsed, t) + "%";
         offFill.style.width = "0";
         onIdeal.hidden = false;
@@ -484,9 +589,9 @@ export function createKeys({
         light(ph.symbol);
       } else {
         onFill.classList.add("past");
-        offFill.style.width = gapPct(ph.elapsed, t) + "%";
+        offFill.style.width = gapPct(ph.elapsed) + "%";
         offIdeal.hidden = false;
-        offIdeal.style.left = (100 - gapPct(ph.ideal, t)) + "%";
+        offIdeal.style.left = gapPct(ph.ideal) + "%";
         onIdeal.hidden = true;
         light(gapCall(ph.elapsed, t));
       }
@@ -495,10 +600,10 @@ export function createKeys({
     build();
     $("#opt-wpm").addEventListener("input", build);
     $("#opt-fwpm").addEventListener("input", build);
-    /* the keys changed size, appeared, or merged (the straight key) */
+    /* the pad or the bar changed size, or the bar appeared */
     const refit = new ResizeObserver(build);
-    refit.observe($("#pad .key.dit"));
-    refit.observe($("#pad .key.dah"));
+    refit.observe($("#pad"));
+    refit.observe(seg);
 
     return { show, replay, build };
   })();

@@ -41,15 +41,10 @@
 </head>
 
 <body>
+  <!-- the global header, as on the station: home, and profiles (soon) -->
   <header class="top">
-    <a href="/" class="logo" aria-label="dot-da.sh home">
-      <svg viewBox="0 0 73 79" width="27" height="29" aria-hidden="true" fill="none">
-        <circle cx="13.66" cy="52.81" r="7" stroke="currentColor" stroke-width="6"/>
-        <rect class="arm" x="16.02" y="47.22" width="56" height="7" rx="3.5" fill="currentColor"/>
-        <circle class="led" cx="13.66" cy="52.81" r="3.6"/>
-      </svg>
-      <span>dot-da.sh</span>
-    </a>
+    <a href="/" class="home">dot-da.sh</a>
+    <span class="profile" title="profiles: coming soon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3.2"/><path d="M6.4 18.6c1.3-2.2 3.3-3.4 5.6-3.4s4.3 1.2 5.6 3.4"/></svg></span>
   </header>
 
   <main>
@@ -57,6 +52,16 @@
     <!-- ───────────── tree ───────────── -->
     <section class="frame tree-frame" aria-labelledby="tree-label">
       <h2 class="frame-label" id="tree-label">tree</h2>
+      <!-- the station's switch, on the frame's bottom edge: it keys
+           along as the tree is traced (the frame lit while it's closed),
+           and takes you to the station -->
+      <a href="/" class="logo switch" aria-label="the station" title="the station">
+        <svg viewBox="0 0 73 79" fill="none" aria-hidden="true">
+          <circle cx="13.66" cy="52.81" r="7" stroke="currentColor" stroke-width="6"/>
+          <rect class="arm" x="16.02" y="47.22" width="56" height="7" rx="3.5" fill="currentColor"/>
+          <circle class="led" cx="13.66" cy="52.81" r="3.6"/>
+        </svg>
+      </a>
 
       <fieldset class="options">
         <legend class="visually-hidden">What the tree shows</legend>
@@ -186,82 +191,118 @@
     </ul>
   </div>
 
+  <!--
+    Prosigns, Q codes and abbreviations: one to a line, the code at
+    the left edge, the term on the page's centre line, the meaning at
+    the right edge. A Q code's question (sent with ?) is the line
+    under its answer. js/main.js orders them (A–Z, or as a contact
+    goes: data-az, data-flow) and hides the meanings when condensed.
+
+      ...---...            SOS                 distress
+      -...-.-               BK     break: back to you
+  -->
+  <fieldset class="options list-options">
+    <legend class="visually-hidden">How the lists read</legend>
+    <label class="pick">order
+      <select id="opt-order">
+        <option value="az">A–Z</option>
+        <option value="flow">as a contact goes</option>
+      </select>
+    </label>
+    <label class="check"><input type="checkbox" id="opt-condensed"> condensed</label>
+  </fieldset>
+
   <h2>Prosigns</h2>
-  <div class="group-row morse-prosigns">
-    <ul class="col-left">
-    <li><a href="/ref/?/...---..."><span class="code">...---...</span><span class="label">SOS</span></a></li>
-    <li><a href="/ref/?/.-.-"><span class="code">.-.-</span><span class="label">New Line</span></a></li>
-    <li><a href="/ref/?/.-.-."><span class="code">.-.-.</span><span class="label">New Page</span></a></li>
-    <li><a href="/ref/?/-...-"><span class="code">-...-</span><span class="label">New Paragraph</span></a></li>
-    <li><a href="/ref/?/-.-.-"><span class="code">-.-.-</span><span class="label">Attention</span></a></li>
-    <li><a href="/ref/?/........"><span class="code">........</span><span class="label">Error</span></a></li>
-    <li><a href="/ref/?/.-..."><span class="code">.-...</span><span class="label">Wait</span></a></li>
-    </ul>
-    <ul class="col-right">
-    <li><a href="/ref/?/-...-.-"><span class="label">Break</span><span class="code">-...-.-</span></a></li>
-    <li><a href="/ref/?/-.-..-.."><span class="label">Closing</span><span class="code">-.-..-..</span></a></li>
-    <li><a href="/ref/?/-..---"><span class="label">Shift to Wabun code</span><span class="code">-..---</span></a></li>
-    <li><a href="/ref/?/...-.-"><span class="label">End of contact</span><span class="code">...-.-</span></a></li>
-    <li><a href="/ref/?/...-."><span class="label">Understood</span><span class="code">...-.</span></a></li>
-    <li><a href="/ref/?/-.--."><span class="label">Invitation for named station to transmit</span><span class="code">-.--.</span></a></li>
-    <li><a href="/ref/?/-.-"><span class="label">Invitation for any station to transmit</span><span class="code">-.-</span></a></li>
-    </ul>
-  </div>
+  <ul class="lists" data-list="prosigns">
+    <li data-az="0" data-flow="2"><a href="/ref/?/.-.-"><span class="code">.-.-</span><span class="label pro">&lt;AA&gt;</span><span class="means">new line</span></a></li>
+    <li data-az="1" data-flow="9"><a href="/ref/?/.-.-."><span class="code">.-.-.</span><span class="label pro">&lt;AR&gt;</span><span class="means">end of message</span></a></li>
+    <li data-az="2" data-flow="3"><a href="/ref/?/.-..."><span class="code">.-...</span><span class="label pro">&lt;AS&gt;</span><span class="means">wait</span></a></li>
+    <li data-az="3" data-flow="6"><a href="/ref/?/-...-.-"><span class="code">-...-.-</span><span class="label pro">&lt;BK&gt;</span><span class="means">break: back to you</span></a></li>
+    <li data-az="4" data-flow="1"><a href="/ref/?/-...-"><span class="code">-...-</span><span class="label pro">&lt;BT&gt;</span><span class="means">new paragraph, a pause</span></a></li>
+    <li data-az="5" data-flow="11"><a href="/ref/?/-.-..-.."><span class="code">-.-..-..</span><span class="label pro">&lt;CL&gt;</span><span class="means">closing down</span></a></li>
+    <li data-az="6" data-flow="13"><a href="/ref/?/-..---"><span class="code">-..---</span><span class="label pro">&lt;DO&gt;</span><span class="means">shift to Wabun (Japanese)</span></a></li>
+    <li data-az="7" data-flow="4"><a href="/ref/?/........"><span class="code">........</span><span class="label pro">&lt;HH&gt;</span><span class="means">error</span></a></li>
+    <li data-az="8" data-flow="7"><a href="/ref/?/-.-"><span class="code">-.-</span><span class="label pro">&lt;K&gt;</span><span class="means">over: any station</span></a></li>
+    <li data-az="9" data-flow="0"><a href="/ref/?/-.-.-"><span class="code">-.-.-</span><span class="label pro">&lt;KA&gt;</span><span class="means">attention: a message starts</span></a></li>
+    <li data-az="10" data-flow="8"><a href="/ref/?/-.--."><span class="code">-.--.</span><span class="label pro">&lt;KN&gt;</span><span class="means">over: the named station only</span></a></li>
+    <li data-az="11" data-flow="10"><a href="/ref/?/...-.-"><span class="code">...-.-</span><span class="label pro">&lt;SK&gt;</span><span class="means">end of contact</span></a></li>
+    <li data-az="12" data-flow="5"><a href="/ref/?/...-."><span class="code">...-.</span><span class="label pro">&lt;SN&gt;</span><span class="means">understood</span></a></li>
+    <li data-az="13" data-flow="12"><a href="/ref/?/...---..."><span class="code">...---...</span><span class="label pro">&lt;SOS&gt;</span><span class="means">distress</span></a></li>
+  </ul>
 
   <h2>Q codes</h2>
-  <p class="cheat-note">Three letters for a whole sentence. Sent with <b>?</b> they ask instead: QRS? is "should I send slower?"</p>
-  <ul class="cheat">
-    <li><a href="/ref/?/_--.-_.-._.-.._"><b class="term">QRL</b><span class="code">--.- .-. .-..</span></a><span class="means">this frequency is in use</span></li>
-    <li><a href="/ref/?/_--.-_.-._--_"><b class="term">QRM</b><span class="code">--.- .-. --</span></a><span class="means">man-made interference</span></li>
-    <li><a href="/ref/?/_--.-_.-._-._"><b class="term">QRN</b><span class="code">--.- .-. -.</span></a><span class="means">static, natural noise</span></li>
-    <li><a href="/ref/?/_--.-_.-._---_"><b class="term">QRO</b><span class="code">--.- .-. ---</span></a><span class="means">increase power</span></li>
-    <li><a href="/ref/?/_--.-_.-._.--._"><b class="term">QRP</b><span class="code">--.- .-. .--.</span></a><span class="means">reduce power; low power</span></li>
-    <li><a href="/ref/?/_--.-_.-._--.-_"><b class="term">QRQ</b><span class="code">--.- .-. --.-</span></a><span class="means">send faster</span></li>
-    <li><a href="/ref/?/_--.-_.-._..._"><b class="term">QRS</b><span class="code">--.- .-. ...</span></a><span class="means">send slower</span></li>
-    <li><a href="/ref/?/_--.-_.-._-_"><b class="term">QRT</b><span class="code">--.- .-. -</span></a><span class="means">stop sending; closing down</span></li>
-    <li><a href="/ref/?/_--.-_.-._..-_"><b class="term">QRU</b><span class="code">--.- .-. ..-</span></a><span class="means">I have nothing for you</span></li>
-    <li><a href="/ref/?/_--.-_.-._...-_"><b class="term">QRV</b><span class="code">--.- .-. ...-</span></a><span class="means">I am ready</span></li>
-    <li><a href="/ref/?/_--.-_.-._-..-_"><b class="term">QRX</b><span class="code">--.- .-. -..-</span></a><span class="means">wait, stand by</span></li>
-    <li><a href="/ref/?/_--.-_.-._--.._"><b class="term">QRZ</b><span class="code">--.- .-. --..</span></a><span class="means">who is calling me?</span></li>
-    <li><a href="/ref/?/_--.-_..._-..._"><b class="term">QSB</b><span class="code">--.- ... -...</span></a><span class="means">your signal is fading</span></li>
-    <li><a href="/ref/?/_--.-_..._-.-_"><b class="term">QSK</b><span class="code">--.- ... -.-</span></a><span class="means">I can hear you between my signals (break-in)</span></li>
-    <li><a href="/ref/?/_--.-_..._.-.._"><b class="term">QSL</b><span class="code">--.- ... .-..</span></a><span class="means">I confirm receipt</span></li>
-    <li><a href="/ref/?/_--.-_..._---_"><b class="term">QSO</b><span class="code">--.- ... ---</span></a><span class="means">a contact, a conversation</span></li>
-    <li><a href="/ref/?/_--.-_..._-.--_"><b class="term">QSY</b><span class="code">--.- ... -.--</span></a><span class="means">change frequency</span></li>
-    <li><a href="/ref/?/_--.-_-_...._"><b class="term">QTH</b><span class="code">--.- - ....</span></a><span class="means">my location is</span></li>
-    <li><a href="/ref/?/_--.-_-_.-._"><b class="term">QTR</b><span class="code">--.- - .-.</span></a><span class="means">the correct time is</span></li>
+  <p class="cheat-note">Three letters for a whole sentence. Sent with <b>?</b> they ask instead (the line under each).</p>
+  <ul class="lists" data-list="q-codes">
+    <li data-az="0" data-flow="0"><a href="/ref/?/_--.-_.-._.-.._"><span class="code">--.- .-. .-..</span><span class="label">QRL</span><span class="means">this frequency is in use</span></a></li>
+    <li data-az="0" data-flow="0" data-ask><a href="/ref/?/_--.-_.-._.-.._..--.._"><span class="code">--.- .-. .-.. ..--..</span><span class="label">QRL?</span><span class="means">is this frequency in use?</span></a></li>
+    <li data-az="1" data-flow="4"><a href="/ref/?/_--.-_.-._--_"><span class="code">--.- .-. --</span><span class="label">QRM</span><span class="means">man-made interference</span></a></li>
+    <li data-az="1" data-flow="4" data-ask><a href="/ref/?/_--.-_.-._--_..--.._"><span class="code">--.- .-. -- ..--..</span><span class="label">QRM?</span><span class="means">is there interference?</span></a></li>
+    <li data-az="2" data-flow="5"><a href="/ref/?/_--.-_.-._-._"><span class="code">--.- .-. -.</span><span class="label">QRN</span><span class="means">static, natural noise</span></a></li>
+    <li data-az="2" data-flow="5" data-ask><a href="/ref/?/_--.-_.-._-._..--.._"><span class="code">--.- .-. -. ..--..</span><span class="label">QRN?</span><span class="means">are you troubled by static?</span></a></li>
+    <li data-az="3" data-flow="8"><a href="/ref/?/_--.-_.-._---_"><span class="code">--.- .-. ---</span><span class="label">QRO</span><span class="means">increase power</span></a></li>
+    <li data-az="3" data-flow="8" data-ask><a href="/ref/?/_--.-_.-._---_..--.._"><span class="code">--.- .-. --- ..--..</span><span class="label">QRO?</span><span class="means">shall I increase power?</span></a></li>
+    <li data-az="4" data-flow="9"><a href="/ref/?/_--.-_.-._.--._"><span class="code">--.- .-. .--.</span><span class="label">QRP</span><span class="means">reduce power; low power</span></a></li>
+    <li data-az="4" data-flow="9" data-ask><a href="/ref/?/_--.-_.-._.--._..--.._"><span class="code">--.- .-. .--. ..--..</span><span class="label">QRP?</span><span class="means">shall I reduce power?</span></a></li>
+    <li data-az="5" data-flow="7"><a href="/ref/?/_--.-_.-._--.-_"><span class="code">--.- .-. --.-</span><span class="label">QRQ</span><span class="means">send faster</span></a></li>
+    <li data-az="5" data-flow="7" data-ask><a href="/ref/?/_--.-_.-._--.-_..--.._"><span class="code">--.- .-. --.- ..--..</span><span class="label">QRQ?</span><span class="means">shall I send faster?</span></a></li>
+    <li data-az="6" data-flow="6"><a href="/ref/?/_--.-_.-._..._"><span class="code">--.- .-. ...</span><span class="label">QRS</span><span class="means">send slower</span></a></li>
+    <li data-az="6" data-flow="6" data-ask><a href="/ref/?/_--.-_.-._..._..--.._"><span class="code">--.- .-. ... ..--..</span><span class="label">QRS?</span><span class="means">shall I send slower?</span></a></li>
+    <li data-az="7" data-flow="18"><a href="/ref/?/_--.-_.-._-_"><span class="code">--.- .-. -</span><span class="label">QRT</span><span class="means">stop sending; closing down</span></a></li>
+    <li data-az="7" data-flow="18" data-ask><a href="/ref/?/_--.-_.-._-_..--.._"><span class="code">--.- .-. - ..--..</span><span class="label">QRT?</span><span class="means">shall I stop sending?</span></a></li>
+    <li data-az="8" data-flow="13"><a href="/ref/?/_--.-_.-._..-_"><span class="code">--.- .-. ..-</span><span class="label">QRU</span><span class="means">I have nothing for you</span></a></li>
+    <li data-az="8" data-flow="13" data-ask><a href="/ref/?/_--.-_.-._..-_..--.._"><span class="code">--.- .-. ..- ..--..</span><span class="label">QRU?</span><span class="means">have you anything for me?</span></a></li>
+    <li data-az="9" data-flow="12"><a href="/ref/?/_--.-_.-._...-_"><span class="code">--.- .-. ...-</span><span class="label">QRV</span><span class="means">I am ready</span></a></li>
+    <li data-az="9" data-flow="12" data-ask><a href="/ref/?/_--.-_.-._...-_..--.._"><span class="code">--.- .-. ...- ..--..</span><span class="label">QRV?</span><span class="means">are you ready?</span></a></li>
+    <li data-az="10" data-flow="11"><a href="/ref/?/_--.-_.-._-..-_"><span class="code">--.- .-. -..-</span><span class="label">QRX</span><span class="means">wait, stand by</span></a></li>
+    <li data-az="10" data-flow="11" data-ask><a href="/ref/?/_--.-_.-._-..-_..--.._"><span class="code">--.- .-. -..- ..--..</span><span class="label">QRX?</span><span class="means">when will you call again?</span></a></li>
+    <li data-az="11" data-flow="1"><a href="/ref/?/_--.-_.-._--.._"><span class="code">--.- .-. --..</span><span class="label">QRZ</span><span class="means">you are being called by …</span></a></li>
+    <li data-az="11" data-flow="1" data-ask><a href="/ref/?/_--.-_.-._--.._..--.._"><span class="code">--.- .-. --.. ..--..</span><span class="label">QRZ?</span><span class="means">who is calling me?</span></a></li>
+    <li data-az="12" data-flow="3"><a href="/ref/?/_--.-_..._-..._"><span class="code">--.- ... -...</span><span class="label">QSB</span><span class="means">your signal is fading</span></a></li>
+    <li data-az="12" data-flow="3" data-ask><a href="/ref/?/_--.-_..._-..._..--.._"><span class="code">--.- ... -... ..--..</span><span class="label">QSB?</span><span class="means">is my signal fading?</span></a></li>
+    <li data-az="13" data-flow="10"><a href="/ref/?/_--.-_..._-.-_"><span class="code">--.- ... -.-</span><span class="label">QSK</span><span class="means">I can hear you between my signals</span></a></li>
+    <li data-az="13" data-flow="10" data-ask><a href="/ref/?/_--.-_..._-.-_..--.._"><span class="code">--.- ... -.- ..--..</span><span class="label">QSK?</span><span class="means">can you hear me between your signals?</span></a></li>
+    <li data-az="14" data-flow="15"><a href="/ref/?/_--.-_..._.-.._"><span class="code">--.- ... .-..</span><span class="label">QSL</span><span class="means">I confirm receipt</span></a></li>
+    <li data-az="14" data-flow="15" data-ask><a href="/ref/?/_--.-_..._.-.._..--.._"><span class="code">--.- ... .-.. ..--..</span><span class="label">QSL?</span><span class="means">can you confirm receipt?</span></a></li>
+    <li data-az="15" data-flow="16"><a href="/ref/?/_--.-_..._---_"><span class="code">--.- ... ---</span><span class="label">QSO</span><span class="means">a contact, a conversation</span></a></li>
+    <li data-az="15" data-flow="16" data-ask><a href="/ref/?/_--.-_..._---_..--.._"><span class="code">--.- ... --- ..--..</span><span class="label">QSO?</span><span class="means">can you make contact with …?</span></a></li>
+    <li data-az="16" data-flow="14"><a href="/ref/?/_--.-_..._-.--_"><span class="code">--.- ... -.--</span><span class="label">QSY</span><span class="means">change frequency</span></a></li>
+    <li data-az="16" data-flow="14" data-ask><a href="/ref/?/_--.-_..._-.--_..--.._"><span class="code">--.- ... -.-- ..--..</span><span class="label">QSY?</span><span class="means">shall I change frequency?</span></a></li>
+    <li data-az="17" data-flow="2"><a href="/ref/?/_--.-_-_...._"><span class="code">--.- - ....</span><span class="label">QTH</span><span class="means">my location is …</span></a></li>
+    <li data-az="17" data-flow="2" data-ask><a href="/ref/?/_--.-_-_...._..--.._"><span class="code">--.- - .... ..--..</span><span class="label">QTH?</span><span class="means">what is your location?</span></a></li>
+    <li data-az="18" data-flow="17"><a href="/ref/?/_--.-_-_.-._"><span class="code">--.- - .-.</span><span class="label">QTR</span><span class="means">the correct time is …</span></a></li>
+    <li data-az="18" data-flow="17" data-ask><a href="/ref/?/_--.-_-_.-._..--.._"><span class="code">--.- - .-. ..--..</span><span class="label">QTR?</span><span class="means">what is the correct time?</span></a></li>
   </ul>
 
   <h2>Abbreviations</h2>
   <p class="cheat-note">What operators send to save time; prosigns (above) and Q codes mix right in.</p>
-  <ul class="cheat">
-    <li><a href="/ref/?/_-.-._--.-_"><b class="term">CQ</b><span class="code">-.-. --.-</span></a><span class="means">calling any station</span></li>
-    <li><a href="/ref/?/_-.._._"><b class="term">DE</b><span class="code">-.. .</span></a><span class="means">from; this is</span></li>
-    <li><a href="/ref/?/_-.-_"><b class="term">K</b><span class="code">-.-</span></a><span class="means">over, go ahead</span></li>
-    <li><a href="/ref/?/_.-._"><b class="term">R</b><span class="code">.-.</span></a><span class="means">received, roger</span></li>
-    <li><a href="/ref/?/_-..._-.-_"><b class="term">BK</b><span class="code">-... -.-</span></a><span class="means">break, back to you</span></li>
-    <li><a href="/ref/?/_.-._..._-_"><b class="term">RST</b><span class="code">.-. ... -</span></a><span class="means">signal report: readability, strength, tone</span></li>
-    <li><a href="/ref/?/_....._-._-._"><b class="term">5NN</b><span class="code">..... -. -.</span></a><span class="means">599, a perfect report (cut numbers)</span></li>
-    <li><a href="/ref/?/_--..._...--_"><b class="term">73</b><span class="code">--... ...--</span></a><span class="means">best regards</span></li>
-    <li><a href="/ref/?/_---.._---.._"><b class="term">88</b><span class="code">---.. ---..</span></a><span class="means">love and kisses</span></li>
-    <li><a href="/ref/?/_-_..-_"><b class="term">TU</b><span class="code">- ..-</span></a><span class="means">thank you</span></li>
-    <li><a href="/ref/?/_-_-._-..-_"><b class="term">TNX</b><span class="code">- -. -..-</span></a><span class="means">thanks</span></li>
-    <li><a href="/ref/?/_..-._-..._"><b class="term">FB</b><span class="code">..-. -...</span></a><span class="means">fine business: great</span></li>
-    <li><a href="/ref/?/_---_--_"><b class="term">OM</b><span class="code">--- --</span></a><span class="means">old man: any operator</span></li>
-    <li><a href="/ref/?/_-.--_.-.._"><b class="term">YL</b><span class="code">-.-- .-..</span></a><span class="means">young lady: any operator</span></li>
-    <li><a href="/ref/?/_...._.-._"><b class="term">HR</b><span class="code">.... .-.</span></a><span class="means">here</span></li>
-    <li><a href="/ref/?/_..-_.-._"><b class="term">UR</b><span class="code">..- .-.</span></a><span class="means">your, you&#x27;re</span></li>
-    <li><a href="/ref/?/_._..._"><b class="term">ES</b><span class="code">. ...</span></a><span class="means">and</span></li>
-    <li><a href="/ref/?/_.--_-..-_"><b class="term">WX</b><span class="code">.-- -..-</span></a><span class="means">weather</span></li>
-    <li><a href="/ref/?/_.-._.._--._"><b class="term">RIG</b><span class="code">.-. .. --.</span></a><span class="means">radio</span></li>
-    <li><a href="/ref/?/_.-_-._-_"><b class="term">ANT</b><span class="code">.- -. -</span></a><span class="means">antenna</span></li>
-    <li><a href="/ref/?/_.--._..._._"><b class="term">PSE</b><span class="code">.--. ... .</span></a><span class="means">please</span></li>
-    <li><a href="/ref/?/_.-_--._-._"><b class="term">AGN</b><span class="code">.- --. -.</span></a><span class="means">again</span></li>
-    <li><a href="/ref/?/_-.-._..-_.-.._"><b class="term">CUL</b><span class="code">-.-. ..- .-..</span></a><span class="means">see you later</span></li>
-    <li><a href="/ref/?/_...._.._"><b class="term">HI</b><span class="code">.... ..</span></a><span class="means">laughter</span></li>
-    <li><a href="/ref/?/_--._--_"><b class="term">GM</b><span class="code">--. --</span></a><span class="means">good morning</span></li>
-    <li><a href="/ref/?/_--._.-_"><b class="term">GA</b><span class="code">--. .-</span></a><span class="means">good afternoon</span></li>
-    <li><a href="/ref/?/_--._._"><b class="term">GE</b><span class="code">--. .</span></a><span class="means">good evening</span></li>
+  <ul class="lists" data-list="abbreviations">
+    <li data-az="0" data-flow="10"><a href="/ref/?/_....._-._-._"><span class="code">..... -. -.</span><span class="label">5NN</span><span class="means">599, a perfect report (cut numbers)</span></a></li>
+    <li data-az="1" data-flow="24"><a href="/ref/?/_--..._...--_"><span class="code">--... ...--</span><span class="label">73</span><span class="means">best regards</span></a></li>
+    <li data-az="2" data-flow="25"><a href="/ref/?/_---.._---.._"><span class="code">---.. ---..</span><span class="label">88</span><span class="means">love and kisses</span></a></li>
+    <li data-az="3" data-flow="20"><a href="/ref/?/_.-_--._-._"><span class="code">.- --. -.</span><span class="label">AGN</span><span class="means">again</span></a></li>
+    <li data-az="4" data-flow="15"><a href="/ref/?/_.-_-._-_"><span class="code">.- -. -</span><span class="label">ANT</span><span class="means">antenna</span></a></li>
+    <li data-az="5" data-flow="21"><a href="/ref/?/_-..._-.-_"><span class="code">-... -.-</span><span class="label">BK</span><span class="means">break, back to you</span></a></li>
+    <li data-az="6" data-flow="0"><a href="/ref/?/_-.-._--.-_"><span class="code">-.-. --.-</span><span class="label">CQ</span><span class="means">calling any station</span></a></li>
+    <li data-az="7" data-flow="26"><a href="/ref/?/_-.-._..-_.-.._"><span class="code">-.-. ..- .-..</span><span class="label">CUL</span><span class="means">see you later</span></a></li>
+    <li data-az="8" data-flow="1"><a href="/ref/?/_-.._._"><span class="code">-.. .</span><span class="label">DE</span><span class="means">from; this is</span></a></li>
+    <li data-az="9" data-flow="12"><a href="/ref/?/_._..._"><span class="code">. ...</span><span class="label">ES</span><span class="means">and</span></a></li>
+    <li data-az="10" data-flow="16"><a href="/ref/?/_..-._-..._"><span class="code">..-. -...</span><span class="label">FB</span><span class="means">fine business: great</span></a></li>
+    <li data-az="11" data-flow="4"><a href="/ref/?/_--._.-_"><span class="code">--. .-</span><span class="label">GA</span><span class="means">good afternoon</span></a></li>
+    <li data-az="12" data-flow="5"><a href="/ref/?/_--._._"><span class="code">--. .</span><span class="label">GE</span><span class="means">good evening</span></a></li>
+    <li data-az="13" data-flow="3"><a href="/ref/?/_--._--_"><span class="code">--. --</span><span class="label">GM</span><span class="means">good morning</span></a></li>
+    <li data-az="14" data-flow="22"><a href="/ref/?/_...._.._"><span class="code">.... ..</span><span class="label">HI</span><span class="means">laughter</span></a></li>
+    <li data-az="15" data-flow="11"><a href="/ref/?/_...._.-._"><span class="code">.... .-.</span><span class="label">HR</span><span class="means">here</span></a></li>
+    <li data-az="16" data-flow="2"><a href="/ref/?/_-.-_"><span class="code">-.-</span><span class="label">K</span><span class="means">over, go ahead</span></a></li>
+    <li data-az="17" data-flow="17"><a href="/ref/?/_---_--_"><span class="code">--- --</span><span class="label">OM</span><span class="means">old man: any operator</span></a></li>
+    <li data-az="18" data-flow="19"><a href="/ref/?/_.--._..._._"><span class="code">.--. ... .</span><span class="label">PSE</span><span class="means">please</span></a></li>
+    <li data-az="19" data-flow="6"><a href="/ref/?/_.-._"><span class="code">.-.</span><span class="label">R</span><span class="means">received, roger</span></a></li>
+    <li data-az="20" data-flow="14"><a href="/ref/?/_.-._.._--._"><span class="code">.-. .. --.</span><span class="label">RIG</span><span class="means">radio</span></a></li>
+    <li data-az="21" data-flow="9"><a href="/ref/?/_.-._..._-_"><span class="code">.-. ... -</span><span class="label">RST</span><span class="means">signal report: readability, strength, tone</span></a></li>
+    <li data-az="22" data-flow="7"><a href="/ref/?/_-_-._-..-_"><span class="code">- -. -..-</span><span class="label">TNX</span><span class="means">thanks</span></a></li>
+    <li data-az="23" data-flow="23"><a href="/ref/?/_-_..-_"><span class="code">- ..-</span><span class="label">TU</span><span class="means">thank you</span></a></li>
+    <li data-az="24" data-flow="8"><a href="/ref/?/_..-_.-._"><span class="code">..- .-.</span><span class="label">UR</span><span class="means">your, you&#x27;re</span></a></li>
+    <li data-az="25" data-flow="13"><a href="/ref/?/_.--_-..-_"><span class="code">.-- -..-</span><span class="label">WX</span><span class="means">weather</span></a></li>
+    <li data-az="26" data-flow="18"><a href="/ref/?/_-.--_.-.._"><span class="code">-.-- .-..</span><span class="label">YL</span><span class="means">young lady: any operator</span></a></li>
   </ul>
 
 </div>

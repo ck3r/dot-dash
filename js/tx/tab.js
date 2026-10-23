@@ -12,6 +12,9 @@
  *     greet()               the name keys itself (keyed: · − − · −)
  *   }
  *
+ * The name keying itself gives way to you: the first press or key
+ * (anywhere) stops it, the tab resting on the name.
+ *
  * The station's switch logo keys along with the name, as the
  * reference's header switch does.
  */
@@ -22,11 +25,22 @@ export function createTab() {
   keyer.on(event => { if (event.type === "key" && event.name) logo?.classList.toggle("down", event.down); });
 
   let shows = null;        // the Morse the tab is about (a link's), or null
+  let greeting = false;    // the name keying itself
 
   function arrive(words, morse = null) {
     shows = words?.length ? morse : null;
+    greeting = !words?.length;
     keyer.play(words ?? []);
   }
+
+  /* first in line (capture), so a press that keys the name anew
+     (the egg) stops the old greeting before it starts the new one */
+  const giveWay = () => {
+    if (!greeting) return;
+    greeting = false;
+    keyer.rest();
+  };
+  for (const type of ["pointerdown", "keydown"]) addEventListener(type, giveWay, { capture: true });
 
   function follow(morse) {
     if (shows === null || morse === shows) return;
@@ -36,7 +50,7 @@ export function createTab() {
 
   const playing = on => keyer.hold(on);
 
-  const greet = () => { shows = null; keyer.play([]); };
+  const greet = () => { shows = null; greeting = true; keyer.play([]); };
 
   return { arrive, follow, playing, greet };
 }

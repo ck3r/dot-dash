@@ -33,28 +33,30 @@ export function createKeyboard({ typeKey }) {
    *   letters                         123
    *   Q W E R T Y U I O P             1 2 3 4 5 6 7 8 9 0
    *    A S D F G H J K L              . , ? ! ' " ( ) / &
-   *    ⌫  Z X C V B N M (i)            ⌫  : ; = + - _ $ @
-   *    ↵  [   space   ] 123            ↵  [   space   ] ABC
+   *   (i) Z X C V B N M  ⌫             : ; = + - _ $ @  ⌫
+   *   123 [   space   ]  ↵            ABC [   space   ]  ↵
    *
    * Hold 123 (or ABC) for two more: the prosigns, and the Q codes,
    * each a key two wide. A tap goes letters ⇄ 123, and back to the
    * letters from either of the others.
    *
-   *   prosigns                        Q codes
-   *   AR BT KN AS SK                  QTH QSL QSO QRZ QRT
-   *   BK CL KA SN AA                  QRS QRQ QRM QRN QRP
-   *    ⌫  SOS                          ⌫  QRX QSY QRL QRV
+   *   prosigns (as everywhere: <AR>)     Q codes
+   *   <AR> <BT> <KN> <AS> <SK>           QTH QSL QSO QRZ QRT
+   *   <BK> <CL> <KA> <SN> <AA>           QRS QRQ QRM QRN QRP
+   *   <SOS>                 ⌫            QRX QSY QRL QRV  ⌫
    *
-   * ⌫ over ↵ at the left, where the Morse pad has them (at the
-   * bottom of its side keys); the (i) and the layout key at the right.
+   * As on a phone's own keyboard: ⌫ over ↵ at the right, where the
+   * Morse pad has them too (at the bottom of its side keys); the
+   * layout key and the (i) at the left.
    *
    * Each row: [startColumn, keys] (keys 2 columns each), plus
    * any special keys as [key, startColumn, span].
    */
-  const BOTTOM = [["send", 1, 6], [" ", 7, 11], ["layout", 18, 3]];
+  const BOTTOM = [["layout", 1, 3], [" ", 4, 11], ["send", 15, 6]];
+  const BACK = [["back", 18, 3]];
   /* the prosigns that share a code with a symbol are typed as it */
   const PRO = ["+", "=", "(", "&", "<SK>", "<BK>", "<CL>", "<KA>", "<SN>", "<AA>", "<SOS>"];
-  const PRO_NAME = { "+": "AR", "=": "BT", "(": "KN", "&": "AS" };
+  const PRO_NAME = { "+": "<AR>", "=": "<BT>", "(": "<KN>", "&": "<AS>" };
   const Q_MEANS = {
     QTH: "my location is", QSL: "I confirm receipt", QSO: "a contact, a conversation", QRZ: "who is calling me?",
     QRT: "stop sending; closing down", QRS: "send slower", QRQ: "send faster", QRM: "man-made interference",
@@ -66,29 +68,29 @@ export function createKeyboard({ typeKey }) {
     abc: [
       { start: 1, keys: [..."QWERTYUIOP"] },
       { start: 2, keys: [..."ASDFGHJKL"] },
-      { start: 4, keys: [..."ZXCVBNM"], extra: [["back", 1, 3]] },
+      { start: 4, keys: [..."ZXCVBNM"], extra: BACK, info: true },
       { start: 1, keys: [], extra: BOTTOM }
     ],
     num: [
       { start: 1, keys: [..."1234567890"] },
       { start: 1, keys: [...".,?!'\"()/&"] },
-      { start: 4, keys: [...":;=+-_$@"], extra: [["back", 1, 3]] },
+      { start: 2, keys: [...":;=+-_$@"], extra: BACK },
       { start: 1, keys: [], extra: BOTTOM }
     ],
     pro: [
       { start: 1, span: 4, keys: PRO.slice(0, 5) },
       { start: 1, span: 4, keys: PRO.slice(5, 10) },
-      { start: 4, span: 4, keys: PRO.slice(10), extra: [["back", 1, 3]] },
+      { start: 2, span: 4, keys: PRO.slice(10), extra: BACK },
       { start: 1, keys: [], extra: BOTTOM }
     ],
     q: [
       { start: 1, span: 4, keys: QS.slice(0, 5) },
       { start: 1, span: 4, keys: QS.slice(5, 10) },
-      { start: 4, span: 4, keys: QS.slice(10), extra: [["back", 1, 3]] },
+      { start: 2, span: 4, keys: QS.slice(10), extra: BACK },
       { start: 1, keys: [], extra: BOTTOM }
     ]
   };
-  const LAYOUT_NAMES = { abc: ["ABC", "letters"], num: ["123", "numbers and symbols"], pro: ["AR", "prosigns"], q: ["Q", "Q codes"] };
+  const LAYOUT_NAMES = { abc: ["ABC", "letters"], num: ["123", "numbers and symbols"], pro: ["<AR>", "prosigns"], q: ["Q", "Q codes"] };
   let layout = "abc";
 
   const isLetter = ch => /^[A-Z]$/.test(ch);
@@ -132,7 +134,7 @@ export function createKeyboard({ typeKey }) {
         b.type = "button";
         b.dataset.k = k;
         b.style.gridColumn = `${column} / span ${span}`;
-        b.style.gridRow = "1";               // one line, whatever order they're placed in (⌫ comes last, at the start)
+        b.style.gridRow = "1";               // one line, whatever order they're placed in (the (i) comes last, at the start)
         if (k === "back") {
           b.className = "k-wide";
           b.append(el("b", "", "⌫"));
@@ -149,7 +151,7 @@ export function createKeyboard({ typeKey }) {
           b.append(el("b", "", layout === "abc" ? "123" : "ABC"));
           b.setAttribute("aria-label", `${layout === "abc" ? "numbers and symbols" : "letters"} (hold for prosigns, Q codes)`);
         } else if (layout === "pro" || layout === "q") {
-          const name = PRO_NAME[k] ?? k.replace(/[<>]/g, "");
+          const name = PRO_NAME[k] ?? k;   // a prosign in its brackets, as on the tape
           b.append(codeMarks(k), el("b", "", name));
           b.title = layout === "q" ? `${k}: ${Q_MEANS[k]}` : name;
           b.setAttribute("aria-label", b.title);
@@ -163,11 +165,11 @@ export function createKeyboard({ typeKey }) {
         }
         rowEl.append(b);
       }
-      /* the empty end of the Z row: an (i) for the keys that hold more */
-      if (layout === "abc" && row.start === 4) {
+      /* the empty start of the Z row: an (i) for the keys that hold more */
+      if (row.info) {
         const info = el("button", "info kbd-info", "i");
         info.type = "button";
-        info.style.gridColumn = "18 / span 3";
+        info.style.gridColumn = "1 / span 3";
         info.style.gridRow = "1";
         info.title = "keys that hold more";
         info.setAttribute("aria-label", info.title);

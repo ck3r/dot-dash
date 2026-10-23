@@ -278,14 +278,18 @@
   <section id="train-pop" class="popup" role="dialog" aria-labelledby="train-title" hidden>
     <span class="frame-label" id="train-title">timing</span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
-    <p>The bar times each press against your speed. Key down runs
-    right from the upright line, under dit and dah: a full dit ends at
-    the dit key's edge, a full dah at the dah key's.</p>
-    <p>Key up runs left, over the side keys: a letter space
-    <b>˽</b> partway, a word space <b>/</b> at the far end.</p>
+    <p>The bar times each press against your speed, from the
+    upright line at the left. Key down fills in colour: a full dit
+    ends at the dit key's edge, a full dah at the dah key's.</p>
+    <p>Key up fills grey: a letter space <b>˽</b> at the dit key's
+    edge too, a word space <b>/</b> at the far end. It slows and
+    quickens to meet each one on time.</p>
+    <p>Let go within a tenth of a unit of a dit or dah's length, or
+    press again within a tenth of a space's, and what you just keyed
+    takes a brass edge: on time.</p>
     <p>The brass lines are where one turns into the next: hold past
-    the first and a dit becomes a dah; wait past the second and a
-    letter space becomes a word space.</p>
+    the first and a dit becomes a dah; wait, and a pause becomes a
+    letter space, then a word space.</p>
     <p>Playing back, it shows the timing as it was keyed, with a notch
     where the ideal length ends: a dah held short, a gap rushed.</p>
   </section>
@@ -508,29 +512,31 @@
 
     <!--
       timing train (timed keying), lined up with the keys below:
-      time starts at the dit key's left edge. Key down runs right
-      (a full dit at the dit key's edge, a full dah at the dah
-      key's); key up runs left (the word gap at the far edge).
+      time starts at the far left, the dit key's left edge, and
+      runs right. Key down fills in colour (a full dit at the dit
+      key's edge, a full dah at the dah key's); key up fills grey
+      (a letter space at the dit key's edge too, a word space at
+      the far edge).
 
-        ├/──┃─˽─┃──┼────.┃────┃────-┤
-          key up    │     key down
-      The side in use fills; the call you'd get right now lights.
+        ┃────┃──.┊˽───┃───────-┊─────┃────/┃
+        ┃  dit      │   dah     │   ˽ / ⌫ ↵ ┃
+      The call you'd get right now lights.
     -->
     <div id="train" class="train" hidden aria-hidden="true">
-      <div class="seg off"><div class="fill"></div><div class="ticks"></div></div>
-      <div class="seg on"><div class="fill"></div><div class="ticks"></div></div>
+      <div class="seg"><div class="fill on"></div><div class="fill off"></div><div class="ticks"></div></div>
       <span class="origin" aria-hidden="true"></span>
     </div>
 
-    <!-- keyer pad: ˽ / ⌫ ↵ down the side | dit | dah  (labels follow the key setting);
-         ⌫ and ↵ at the bottom left, where the text keyboard has them too -->
+    <!-- keyer pad: dit | dah | ˽ / ⌫ ↵ down the side (labels follow the key setting);
+         ⌫ and ↵ at the bottom right, where the text keyboard has them too,
+         the ↵ right under the one on the rule above -->
     <div id="pad" class="pad">
+      <button type="button" class="key dit" data-act="." aria-label="dit" title="dit: . [ A 1 (left Ctrl with ctrl keys on)"><b>.</b><span>dit</span></button>
+      <button type="button" class="key dah" data-act="-" aria-label="dah" title="dah: - ] D 3 (right Ctrl with ctrl keys on)"><b>-</b><span>dah</span></button>
       <button type="button" class="key side" data-act="letter" aria-label="letter space" title="letter space (space)">˽</button>
       <button type="button" class="key side" data-act="word" aria-label="word space" title="word space (/)">/</button>
       <button type="button" class="key side" data-act="undo" aria-label="backspace" title="backspace: the last mark; hold for words (Backspace)">⌫</button>
       <button type="button" class="key side" data-act="send" aria-label="return" title="return: a new line (Enter)">↵</button>
-      <button type="button" class="key dit" data-act="." aria-label="dit" title="dit: . [ A 1 (left Ctrl with ctrl keys on)"><b>.</b><span>dit</span></button>
-      <button type="button" class="key dah" data-act="-" aria-label="dah" title="dah: - ] D 3 (right Ctrl with ctrl keys on)"><b>-</b><span>dah</span></button>
     </div>
 
     <!--
@@ -542,8 +548,8 @@
         --.-  .--   .   .-.   -   -.--  ..-   ..   ---  .--.
          Q     W    E    R    T    Y     U    I     O    P
            A  S  D  F  G  H  J  K  L
-        ⌫  Z  X  C  V  B  N  M  (i)
-        [ ↵ ][      space      ][123]
+       (i) Z  X  C  V  B  N  M   ⌫
+        [123][      space      ][ ↵ ]
     -->
     <div id="type" class="type" hidden>
       <div id="kbd" class="kbd" aria-label="keyboard"></div>
@@ -553,16 +559,21 @@
   </div>
 
   <!--
-    waiting: a skeleton of the station, the brass box and its switch,
-    a lamp keying AS (.-..., "wait") over and over. Drawn by the HTML
+    waiting: the station's skeleton (tx.css, AUXILIARY PAGES), keying
+    AS (.-..., "wait") over and over as the tape plays a message back,
+    the box's edge and the switch keying with it. Drawn by the HTML
     and CSS alone, so it shows even if the scripts never run; it fades
     in only after a second (a normal start never sees it), and the
     station takes it away once it's ready (js/tx/main.js). Last in
     the page, so the station's own .logo is the one found first.
   -->
-  <div id="waiting" class="waiting" aria-hidden="true">
-    <div class="waiting-box">
-      <span class="wait-note"><span class="wait-lamp"></span><span class="wait-label"> AS  wait…</span></span>
+  <div id="waiting" class="waiting signal" aria-hidden="true">
+  <div class="aux-page aux-wait">
+    <header class="tx-top">
+      <span class="home">dot-da.sh</span>
+      <div class="top-right"><span class="profile" title="profiles: coming soon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3.2"/><path d="M6.4 18.6c1.3-2.2 3.3-3.4 5.6-3.4s4.3 1.2 5.6 3.4"/></svg></span></div>
+    </header>
+    <main class="station aux-station">
       <span class="logo switch">
         <svg viewBox="0 0 73 79" fill="none">
           <circle cx="13.66" cy="52.81" r="7" stroke="currentColor" stroke-width="6"/>
@@ -570,7 +581,10 @@
           <circle class="led" cx="13.66" cy="52.81" r="3.6"/>
         </svg>
       </span>
-    </div>
+      <div class="aux-field"><span class="line live"><span class="w"><span class="c"><span class="m"><span class="dot">.</span><span class="dash">-</span><span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></span><span class="p"> &lt;AS&gt;</span></span></span></span></div>
+    </main>
+    <section class="aux-note"></section>
+  </div>
   </div>
 
   <script type="module" src="/js/tx/main.js"></script>

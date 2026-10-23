@@ -32,7 +32,9 @@ export function createTape({ state, update, setTyped, resetKeyer }) {
     for (const s of code) m.append(el("span", s === "." ? "dot" : "dash", s));
     const name = DECODE[code] ?? (partial ? "?" : "�");
     const under = Math.min(1, code.length - 1);
-    c.append(m, el("span", "p", " ".repeat(under) + name));
+    const p = el("span", "p", " ".repeat(under));   // only the name is underlined
+    p.append(el("span", "n", name));
+    c.append(m, p);
     return c;
   }
 

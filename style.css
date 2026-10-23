@@ -137,8 +137,39 @@ a {
  * HEADER
  * ============================================================ */
 
+/* the global header (as the station's): home at the left, profiles
+   (soon) at the right, across the page's width */
 .top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 2.5rem;
+}
+
+.top .home {
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--paper);
+}
+
+.top .profile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  margin-right: -0.35rem;   /* its ring, not its tap room, at the edge */
+  color: var(--graphite);
+}
+
+.top .profile svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+@media (hover: hover) {
+  .top .home:hover { color: var(--brass); background: transparent; }
 }
 
 .logo {
@@ -155,8 +186,8 @@ a {
   overflow: visible;
 }
 
-.logo:hover svg {
-  color: var(--bakelite);
+@media (hover: hover) {
+  .logo:hover svg { color: var(--brass); }   /* brass to the pointer, as everywhere */
 }
 
 /* the switch keys along with the message: lever drops shut, LED lights */
@@ -412,7 +443,7 @@ button {
  * ============================================================ */
 
 .morse-code {
-  max-width: 640px;
+  max-width: 880px;   /* the page's width: the lists use it; each other group keeps its own (below) */
   margin: 0 auto;
 }
 
@@ -423,10 +454,6 @@ button {
   margin-inline: auto;
 }
 
-.morse-code > h2:has(+ .morse-prosigns),
-.morse-code .morse-prosigns {
-  max-width: none;
-}
 
 .morse-code h2 {
   font-size: 0.9rem;
@@ -506,8 +533,6 @@ button {
  *
  *   .-      A  N      -.
  *   -...    B  O     ---
- *
- * Only the prosigns stack (their names are too long to pair).
  */
 @media (max-width: 480px) {
   .morse-code .group-row {
@@ -518,19 +543,6 @@ button {
     letter-spacing: 0.15em;
   }
 
-  .morse-code .morse-prosigns {
-    flex-direction: column;
-    gap: 0;
-  }
-
-  /* stacked, so the second half reads the same way round as the first */
-  .morse-code .morse-prosigns .col-right a {
-    flex-direction: row-reverse;
-  }
-
-  .morse-code .morse-prosigns .label {
-    text-align: right;
-  }
 }
 
 
@@ -557,6 +569,64 @@ button {
 /* opened at the tree (#cut): a little room above its label */
 .tree-frame { scroll-margin-top: 0.75rem; }
 
+/*
+ * The switch on the tree frame's bottom edge (the station's, sized
+ * and placed the same): open, the lever lifts off the line; closed,
+ * it drops into it, the LED lit, and the frame glows brass, as the
+ * station's box does while a key is down. A link to the station.
+ */
+.tree-frame .switch {
+  position: absolute;
+  z-index: 3;
+  top: calc(100% + 0.5px);
+  left: calc(50% - 15px);
+  width: 30px;
+  height: 32.5px;
+  margin-top: -21.7px;
+  color: var(--paper);
+  text-decoration: none;
+}
+.tree-frame .switch svg {
+  position: relative;
+  width: 30px;
+  height: 32.5px;
+}
+.tree-frame .switch::before {        /* the line under the lever, cleared */
+  content: "";
+  position: absolute;
+  left: 1px;
+  width: 28px;
+  top: calc(21.7px - 2.5px);
+  height: 4px;
+  background: var(--bakelite);
+}
+.tree-frame .switch:hover {          /* not the page's filled link hover: just the brass lever */
+  background: transparent;
+}
+.tree-frame .switch::after {         /* a little more to aim at */
+  content: "";
+  position: absolute;
+  inset: -6px -8px;
+}
+.tree-frame.lit {                    /* the station's lamp, exactly (tx.css .station.lit) */
+  border-color: var(--brass);
+  box-shadow:
+    0 0 0 1px var(--brass),
+    0 0 18px color-mix(in srgb, var(--brass) 45%, transparent),
+    inset 0 0 28px color-mix(in srgb, var(--brass) 18%, transparent);
+}
+
+/* its label lights with it: the gap it leaves in the edge reads as
+   part of the lit frame, not a hole in the glow */
+.tree-frame > .frame-label {         /* only the edge's own line hidden behind the word,
+                                        not a box (which would cut a hole in the glow) */
+  background: linear-gradient(transparent calc(50% - 2px), var(--bakelite) calc(50% - 2px) calc(50% + 2px), transparent calc(50% + 2px));
+}
+.tree-frame.lit > .frame-label {
+  color: var(--brass);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--brass) 60%, transparent);
+}
+
 /* a signal drawn as shapes, not block characters (fonts draw those
    at different heights and widths): one character wide per unit */
 .bar .on { background: var(--paper); }
@@ -574,25 +644,69 @@ button {
   pointer-events: none;
 }
 
-/* the Q code and abbreviation sheets */
-.morse-code .cheat-note { color: var(--graphite); font-size: 0.85rem; margin: 0 0 0.6rem; }
-.morse-code .cheat {
+/*
+ * Prosigns, Q codes, abbreviations: one to a line, three columns
+ * across the page shared by every row (subgrid): the code at the
+ * left edge, the term centred on the page's middle, the meaning at the
+ * right edge (wrapping there). Equal outer columns keep the terms'
+ * middles on one axis. A whole row is one link (it lights as one). A
+ * Q code's question is the line under it.
+ *
+ *     ...---...            SOS                 distress
+ *     -...-.-               BK     break: back to you
+ *
+ * condensed: the meanings go, a drill sheet of codes and terms.
+ */
+.morse-code .cheat-note {
+  max-width: 480px;
+  margin: 0 auto 0.6rem;
+  color: var(--graphite);
+  font-size: 0.85rem;
+  text-align: center;
+}
+.morse-code .list-options {
+  justify-content: center;
+  margin: 2rem auto 0;
+}
+.morse-code > h2:has(+ .lists),
+.morse-code > h2:has(+ .cheat-note + .lists),
+.morse-code > .cheat-note,
+.morse-code .lists { max-width: 100%; }
+.morse-code > h2:has(+ .lists),
+.morse-code > h2:has(+ .cheat-note + .lists) { text-align: center; }
+
+.morse-code .lists {
   display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 0.2rem 1.25rem;
-  align-items: baseline;
-}
-.morse-code .cheat li { display: contents; }
-.morse-code .cheat a {
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
-  gap: 1ch;
+  grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr);
+  gap: 0.15rem 2ch;
+  width: 100%;
+  margin: 0 auto;
   padding: 0;
-  text-decoration: none;
+  list-style: none;
 }
-.morse-code .cheat .term { letter-spacing: 0.08em; }
-.morse-code .cheat .code { font-size: 0.75rem; color: var(--graphite); letter-spacing: 0.1em; }
-.morse-code .cheat .means { color: var(--paper); }
-.morse-code .cheat,
-.morse-code .cheat-note { max-width: 400px; margin-inline: auto; }
+.morse-code .lists li { display: contents; }
+.morse-code .lists li a {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+}
+.morse-code .lists .code { text-align: left; letter-spacing: 0.12em; }   /* whole words: closer than the letters' */
+.morse-code .lists .label { font-weight: 700; letter-spacing: 0.08em; white-space: nowrap; text-align: center; }
+.morse-code .lists .means {
+  color: var(--graphite);
+  font-size: 0.78em;
+  line-height: 1.3;
+  text-align: right;
+}
+.morse-code .lists li a:hover .means { color: inherit; }
+.morse-code.condensed .lists .means { display: none; }
+
+/* phones: the outer columns are narrow, so a long code (a Q code with
+   its ?) breaks between its letters, never inside one
+       --.- .-. .-..      QRL?    is this
+       ..--..                     frequency in use?            */
+@media (max-width: 480px) {
+  .morse-code .lists .code { white-space: normal; }
+}
+

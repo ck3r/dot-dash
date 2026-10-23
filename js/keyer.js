@@ -315,10 +315,11 @@ function stop() {
   }
 }
 
-/* the title, unless the tab has rested at its 13 characters */
+/* the title, unless the tab has rested at its 13 characters (or is
+   out of sight: a frame still on its way is dropped) */
 function title(text) {
-  if (capped) return;
-  setTimeout(() => { if (!capped) document.title = text; }, TITLE_LATENCY_MS);
+  if (capped || document.hidden) return;
+  setTimeout(() => { if (!capped && !document.hidden) document.title = text; }, TITLE_LATENCY_MS);
 }
 
 /* where the tab ends up: the last frame, or the 13 characters and … */
@@ -401,6 +402,19 @@ function start() {
     return;
   }
 
+  /*
+   * Out of sight (another tab, the window minimised): no keying, the
+   * tab just says the name, whole, among the others; back in view,
+   * the message keys again from the start.
+   *
+   *   [ dot-da.sh ] [ mail ] [ docs ]      not   [ ..-  di ] [ mail ]
+   */
+  if (document.hidden) {
+    document.title = IDLE_TITLE;
+    emit({ type: "end", path: lastCode() });
+    return;
+  }
+
   /* reduced motion, or held (the station playing): the last title */
   if (reducedMotion.matches || held) {
     document.title = lastTitle();
@@ -415,8 +429,8 @@ function start() {
 
 
 /*
- * Restart at the matching rate when the tab is shown/hidden
- * or the motion preference changes (same as the live site).
+ * Hidden, the tab rests on the name; shown, it starts again; and the
+ * motion preference changing starts it again too.
  */
 
 document.addEventListener("visibilitychange", start);

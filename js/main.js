@@ -131,11 +131,14 @@ window.addEventListener("resize", () => {
   resizeTimer = setTimeout(drawTrees, 150);
 });
 
-const logo = $(".logo");
+/* the switch on the tree frame keys along, the frame lit while it's closed */
+const logo = $(".tree-frame .switch");
+const treeFrame = $(".tree-frame");
 
 keyer.on(event => {
   if (event.type === "key") {
-    logo.classList.toggle("down", event.down);   /* header switch keys along */
+    logo.classList.toggle("down", event.down);
+    treeFrame.classList.toggle("lit", event.down);
     return;
   }
   trees.forEach(tree => tree.handle(event));
@@ -272,12 +275,42 @@ for (const [id, className] of [
  */
 for (const code of document.querySelectorAll(".morse-code .code")) {
   const marks = [...code.textContent].map(s => {
+    if (s === " ") return document.createTextNode(" ");   // between a word's letters
     const m = document.createElement("span");
     m.className = s === "." ? "dot" : "dash";
     m.textContent = s;
     return m;
   });
   code.replaceChildren(...marks);
+}
+
+/*
+ * The lists (prosigns, Q codes, abbreviations): in order A–Z, or as
+ * a contact goes (CQ, DE, K … 73, SK), each row carrying its place in
+ * both (data-az, data-flow); condensed, without the meanings. A Q
+ * code's question shares its answer's place and follows it.
+ * Remembered.
+ */
+{
+  const order = $("#opt-order"), condensed = $("#opt-condensed");
+  try {
+    if (localStorage.getItem("dot-dash:list-order") === "flow") order.value = "flow";
+    condensed.checked = localStorage.getItem("dot-dash:list-condensed") === "1";
+  } catch { /* storage blocked */ }
+  const apply = () => {
+    const key = order.value === "flow" ? "flow" : "az";
+    const asks = li => li.hasAttribute("data-ask") ? 1 : 0;
+    const by = (a, b) => a.dataset[key] - b.dataset[key] || asks(a) - asks(b);
+    for (const list of document.querySelectorAll(".morse-code .lists")) list.append(...[...list.children].sort(by));
+    $(".morse-code").classList.toggle("condensed", condensed.checked);
+    try {
+      localStorage.setItem("dot-dash:list-order", key);
+      localStorage.setItem("dot-dash:list-condensed", condensed.checked ? "1" : "0");
+    } catch { }
+  };
+  order.addEventListener("change", apply);
+  condensed.addEventListener("change", apply);
+  apply();
 }
 
 
