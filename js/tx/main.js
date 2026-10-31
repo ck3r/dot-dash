@@ -11,6 +11,7 @@
  *   tree.js      the collapsed tree, the about column, the whole tree
  *   keys.js      the pad, a computer keyboard, the keyers, the train
  *   typing.js    type mode and its keyboard
+ *   suggest.js   the chips that finish what you've started
  *   settings.js  the tray, the outputs, the light
  *   player.js    play, scrub, repeat, the trace, the player keys
  *   share.js     share, paste, saves, the wait lamp
@@ -23,17 +24,18 @@
  * (stopPlayback: () => stopPlayback()), so the order above holds.
  */
 
-import { parse, readLink, format, DECODE, NAME_CODE } from "../morse.js";
+import { parse, readLink, format, DECODE, NAME_CODE, READING } from "../morse.js";
 import { spokenWords } from "./voice.js";
 import { createSound } from "../tx-sound.js";
 import { PROSIGNS_BY_CODE } from "../characters.js";
 import { $, toast, flash } from "./dom.js";
-import { createState, structure, wordsOf, tokensOf, tookFor, morseOf, recOfEntry, plainText } from "./state.js";
+import { createState, structure, wordsOf, tokensOf, tookFor, morseOf, recOfEntry, typedOf, plainText } from "./state.js";
 import { createTape } from "./tape.js";
 import { createUndo } from "./undo.js";
 import { createTreeEdge } from "./tree.js";
 import { createKeys, timingNow } from "./keys.js";
 import { createTyping } from "./typing.js";
+import { createSuggest } from "./suggest.js";
 import { createSettings, choice } from "./settings.js";
 import { createPlayback } from "./player.js";
 import { createShare } from "./share.js";
@@ -303,6 +305,8 @@ const { tree, about, drawLocal, drawTree, followNode, openTree, isTreeOpen, inTr
  */
 
 function update() {
+  /* typed with cut on: the text is what tells a 9 from an N (morse.js) */
+  READING.typed = READING.cut && /\d/.test(state.typed) ? state.typed.trim().split(/\s+/) : null;
   undo.watch();
   const { word, path } = structure(state.tokens);
   /* the message changed under the player: stop it */
@@ -315,6 +319,7 @@ function update() {
   state.saveLine();   // kept on this device, like the tape
   tapeRedrawn();   /* re-apply any playback highlight */
   playerControls();
+  suggest?.draw();
   tab.follow(format(wordsOf(state.tokens)));   // a new message: the tab's title goes back to the name
 }
 
@@ -399,9 +404,14 @@ function showInput() {
 }
 
 /* type mode: js/tx/typing.js */
-const { setTyped, retype, openHold } = createTyping({
+const { setTyped, retype, openHold, redrawKeys } = createTyping({
   state, sound, update, send, soundLetter, playing: () => player.playing, stopPlayback: () => stopPlayback()
 });
+
+
+/* the chips that finish a word: js/tx/suggest.js (var: update
+   may run before it's made, and finds it undefined, not a crash) */
+var suggest = createSuggest({ state, retype, update, press });
 
 
 /* the settings tray, the outputs, the light: js/tx/settings.js */
@@ -411,12 +421,17 @@ const {
 } = createSettings({
   state, sound, logo, ctrlPaddle, timingNow, showInput, drawStats,
   stopPlayback: () => stopPlayback(), redrawTrace: () => trace.redraw(),
-  /* the tray's reading changed: the line reads again (typing: the box too) */
-  reread: () => {
-    if (state.mode === "type") setTyped(plainText(wordsOf(state.tokens)) ?? state.typed);
+  /* the tray's reading changed: the line reads again (typing: the box
+     too). Cut changes what typed digits send, so they go out afresh */
+  reread: part => {
+    redrawKeys();
+    if (state.mode !== "type") return update();
+    if (part === "cut") return retype(state.typed);
+    setTyped(plainText(wordsOf(state.tokens)) ?? state.typed);
     update();
   }
 });
+redrawKeys();     // the tray's cut, remembered: the 123 keys show it
 
 /*
  * A tap in the message box puts the keys away, like tapping out of
@@ -509,6 +524,7 @@ setKeyMode($("#opt-key").value);
     if (kept) {
       state.tokens = tokensOf(parse(morseOf(kept)));
       state.took = tookFor(state.tokens, recOfEntry(kept));
+      READING.typed = typedOf(kept);
       setTyped(plainText(wordsOf(state.tokens)) ?? "");
     }
     tab.arrive(null);     // the name keys itself

@@ -6,9 +6,10 @@
  *     setTyped(text)     what's been typed (it shows in the message)
  *     retype(text)       type it afresh: the message follows
  *     openHold(open)     the keyboard's hold menu
+ *     redrawKeys()       the keys again (cut changes the digits' codes)
  *   }
  */
-import { ENCODE, encode } from "../morse.js";
+import { ENCODE, READING, codeOf, encode } from "../morse.js";
 import { tokensOf } from "./state.js";
 import { createKeyboard } from "./keyboard.js";
 import { $ } from "./dom.js";
@@ -34,7 +35,7 @@ export function createTyping({ state, sound, update, send, soundLetter, playing,
   function retype(text) {
     setTyped(text);
     state.lastInput = performance.now();
-    state.tokens = tokensOf(encode(state.typed));
+    state.tokens = tokensOf(encode(state.typed, READING));
     /* a space typed after the last word is on the line too, as the
        pad's word space is: the caret moves past it, and ⌫ visibly
        takes it back */
@@ -61,7 +62,7 @@ export function createTyping({ state, sound, update, send, soundLetter, playing,
       else for (const ch of k) soundLetter(ENCODE[ch]);
       return retype(state.typed + (state.typed && !state.typed.endsWith(" ") ? " " : "") + k);
     }
-    const code = ENCODE[k];
+    const code = codeOf(k);
     if (!code) return;
     state.record("type", { char: k });
     sound.unlock();
@@ -71,7 +72,7 @@ export function createTyping({ state, sound, update, send, soundLetter, playing,
   }
 
   /* the on-screen keyboard: js/tx/keyboard.js */
-  const { openHold } = createKeyboard({ typeKey });
+  const { openHold, redrawKeys } = createKeyboard({ typeKey });
 
   /* a computer keyboard: letters, digits, the symbols Morse has */
   document.addEventListener("keydown", event => {
@@ -95,5 +96,5 @@ export function createTyping({ state, sound, update, send, soundLetter, playing,
     typeKey(k);
   });
 
-  return { setTyped, retype, openHold };
+  return { setTyped, retype, openHold, redrawKeys };
 }

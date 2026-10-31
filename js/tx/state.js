@@ -43,7 +43,7 @@
  * this device, stored as Morse in the URL's canonical form
  * (lossless: prosigns and codes with no letter survive).
  */
-import { format, namesOf, READING } from "../morse.js";
+import { format, namesFor, READING } from "../morse.js";
 
 const HISTORY_KEY = "dot-dash:tx-history";
 const LINE_KEY = "dot-dash:tx-line";
@@ -79,14 +79,16 @@ export function tookFor(toks, rec = []) {
  * History entries: plain Morse, or { m: Morse, t: recording,
  * r: reading }. The reading is the one it was sent with, kept so
  * the tape doesn't change under it when the tray does: "p" prosigns,
- * "c" cut, "pc" both; none (or an entry from before) is plain.
+ * "c" cut, "pc" both; none (or an entry from before) is plain. And
+ * n: the text as typed, when it holds cut digits (morse.js namesFor).
  */
 export const morseOf = e => (typeof e === "string" ? e : e.m);
 export const recOfEntry = e => (typeof e === "string" ? [] : e.t ?? []);
 export const readingOf = e => {
   const r = typeof e === "string" ? "" : e.r ?? "";
-  return { pro: r.includes("p"), cut: r.includes("c") };
+  return { pro: r.includes("p"), cut: r.includes("c"), typed: typedOf(e) };
 };
+export const typedOf = e => e?.n?.split(" ") ?? null;
 const readingCode = ({ pro, cut }) => (pro ? "p" : "") + (cut ? "c" : "");
 
 /* tokens → { done: finished words, word: letters of the word in
@@ -131,7 +133,7 @@ export function tokensOf(words) {
 /* words as plain text (as the reading reads them), or null if it
    isn't cleanly typeable */
 export function plainText(words, reading = READING) {
-  const names = words.map(w => namesOf(w, reading));
+  const names = namesFor(words, reading);
   if (names.flat().some(n => !n || (n.length > 1 && !n.startsWith("<")))) return null;   // a prosign, <SK>, is one letter
   return names.map(w => w.join("")).join(" ");
 }
@@ -202,7 +204,7 @@ export function createState() {
       if (!words.length) return null;
       const rec = recOf(this.tokens, this.took), r = readingCode(READING);
       if (!rec.length && !r) return format(words);
-      return { m: format(words), ...(rec.length && { t: rec }), ...(r && { r }) };
+      return { m: format(words), ...(rec.length && { t: rec }), ...(r && { r }), ...(READING.typed && { n: READING.typed.join(" ") }) };
     },
 
     addToHistory(entry) {

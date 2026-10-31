@@ -128,9 +128,17 @@ export function decode(words) {
  *              as a contest exchange: 5NN is 599, 1TT is 100, and
  *              TEN stays TEN
  *
- * A reading is { pro, cut } (both off: the tree's own characters).
- * READING is the one being written now (the tray keeps it); a sent
- * message keeps the one it went with (tx/state.js readingOf).
+ * That guess is for what's keyed. What's typed needs none, we know
+ * which key it was: with cut on, a digit goes out cut and a letter
+ * stays a letter, in any word. The marks can't tell 9 from N, so the
+ * text comes along (typed, below):
+ *
+ *   typed  A 9        sent  .- -.        read  A 9
+ *
+ * A reading is { pro, cut, typed } (off: the tree's own characters;
+ * typed: the words as typed, if they hold cut digits). READING is the
+ * one being written now (the tray keeps it); a sent message keeps the
+ * one it went with (tx/state.js readingOf).
  */
 
 export const SHARED = {
@@ -150,13 +158,28 @@ export function namesOf(word, { pro = false, cut = false } = READING) {
     (pro && SHARED[code]) || (numbers && CUT[code]) || (DECODE[code] ?? null));
 }
 
+/* a whole message's characters, word by word: as typed, where that's
+   what these marks came from, and otherwise as namesOf reads them */
+export function namesFor(words, reading = READING) {
+  return words.map((word, w) => {
+    const typed = reading.typed?.[w]?.match(LETTERS) ?? [];
+    if (typed.length !== word.length || typed.some((ch, i) => codeOf(ch, { cut: true }) !== word[i])) return namesOf(word, reading);
+    return namesOf(word, { ...reading, cut: false }).map((name, i) => (/\d/.test(typed[i]) ? typed[i] : name));
+  });
+}
+
+/* a character's code, as the reading sends it (a digit may go cut) */
+export const codeOf = (ch, { cut = false } = READING) => (cut && CUT_OF[ch]) || ENCODE[ch];
+
 /* a prosign is written in its brackets, <SK>, one letter */
-export function encode(text) {
+const LETTERS = /<[A-Z]+>|./g;
+
+export function encode(text, reading = PLAIN) {
   return text
     .toUpperCase()
     .trim()
     .split(/\s+/)
-    .map(word => (word.match(/<[A-Z]+>|./g) ?? []).map(char => ENCODE[char]).filter(Boolean))
+    .map(word => (word.match(LETTERS) ?? []).map(char => codeOf(char, reading)).filter(Boolean))
     .filter(word => word.length);
 }
 
@@ -279,6 +302,7 @@ export const CUT = {
   "...-": "3", "-...": "7",
   "....-": "4", "-....": "6"
 };
+const CUT_OF = Object.fromEntries(Object.entries(CUT).map(([code, digit]) => [digit, code]));
 
 
 /*

@@ -1,6 +1,7 @@
 /*
  * The popup layer: the privacy (i), the misheard ~, cut numbers, the
- * about card, the timing train's note, an output's list (long-press);
+ * about card, the timing train's note, the notes on the tray's
+ * checkboxes, an output's list (long-press);
  * a tap outside a popup, which only closes it; and Escape, which
  * closes whatever is on top.
  *
@@ -12,7 +13,19 @@
  */
 import { DECODE, ENCODE, CUT, NAME_CODE } from "../morse.js";
 import { aboutHref } from "./about.js";
-import { $, nearest } from "./dom.js";
+import { $, el, nearest } from "./dom.js";
+import { timingNow } from "./keys.js";
+
+/* what each checkbox does, a tap on its word ("suggest" has its own
+   note, with the speed set now: #suggest-pop) */
+const FLAG_NOTES = {
+  ctrl: ["Ctrl keys as paddles", "The left Ctrl key is dit, the right one dah, for a VBand USB paddle adapter.", "Off, Ctrl stays free for shortcuts, like Ctrl+Z."],
+  pro: ["prosigns", "Prosigns, not symbols: <AR> <BT> <KN> <AS> read as themselves, not + = ( &.", "Keyed as one letter, a prosign does its job: AR, BT, SK, BK and CL return (↵), and HH erases a word."],
+  cut: ["cut numbers", "Keying, in a word with a digit, T A U V E B D N read 0 1 2 3 5 7 8 9, so 5NN is 599.", "Typing, the 123 keys send their digits cut, and letters stay letters.", "A link only carries the marks, so its cut digits read as letters."],
+  pretty: ["pretty play", "Plays back in textbook timing, every gap even.", "Off, it plays as you keyed it, every long dah and rushed gap."],
+  color: ["color", "Dits in red, dahs in blue. Off, they're one colour. It goes for the reference page too."],
+  invert: ["invert", "The light theme: dark on paper. It goes for the reference page too."]
+};
 
 export function createLayer({
   state, about, update, clearCurrent, putKeysAway, isChord, openHold, menu, openShare, hideBubble,
@@ -177,6 +190,32 @@ export function createLayer({
   $("#train").addEventListener("click", () => openTrain(true));
   $("#train-pop .close").addEventListener("click", () => openTrain(false));
 
+  /* "suggest" in the tray, tapped: the chips, and how long a timed
+     keyer's words stay (until the word space, at the speed set now) */
+  function openSuggest(open) {
+    $("#suggest-pop").hidden = !open;
+    $("#suggest-info").setAttribute("aria-expanded", String(open));
+    if (!open) return;
+    const wpm = $("#opt-wpm").value, fwpm = $("#opt-fwpm").value;
+    const s = (timingNow().wordAt / 1000).toFixed(1);
+    $("#suggest-now").textContent = `Now, at ${wpm} wpm${fwpm !== wpm ? `, farns. ${fwpm}` : ""}: about ${s} s after your last mark.`;
+    $("#suggest-pop .close").focus({ preventScroll: true });
+  }
+  $("#suggest-info").addEventListener("click", () => openSuggest(true));
+  $("#suggest-pop .close").addEventListener("click", () => openSuggest(false));
+
+  /* a checkbox's word, tapped: what it does */
+  function openFlag(name) {
+    $("#flag-pop").hidden = !name;
+    if (!name) return;
+    const [title, ...note] = FLAG_NOTES[name];
+    $("#flag-title").textContent = title;
+    $("#flag-note").replaceChildren(...note.map(t => el("p", "", t)));
+    $("#flag-pop .close").focus({ preventScroll: true });
+  }
+  for (const b of document.querySelectorAll(".flag-word[data-note]")) b.addEventListener("click", () => openFlag(b.dataset.note));
+  $("#flag-pop .close").addEventListener("click", () => openFlag(null));
+
   /* (i) in the tree column: the character's card, here; the full page
      is a link in it. The card's code (js/overview.js) loads the first
      time it's opened */
@@ -268,7 +307,7 @@ export function createLayer({
     };
     window.addEventListener("pointerdown", event => {
       stopEating();              // a new tap: whatever the last one left behind goes
-      const privacy = $("#privacy-pop"), heard = $("#heard-pop"), hold = $("#hold-pop"), about = $("#about-pop"), train = $("#train-pop"), cut = $("#cut-pop"), report = $("#report-pop");
+      const privacy = $("#privacy-pop"), heard = $("#heard-pop"), hold = $("#hold-pop"), about = $("#about-pop"), train = $("#train-pop"), suggest = $("#suggest-pop"), flag = $("#flag-pop"), cut = $("#cut-pop"), report = $("#report-pop");
       let closed = false;
       const farns = $("#farns-pop");
       if (!report.hidden) { if (!report.contains(event.target)) { $("#report-cancel").click(); closed = true; } }
@@ -277,6 +316,8 @@ export function createLayer({
       else if (!hold.hidden) { if (!hold.contains(event.target)) { openHold(false); closed = true; } }
       else if (!heard.hidden) { if (!heard.contains(event.target)) { openHeard(false); closed = true; } }
       else if (!train.hidden) { if (!train.contains(event.target)) { openTrain(false); closed = true; } }
+      else if (!suggest.hidden) { if (!suggest.contains(event.target)) { openSuggest(false); closed = true; } }
+      else if (!flag.hidden) { if (!flag.contains(event.target)) { openFlag(null); closed = true; } }
       else if (!cut.hidden) { if (!cut.contains(event.target)) { openCut(null); closed = true; } }
       else if (list) { if (!list.contains(event.target)) { closeList(); closed = true; } }
       else if (!privacy.hidden && !privacy.contains(event.target)) { openPrivacy(false); closed = true; }
@@ -313,6 +354,8 @@ export function createLayer({
     else if (open("#privacy-pop")) openPrivacy(false);
     else if (open("#heard-pop")) openHeard(false);
     else if (open("#train-pop")) openTrain(false);
+    else if (open("#suggest-pop")) openSuggest(false);
+    else if (open("#flag-pop")) openFlag(null);
     else if (open("#cut-pop")) openCut(null);
     else if (list) closeList();
     else if (open("#hold-pop")) openHold(false);

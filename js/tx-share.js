@@ -17,7 +17,7 @@
  * first time one is saved.
  */
 
-import { encode, parse, readLink, format, pretty, namesOf, READING } from "./morse.js";
+import { encode, parse, readLink, format, pretty, namesFor, READING } from "./morse.js";
 
 
 /* ---------- in ---------- */
@@ -56,7 +56,7 @@ export const morseText = words => pretty(words);
 
 /* as the reading reads it (morse.js READING: the tray's prosigns, cut) */
 export function plainText(words, reading = READING) {
-  return words.map(w => namesOf(w, reading).map(n => n ?? "�").join("")).join(" ");
+  return namesFor(words, reading).map(w => w.map(n => n ?? "�").join("")).join(" ");
 }
 
 export function linkTo(words, origin = location.origin) {

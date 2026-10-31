@@ -79,6 +79,7 @@
       <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-light" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.8"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></symbol>
       <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-vibrate" viewBox="0 0 24 24"><path d="M3 7.5c3-2.6 6 2.6 9 0s6 2.6 9 0M3 12c3-2.6 6 2.6 9 0s6 2.6 9 0M3 16.5c3-2.6 6 2.6 9 0s6 2.6 9 0"/></symbol>
       <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-chev" viewBox="0 0 24 24"><path d="M6 14.5 12 8.5l6 6"/></symbol>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="6.6"/><path d="M12 2.6v2.8M12 18.6v2.8M2.6 12h2.8M18.6 12h2.8M5.4 5.4l2 2M16.6 16.6l2 2M18.6 5.4l-2 2M7.4 16.6l-2 2"/></symbol>
       <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3.2"/><path d="M6.4 18.6c1.3-2.2 3.3-3.4 5.6-3.4s4.3 1.2 5.6 3.4"/></symbol>
       <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-x" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
       <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-in" viewBox="0 0 24 24"><path d="M4 7l5 5-5 5M20 7l-5 5 5 5"/></symbol>
@@ -318,6 +319,34 @@
   </section>
 
   <!-- Farnsworth, explained (a tap on "farns." under its slider) -->
+  <!-- "suggest" in the tray, tapped: what the chips are, and why a
+       timed keyer's words go when the word space comes (farnsworth) -->
+  <section id="suggest-pop" class="popup" role="dialog" aria-labelledby="suggest-title" hidden>
+    <span class="frame-label" id="suggest-title">suggest</span>
+    <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+    <p>Chips beside settings finish what you've started:
+    <b>letters</b> the one you're keying could still become, then
+    <b>words</b>, then <b>prosigns</b> (with prosigns on). A tap
+    keys it.</p>
+    <p>Keying with timing (straight, bug, a paddle), the words last
+    until the word space: the pause that ends the word. So the
+    faster the spacing, the sooner they go.</p>
+    <p>Farnsworth sets that spacing. Keep the letters fast and bring
+    <b>farns.</b> down, and the pause grows: more time to pick a word,
+    and more time to think while you learn the rhythm.</p>
+    <p class="suggest-now" id="suggest-now"></p>
+    <p>Tap keying waits for you, so they stay until you go on.</p>
+    <p>They help, but they work against practice: leave them off to
+    learn.</p>
+  </section>
+
+  <!-- a checkbox's word, tapped: what it does (js/tx/layer.js FLAG_NOTES) -->
+  <section id="flag-pop" class="popup" role="dialog" aria-labelledby="flag-title" hidden>
+    <span class="frame-label" id="flag-title"></span>
+    <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+    <div id="flag-note"></div>
+  </section>
+
   <section id="farns-pop" class="popup" role="dialog" aria-labelledby="farns-title" hidden>
     <span class="frame-label" id="farns-title">farnsworth</span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
@@ -378,22 +407,25 @@
     <!--
       under the player, in thumb's reach:
 
-        ⌃ settings              ♪ ☼ ≋ │ [.-] ⇄ [A]
+        ⌃ settings  ░[QTH] [QSL] [QSO]░  ♪ ☼ ≋ [.-] ⇄ [A]
 
-      the outputs sit by the settings they grey out; the input mode
-      (key Morse / type text) right above the pad or keyboard it swaps
+      the suggestions in the middle, on the edge of a dial (they turn
+      sideways, never taller); the outputs sit by the settings they
+      grey out; the input mode (key Morse / type text) right above the
+      pad or keyboard it swaps
     -->
     <div class="control-row">
-      <button type="button" id="tray-toggle" class="tray-toggle" aria-expanded="false" aria-controls="tray">
-        <svg class="ico chev" aria-hidden="true"><use href="#i-chev"/></svg> settings
+      <button type="button" id="tray-toggle" class="tray-toggle" aria-expanded="false" aria-controls="tray" aria-label="settings">
+        <svg class="ico chev" aria-hidden="true"><use href="#i-chev"/></svg> <svg class="ico gear" aria-hidden="true"><use href="#i-gear"/></svg><span class="word">settings</span>
       </button>
+      <!-- suggestions (js/tx/suggest.js): a tap keys it -->
+      <div id="chips" class="chips" aria-label="suggestions"></div>
       <div class="actions">
         <span class="outputs" role="group" aria-label="outputs">
           <button type="button" data-out="sound" aria-pressed="true" title="sound"><svg class="ico" aria-hidden="true"><use href="#i-sound"/></svg></button>
           <button type="button" data-out="light" aria-pressed="false" title="light"><svg class="ico" aria-hidden="true"><use href="#i-light"/></svg></button>
           <button type="button" data-out="vibrate" aria-pressed="false" title="vibration"><svg class="ico" aria-hidden="true"><use href="#i-vibrate"/></svg></button>
         </span>
-        <span class="divider" aria-hidden="true">│</span>
         <!-- the input modes: one switch, a press anywhere on it flips
              (hold the .- side for the list of keys) -->
         <button type="button" class="input-mode" aria-label="keying Morse: switch to typing" title="key Morse ⇄ type text">
@@ -422,9 +454,9 @@
     -->
     <section id="tray" class="tray" hidden>
       <!--
-        what first, then how much: the choices across the top, the
-        faders under them; the look (color, invert) in a column at the
-        right. A setting whose output is off is greyed; touching it
+        what first, then how much: the lists across the top, the
+        faders under them, the checkboxes in a column at the right
+        (phones: a row of their own, under the lists). A setting whose output is off is greyed; touching it
         switches that output on. The light level is never greyed: the
         lamp (the glow round the message while the key is down) is
         always on, and the level dims it.
@@ -443,10 +475,6 @@
             <option value="ultimatic">ultimatic</option>
             <option value="text">text</option>
           </select>
-        </label>
-        <!-- Ctrl keys as paddles (a VBand USB adapter); not on touch screens -->
-        <label class="flag ctrl-flag" title="left / right Ctrl key dit / dah, for a VBand USB paddle adapter (off: Ctrl stays free for shortcuts)">ctrl
-          <span class="check"><input type="checkbox" id="opt-ctrl"></span>
         </label>
         <label data-needs="sound">sound
           <select id="opt-sound">
@@ -475,24 +503,39 @@
         </label>
       </div>
 
-      <!-- the look, in a column of its own: red / blue marks, and the
-           light (inverted) theme. Both shared with the reference page. -->
+      <!-- the checkboxes, one order everywhere: how it's keyed, how it
+           reads, how it plays, how it looks (color and invert are shared
+           with the reference page). The box switches; the word, dotted
+           like a term to look up, says what it does (#flag-pop, #suggest-pop) -->
       <div class="flags">
-        <label class="flag">color
-          <span class="check"><input type="checkbox" id="opt-color" checked></span>
-        </label>
-        <label class="flag">invert
-          <span class="check"><input type="checkbox" id="opt-theme"></span>
-        </label>
-        <label class="flag" title="play back in textbook timing, not as it was keyed">pretty <br>play
-          <span class="check"><input type="checkbox" id="opt-pretty"></span>
-        </label>
-        <label class="flag" title="prosigns, not symbols: <AR> <BT> <KN> <AS> for + = ( &amp;; and keyed as one letter, a prosign does its job: AR, BT, SK, BK and CL return (↵), HH erases a word"><span>pro<span class="hy">-</span><br>signs</span>
-          <span class="check"><input type="checkbox" id="opt-prosigns" checked></span>
-        </label>
-        <label class="flag" title="cut numbers: in a word with a digit, T A U V E B D N read 0 1 2 3 5 7 8 9 (5NN: 599)">cut
-          <span class="check"><input type="checkbox" id="opt-cut"></span>
-        </label>
+        <span class="flag">
+          <label class="check"><input type="checkbox" id="opt-ctrl" aria-label="Ctrl keys as paddles"></label>
+          <button type="button" class="flag-word" data-note="ctrl" aria-haspopup="dialog" aria-controls="flag-pop" title="what's ctrl?">ctrl</button>
+        </span>
+        <span class="flag">
+          <label class="check"><input type="checkbox" id="opt-suggest" checked aria-label="suggestions"></label>
+          <button type="button" id="suggest-info" class="flag-word" aria-haspopup="dialog" aria-controls="suggest-pop" title="what the suggestions are, and how long they stay">suggest</button>
+        </span>
+        <span class="flag">
+          <label class="check"><input type="checkbox" id="opt-prosigns" checked aria-label="prosigns"></label>
+          <button type="button" class="flag-word" data-note="pro" aria-haspopup="dialog" aria-controls="flag-pop" title="what's pro?">pro</button>
+        </span>
+        <span class="flag">
+          <label class="check"><input type="checkbox" id="opt-cut" aria-label="cut numbers"></label>
+          <button type="button" class="flag-word" data-note="cut" aria-haspopup="dialog" aria-controls="flag-pop" title="what's cut?">cut</button>
+        </span>
+        <span class="flag">
+          <label class="check"><input type="checkbox" id="opt-pretty" aria-label="pretty play"></label>
+          <button type="button" class="flag-word" data-note="pretty" aria-haspopup="dialog" aria-controls="flag-pop" title="what's pretty?">pretty</button>
+        </span>
+        <span class="flag">
+          <label class="check"><input type="checkbox" id="opt-color" checked aria-label="color"></label>
+          <button type="button" class="flag-word" data-note="color" aria-haspopup="dialog" aria-controls="flag-pop" title="what's color?">color</button>
+        </span>
+        <span class="flag">
+          <label class="check"><input type="checkbox" id="opt-theme" aria-label="invert"></label>
+          <button type="button" class="flag-word" data-note="invert" aria-haspopup="dialog" aria-controls="flag-pop" title="what's invert?">invert</button>
+        </span>
       </div>
 
       <div class="faders">

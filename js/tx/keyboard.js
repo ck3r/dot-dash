@@ -8,9 +8,9 @@
  * little forgiveness for fingers, and the "hold for more" popup.
  * What a key types is up to the station: typeKey(k).
  *
- *   createKeyboard({ typeKey }) → { openHold }
+ *   createKeyboard({ typeKey }) → { openHold, redrawKeys }
  */
-import { DECODE, ENCODE } from "../morse.js";
+import { DECODE, ENCODE, codeOf } from "../morse.js";
 import { $, el, nearest } from "./dom.js";
 
 export function createKeyboard({ typeKey }) {
@@ -43,7 +43,7 @@ export function createKeyboard({ typeKey }) {
    *   prosigns (as everywhere: <AR>)     Q codes
    *   <AR> <BT> <KN> <AS> <SK>           QTH QSL QSO QRZ QRT
    *   <BK> <CL> <KA> <SN> <AA>           QRS QRQ QRM QRN QRP
-   *   <SOS>                 ⌫            QRX QSY QRL QRV  ⌫
+   *              <SOS>  ⌫            QRX QSY QRL QRV  ⌫
    *
    * As on a phone's own keyboard: ⌫ over ↵ at the right, where the
    * Morse pad has them too (at the bottom of its side keys); the
@@ -80,7 +80,7 @@ export function createKeyboard({ typeKey }) {
     pro: [
       { start: 1, span: 4, keys: PRO.slice(0, 5) },
       { start: 1, span: 4, keys: PRO.slice(5, 10) },
-      { start: 2, span: 4, keys: PRO.slice(10), extra: BACK },
+      { start: 14, span: 4, keys: PRO.slice(10), extra: BACK },   // <SOS> against ⌫
       { start: 1, keys: [], extra: BOTTOM }
     ],
     q: [
@@ -109,9 +109,10 @@ export function createKeyboard({ typeKey }) {
   };
   for (const list of Object.values(EXTRAS)) list.sort((a, b) => treeOrder(a) - treeOrder(b));
 
-  /* a key's code, over its name (a Q code: its letters', spaced) */
+  /* a key's code, over its name (a Q code: its letters', spaced; with
+     cut on, a digit's is its cut) */
   function codeMarks(ch) {
-    const code = /^Q[A-Z]{2}$/.test(ch) ? [...ch].map(c => ENCODE[c]).join(" ") : ENCODE[ch];
+    const code = /^Q[A-Z]{2}$/.test(ch) ? [...ch].map(c => ENCODE[c]).join(" ") : codeOf(ch);
     const small = el("small");
     small.style.setProperty("--len", code.length);   // lets the CSS size it to the key
     for (const m of code) small.append(m === " " ? " " : el("span", m === "." ? "dot" : "dash", m));
@@ -312,5 +313,5 @@ export function createKeyboard({ typeKey }) {
   $("#kbd").addEventListener("pointercancel", event => release(event, false));
   $("#kbd").addEventListener("contextmenu", event => event.preventDefault());
 
-  return { openHold };
+  return { openHold, redrawKeys: buildKeyboard };
 }

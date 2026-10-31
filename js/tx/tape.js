@@ -12,8 +12,8 @@
  *     clearCurrent()     the message on the board: gone
  *   }
  */
-import { parse, namesOf, READING } from "../morse.js";
-import { morseOf, recOfEntry, readingOf, structure, wordsOf, tokensOf, tookFor, plainText } from "./state.js";
+import { parse, namesOf, namesFor, READING } from "../morse.js";
+import { morseOf, recOfEntry, readingOf, typedOf, structure, wordsOf, tokensOf, tookFor, plainText } from "./state.js";
 import { $, el, icon, toast, flash } from "./dom.js";
 import * as share from "../tx-share.js";
 
@@ -45,13 +45,14 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) 
      reading: the tray's now, or the one a sent message went with */
   function line(words, { path = "", slash = false, caret = false, key = "", reading = READING } = {}) {
     const box = el("span", "line");
+    const read = namesFor(words, reading);
     words.forEach((word, w) => {
       if (w) box.append(el("span", "slash", "/"));
       const wEl = el("span", "w");
       wEl.dataset.word = `${key}:${w}`;
       if (shownWords.has(wEl.dataset.word)) wEl.classList.add("shown");
       const keying = w === words.length - 1 && path;
-      const names = namesOf(keying ? [...word, path] : word, reading);
+      const names = keying ? namesOf([...word, path], reading) : read[w];
       word.forEach((code, i) => wEl.append(letter(code, names[i])));
       if (keying) wEl.append(letter(path, names.at(-1), true));
       box.append(wEl);
@@ -481,6 +482,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) 
     resetKeyer();
     state.tokens = tokensOf(parse(morseOf(state.history[i])));
     state.took = tookFor(state.tokens, recOfEntry(state.history[i]));
+    READING.typed = typedOf(state.history[i]);
     setTyped(plainText(wordsOf(state.tokens)) ?? "");
     update();
   }

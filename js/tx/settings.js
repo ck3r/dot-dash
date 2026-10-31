@@ -42,15 +42,14 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
    * The lists over their sliders: key centred over speed, sound over
    * vol, wave over pitch, light from the light column. Where two would
    * touch, both give way a little (keeping a gap), the rest stay put.
-   * Phones (two rows, tx.css) skip this.
+   * Phones (all four in one even row, tx.css) skip this.
    */
   const SWITCH_GAP = 8;
   const narrowTray = matchMedia("(max-width: 480px)");
 
   function placeSwitches() {
     const row = $(".switches");
-    const all = ["#opt-key", "#opt-ctrl", "#opt-sound", "#opt-wave", "#opt-light"].map(id => $(id).closest("label"))
-      .filter(l => l.closest(".switches"));        // ctrl may be in the checkbox column
+    const all = ["#opt-key", "#opt-sound", "#opt-wave", "#opt-light"].map(id => $(id).closest("label"));
     if (narrowTray.matches) {
       row.classList.remove("placed");
       row.style.height = "";
@@ -61,20 +60,18 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
     row.classList.add("placed");
     const base = row.getBoundingClientRect().left;
     const mid = id => { const b = $(id).getBoundingClientRect(); return b.left + b.width / 2 - base; };
-    /* key from the left edge, ctrl (when shown) right beside it */
-    const labels = all.filter(l => getComputedStyle(l).display !== "none");
+    const labels = all;
     const w = labels.map(l => l.offsetWidth);
     const ideal = {
       "opt-key": () => 0,
-      "opt-ctrl": () => 0,                       // pushed along by key below
       "opt-sound": l => mid("#opt-vol") - l.offsetWidth / 2,
       "opt-wave": l => mid("#opt-hz") - l.offsetWidth / 2,
       "opt-light": () => $("#opt-glow").closest(".group").getBoundingClientRect().left - base
     };
     const x = labels.map(l => ideal[l.querySelector("select, input").id](l));
-    /* the far edge: the tray's (light may run over the empty top of
-       the color / invert column) */
-    const end = $("#tray").getBoundingClientRect().right - base;
+    /* the far edge: the row's own, the checkbox column runs the
+       tray's whole height beside it */
+    const end = row.getBoundingClientRect().width;
     /* settle: two too close share the nudge, half each, so every
        list stays as near its slider as it can; and all stay in the row */
     for (let round = 0; round < 24; round++) {
@@ -97,8 +94,6 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
     row.style.height = Math.max(...labels.map(l => l.offsetHeight)) + "px";
   }
 
-  /* (ctrl, keys as paddles, sits beside key on every screen: tx.css) */
-
   new ResizeObserver(() => placeSwitches()).observe($("#tray"));
   narrowTray.addEventListener("change", placeSwitches);
   document.fonts?.ready.then(placeSwitches);
@@ -111,7 +106,7 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
   let trayClosedAt = -Infinity;
   document.addEventListener("pointerdown", event => {
     if ($("#tray").hidden) return;
-    if (event.target.closest("#tray, #tray-toggle, .player, .outputs, #report-pop, #farns-pop")) return;
+    if (event.target.closest("#tray, #tray-toggle, .player, .outputs, #report-pop, #farns-pop, #suggest-pop, #flag-pop")) return;
     openTray(false);
     trayClosedAt = performance.now();
   });
@@ -566,7 +561,7 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
     box.addEventListener("change", () => {
       READING[part] = box.checked;
       try { localStorage.setItem(key, box.checked ? "1" : "0"); } catch { }
-      reread();
+      reread(part);
     });
   }
 

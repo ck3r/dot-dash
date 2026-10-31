@@ -14,7 +14,7 @@
  *     isPlayerActive(), setPlayerActive(on)
  *   }
  */
-import { parse, namesOf, READING } from "../morse.js";
+import { parse, namesFor, READING } from "../morse.js";
 import { createPlayer, timeline } from "../tx-player.js";
 import { createTrace } from "../tx-trace.js";
 import { flashRate } from "../tx-outputs.js";
@@ -46,7 +46,7 @@ export function createPlayback({
     return entry === "current" ? READING : readingOf(state.history[entry]);
   }
   const lineOf = (words, rec) => sound.speaks
-    ? voiceTimeline(words, words.map(w => namesOf(w, readingNow())))
+    ? voiceTimeline(words, namesFor(words, readingNow()))
     : timeline(words, timingNow(), rec);
 
   const player = createPlayer({
@@ -131,7 +131,7 @@ export function createPlayback({
     if (!p) return trace.line({ marks: [], letters: [], duration: 0 });
     const line = lineOf(p.words, p.rec);
     /* each letter as its message reads it (the tray's now, or as sent) */
-    const names = p.words.flatMap(w => namesOf(w, readingNow()));
+    const names = namesFor(p.words, readingNow()).flat();
     line.letters.forEach((l, i) => { l.label = names[i]?.replace(/^<(.*)>$/, "$1") ?? "?"; });
     trace.line(line);
   }
