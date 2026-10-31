@@ -14,13 +14,14 @@
  *     isPlayerActive(), setPlayerActive(on)
  *   }
  */
-import { DECODE, parse } from "../morse.js";
+import { parse, namesOf, READING } from "../morse.js";
 import { createPlayer, timeline } from "../tx-player.js";
 import { createTrace } from "../tx-trace.js";
 import { flashRate } from "../tx-outputs.js";
-import { morseOf, recOf, recOfEntry, wordsOf } from "./state.js";
+import { morseOf, recOf, recOfEntry, readingOf, wordsOf } from "./state.js";
 import { $, icon, toast } from "./dom.js";
 import { createMediaControls } from "./media.js";
+import { voiceTimeline } from "./voice.js";
 
 export function createPlayback({
   state, sound, keyer, tree, trainView, tab, timingNow, speedNote, choice, cancelTaps, setSignal,
@@ -38,9 +39,19 @@ export function createPlayback({
    * Keying anything stops it: the message has changed.
    */
 
+  /* the timeline: the Morse's, or with the voice on, the speech's
+     (its own fixed pace: js/tx/voice.js) */
+  function readingNow() {
+    const entry = playable()?.entry ?? "current";
+    return entry === "current" ? READING : readingOf(state.history[entry]);
+  }
+  const lineOf = (words, rec) => sound.speaks
+    ? voiceTimeline(words, words.map(w => namesOf(w, readingNow())))
+    : timeline(words, timingNow(), rec);
+
   const player = createPlayer({
     sound,
-    timing: timingNow,
+    lineOf,
     frame: showPlayback,
     end: playbackEnded,
     rounds: () => ROUNDS[repeatMode],
@@ -118,8 +129,10 @@ export function createPlayback({
     const idle = state.playKey === null && !wordsOf(state.tokens).length;
     const p = idle ? null : playable();
     if (!p) return trace.line({ marks: [], letters: [], duration: 0 });
-    const line = timeline(p.words, timingNow(), p.rec);
-    for (const l of line.letters) l.label = DECODE[l.code]?.replace(/^<(.*)>$/, "$1") ?? "?";
+    const line = lineOf(p.words, p.rec);
+    /* each letter as its message reads it (the tray's now, or as sent) */
+    const names = p.words.flatMap(w => namesOf(w, readingNow()));
+    line.letters.forEach((l, i) => { l.label = names[i]?.replace(/^<(.*)>$/, "$1") ?? "?"; });
     trace.line(line);
   }
 
@@ -148,7 +161,7 @@ export function createPlayback({
     /* nothing loaded yet: show the length of what would play */
     if (state.playKey === null && !player.playing) {
       const p = playable();
-      const d = p ? timeline(p.words, timingNow(), p.rec).duration : 0;
+      const d = p ? lineOf(p.words, p.rec).duration : 0;
       $("#seek").max = Math.round(d);
       $("#seek").value = 0;
       refreshTrace();
@@ -170,6 +183,8 @@ export function createPlayback({
     return true;
   }
 
+  let fetchingVoice = false;
+
   function togglePlay() {
     sound.unlock();
     if (player.playing) {
@@ -177,9 +192,17 @@ export function createPlayback({
       setSignal(false);     // like lifting off the key: the lamp, screen and flashlight go dark
     } else {
       if (!load()) return;
+      /* the voice isn't here yet: play once it is */
+      if (sound.speaks && !sound.voiceLoaded) {
+        if (fetchingVoice) return;
+        fetchingVoice = true;
+        sound.voiceReady().then(togglePlay, () => toast("couldn't load the voice"))
+          .finally(() => { fetchingVoice = false; });
+        return;
+      }
       if (wantsLamp() && $("#lamp").hidden) {
         const go = () => { openLamp(playable().words); togglePlay(); };
-        const rate = flashRate(timeline(playable().words, timingNow(), playable().rec));
+        const rate = flashRate(lineOf(playable().words, playable().rec));
         if (!lampOk(rate)) return askLamp(rate, go);
         return go();
       }
@@ -394,7 +417,7 @@ export function createPlayback({
   function stops(byWord) {
     const p = playable();
     if (!p) return [];
-    const { letters } = timeline(p.words, timingNow(), p.rec);
+    const { letters } = lineOf(p.words, p.rec);
     if (!byWord) return letters.map(l => l.start);
     const out = [];
     let i = 0;
@@ -501,6 +524,7 @@ export function createPlayback({
     if (!player.playing) showPlayback(player.stateAt(player.position));
   }
   for (const id of ["#opt-wpm", "#opt-fwpm"]) $(id).addEventListener("input", retimed);
+  $("#opt-sound").addEventListener("change", retimed);   // to or from the voice's own timeline
   /* the flashlight on or off changes the speed playback can go (main.js) */
   $("#opt-light").addEventListener("change", retimed);
   $('[data-out="light"]').addEventListener("click", retimed);

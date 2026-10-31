@@ -3,7 +3,7 @@
  * TX SOUND — the tone and the sounder (Web Audio)
  * ============================================================
  *
- * Two voices, picked in settings:
+ * Three sounds, picked in settings:
  *
  *   tone      a wave at the pitch slider (default 600 Hz): sine
  *             (classic, clean), triangle (brighter) or square (a
@@ -22,6 +22,11 @@
  *             Made from a burst of noise through filters (the
  *             strike) plus a short ring (the wooden body).
  *
+ *   voice     the recordings (js/tx/voice.js). Playback says each
+ *             letter (say) instead of sounding its marks; keying keeps
+ *             the tone, your hand needs it, and letters are said as
+ *             they land (speak).
+ *
  * The audio clock schedules everything, so marks are sample-
  * accurate. Live keying calls key(true/false) now; playback can
  * schedule ahead with mark(delay, length).
@@ -32,6 +37,8 @@
  * Pass { context } (e.g. an OfflineAudioContext) to render to
  * a buffer instead of the speakers.
  */
+
+import { loadVoice, wordPlace, SAY_GAP } from "./tx/voice.js";
 
 const RISE = 0.0015;        // setTargetAtTime constant: ~5 ms to full
 const TONE_LEVEL = 0.5;     // headroom under the master volume
@@ -47,6 +54,9 @@ export function createSound(options = {}) {
   let volume = 0.6;
   let enabled = true;
   let toneOn = false;
+  let speaks = false;          // voice is chosen
+  let recording = null;        // the voice, decoded
+  const saying = new Set();    // what's sounding, or scheduled to
 
   /* volume slider 0..1 → gain, on a curve that sounds even */
   const loudness = v => v * v;
@@ -161,19 +171,56 @@ export function createSound(options = {}) {
     key(false, t + length);
   }
 
+  function hush() {
+    for (const src of saying) { try { src.stop(); } catch { } }
+    saying.clear();
+  }
+
   function silence() {
+    hush();
     if (!ctx || !toneGain) return;
     toneOn = false;
     toneGain.gain.cancelScheduledValues(ctx.currentTime);
     toneGain.gain.setTargetAtTime(0, ctx.currentTime, RISE);
   }
 
+  /* ---------- the voice ---------- */
+
+  const voiceReady = () => loadVoice().then(buffer => { recording = buffer; });
+
+  /* a word, `delay` s from now, less the first `skip` s (a seek landed
+     part-way through it); how long it runs, 0 if it can't */
+  function say(word, delay = 0, skip = 0) {
+    if (!enabled || !recording || !unlock()) return 0;
+    const { offset, length } = wordPlace(word);
+    if (skip >= length) return 0;
+    const src = ctx.createBufferSource();
+    src.buffer = recording;
+    src.connect(master);
+    src.onended = () => saying.delete(src);
+    saying.add(src);
+    src.start(ctx.currentTime + Math.max(0, delay), offset + skip, length - skip);
+    return length - skip;
+  }
+
+  /* these words now, in place of anything being said */
+  function speak(words) {
+    hush();
+    let at = 0;
+    for (const word of words) at += say(word, at) + SAY_GAP;
+  }
+
   /* ---------- settings ---------- */
 
   function setKind(next) {
-    if (next === kind) return;
+    const was = speaks;
+    speaks = next === "voice";
+    if (speaks) voiceReady().catch(() => { });      // said again, and reported, at play
+    else if (was) hush();
+    const sounding = next === "sounder" ? "sounder" : "tone";
+    if (sounding === kind) return;
     silence();
-    kind = next === "sounder" ? "sounder" : "tone";
+    kind = sounding;
   }
 
   function setWave(next) {
@@ -199,9 +246,11 @@ export function createSound(options = {}) {
   }
 
   return {
-    key, mark, silence, unlock,
+    key, mark, silence, unlock, say, speak, voiceReady,
     setKind, setWave, setPitch, setVolume, setEnabled,
     get context() { return ctx; },
-    get enabled() { return enabled; }
+    get enabled() { return enabled; },
+    get speaks() { return speaks; },
+    get voiceLoaded() { return !!recording; }
   };
 }

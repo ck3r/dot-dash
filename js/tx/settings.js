@@ -10,11 +10,14 @@
  *     wantsLamp(), lampOk(rate), askLamp(rate, go), openLamp(words),
  *     closeLamp(), cancelLamp()
  *     torchOn()          the flashlight is the light
- *     start()            load the saved settings and apply them
+ *     start(hash)        load the saved settings and apply them, then
+ *                        a link's, for the visit (true if it had some)
+ *     linkedSettings()   how this sounds, for after a link's "#"
  *   }
  *   choice(select)       a list's real choice, even while it shows "off"
  */
 import * as share from "../tx-share.js";
+import { READING } from "../morse.js";
 import { createOutputs } from "../tx-outputs.js";
 import { $, toast } from "./dom.js";
 
@@ -27,7 +30,7 @@ export function choice(select) {
   return (real.find(o => o.defaultSelected) ?? real[0]).value;   // the list's default
 }
 
-export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, showInput, drawStats, stopPlayback, redrawTrace }) {
+export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, showInput, drawStats, stopPlayback, redrawTrace, reread }) {
   function openTray(open) {
     $("#tray").hidden = !open;
     $("#tray-toggle").setAttribute("aria-expanded", String(open));
@@ -39,10 +42,10 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
    * The lists over their sliders: key centred over speed, sound over
    * vol, wave over pitch, light from the light column. Where two would
    * touch, both give way a little (keeping a gap), the rest stay put.
-   * Narrow phones (two to a row, tx.css) skip this.
+   * Phones (two rows, tx.css) skip this.
    */
   const SWITCH_GAP = 8;
-  const narrowTray = matchMedia("(max-width: 384px)");
+  const narrowTray = matchMedia("(max-width: 480px)");
 
   function placeSwitches() {
     const row = $(".switches");
@@ -108,7 +111,7 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
   let trayClosedAt = -Infinity;
   document.addEventListener("pointerdown", event => {
     if ($("#tray").hidden) return;
-    if (event.target.closest("#tray, #tray-toggle, .player, .outputs, #report-pop")) return;
+    if (event.target.closest("#tray, #tray-toggle, .player, .outputs, #report-pop, #farns-pop")) return;
     openTray(false);
     trayClosedAt = performance.now();
   });
@@ -122,6 +125,7 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
   function saveSettings() {
     const saved = {};
     for (const input of settingInputs()) saved[input.id] = input.id === "opt-key" ? state.keyMode : input.tagName === "SELECT" ? choice(input) : input.value;
+    for (const id in visiting ?? {}) if (id in saved) saved[id] = visiting[id];   // a link's, not kept
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(saved)); } catch { }
   }
 
@@ -138,6 +142,136 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
   }
 
   $("#tray").addEventListener("change", saveSettings);
+
+
+  /*
+   * ============================================================
+   * SETTINGS IN A LINK
+   * ============================================================
+   *
+   * How a message sounds can travel with it, after "#" (which never
+   * reaches a server, so the link's preview stays the same): only
+   * what differs from the defaults, in words.
+   *
+   *   dot-da.sh/?/_...._.._/#wpm20.farns12.hz700.square.pretty
+   *
+   * Farnsworth is said only when it's slower than wpm: left out, it's
+   * the same (#wpm20 is 20 straight through).
+   *
+   * Opened, they're used for that visit only, and a toast offers to
+   * keep them; a setting changed by hand is yours again. What's about
+   * this device (volume, the light, vibration, the key, the theme)
+   * stays out. Later, the same few words can live on a profile.
+   */
+  const LINKED = [
+    { id: "opt-wpm", name: "wpm", say: v => `${v} wpm` },     // a number after its name
+    { id: "opt-fwpm", name: "farns", say: v => `farns. ${v}` },
+    { id: "opt-hz", name: "hz", say: v => `${v} Hz` },
+    { id: "opt-sound" },                                       // the choice's own word (not "off")
+    { id: "opt-wave" },
+    { id: "opt-pretty", name: "pretty", key: "dot-dash:tx-pretty", say: on => on ? "pretty play" : "as keyed" },   // there, or no-pretty
+    { id: "opt-prosigns", name: "prosigns", key: "dot-dash:tx-prosigns", say: on => on ? "prosigns" : "no prosigns", apply: on => { READING.pro = on; } },
+    { id: "opt-cut", name: "cut", key: "dot-dash:tx-cut", say: on => on ? "cut numbers" : "no cut", apply: on => { READING.cut = on; } }
+  ];
+  let visiting = null;     // id → your own value, while a link's is in use
+
+  const defaultOf = select => ([...select.options].find(o => o.defaultSelected) ?? select.options[0]).value;
+  const valueOf = input => input.type === "checkbox" ? input.checked : input.tagName === "SELECT" ? choice(input) : input.value;
+
+  function linkedSettings() {
+    const parts = [];
+    for (const { id, name } of LINKED) {
+      const input = $("#" + id);
+      if (input.type === "checkbox") {
+        if (input.checked !== input.defaultChecked) parts.push(input.checked ? name : "no-" + name);
+      } else if (input.tagName === "SELECT") {
+        if (choice(input) !== defaultOf(input)) parts.push(choice(input));
+      } else if (input.value !== (id === "opt-fwpm" ? $("#opt-wpm").value : input.defaultValue)) parts.push(name + input.value);
+    }
+    return parts.join(".");
+  }
+
+  /* a link's word → [input, value], or null if it isn't one of ours */
+  function readPart(part) {
+    for (const { id, name } of LINKED) {
+      const input = $("#" + id);
+      if (input.type === "checkbox") {
+        if (part === name || part === "no-" + name) return [input, part === name];
+      } else if (input.tagName === "SELECT") {
+        if (part !== "off" && [...input.options].some(o => o.value === part && !o.disabled)) return [input, part];
+      } else {
+        const n = part.startsWith(name) && part.slice(name.length);
+        if (n && /^\d+$/.test(n)) return [input, String(Math.max(Number(input.min), Math.min(Number(input.max), Number(n))))];
+      }
+    }
+    return null;
+  }
+
+  function setValue(input, v) {
+    if (input.type === "checkbox") input.checked = v;
+    else if (input.tagName === "SELECT" && input.value === "off") input.dataset.last = v;   // muted: its choice for later
+    else input.value = v;
+  }
+
+  /* a link's settings, for this visit; what it changed, said in a toast */
+  function visit(hash) {
+    const parts = hash.replace(/^#/, "").split(".").map(p => p.toLowerCase()).filter(Boolean);
+    const read = parts.map(readPart);
+    if (!parts.length || read.some(r => !r)) return false;     // not settings (or not ours)
+    const wpmRead = read.find(([input]) => input.id === "opt-wpm");
+    if (!read.some(([input]) => input.id === "opt-fwpm")) read.push([$("#opt-fwpm"), wpmRead?.[1] ?? $("#opt-wpm").value]);
+    const own = {}, said = [];
+    for (const [input, v] of read) {
+      if (String(valueOf(input)) === String(v)) continue;
+      own[input.id] ??= valueOf(input);
+      setValue(input, v);
+      LINKED.find(l => l.id === input.id).apply?.(v);
+    }
+    /* farnsworth is never faster than wpm */
+    const wpm = $("#opt-wpm"), fwpm = $("#opt-fwpm");
+    if (Number(fwpm.value) > Number(wpm.value)) { own[fwpm.id] ??= fwpm.value; fwpm.value = wpm.value; }
+    for (const id in own) {
+      const input = $("#" + id), out = outputFor(input), l = LINKED.find(l => l.id === id);
+      if (out) out.value = input.value;
+      said.push(l.say ? l.say(valueOf(input)) : valueOf(input));
+    }
+    if (!said.length) return true;
+    visiting = own;
+    toast(`the link's settings: ${said.join(" · ")}`, { ms: 8000, action: ["keep", keepVisit] });
+    return true;
+  }
+
+  function keepVisit() {
+    if (!visiting) return;
+    for (const { id, key } of LINKED) {
+      if (!key || !(id in visiting)) continue;
+      try { localStorage.setItem(key, $("#" + id).checked ? "1" : "0"); } catch { }
+    }
+    visiting = null;
+    saveSettings();
+    toast("kept");
+  }
+
+  /* changed by hand: that one's yours again (before it's saved) */
+  for (const t of ["input", "change"]) {
+    $("#tray").addEventListener(t, event => { if (visiting) delete visiting[event.target.id]; }, true);
+  }
+
+  /* each fader's level, 0 … 1, for its brass fill (tx.css) */
+  const markLevel = input => input.style.setProperty("--p", String((input.value - input.min) / (input.max - input.min)));
+  const markLevels = () => { for (const input of document.querySelectorAll("#tray input[type=range]")) markLevel(input); };
+
+  /* "farns." says what it is: a popup, not the slider (tx.css) */
+  function openFarns(open) {
+    $("#farns-pop").hidden = !open;
+    $("#farns-what").setAttribute("aria-expanded", String(open));
+    if (open) $("#farns-ok").focus({ preventScroll: true });
+  }
+  $("#farns-what").addEventListener("click", event => {
+    event.preventDefault();     // inside the slider's label: not a tap on the slider
+    openFarns(true);
+  });
+  for (const b of ["#farns-ok", "#farns-pop .close"]) $(b).addEventListener("click", () => openFarns(false));
 
   /* the farnsworth track above wpm: out of reach, greyed (tx.css .cap) */
   function markFarnsCap() {
@@ -164,6 +298,7 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
       if (input === wpm && Number(fwpm.value) === wpmWas) fwpm.value = wpm.value;
       if (Number(fwpm.value) > Number(wpm.value)) fwpm.value = wpm.value;
       outputFor(input).value = input.value;
+      markLevel(input);
       wpmWas = Number(wpm.value);
       drawStats();
       /* moved along: as if slid, so what follows it (the timing train,
@@ -276,25 +411,10 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
       saveSettings();
     }
   }
-  let lightBefore = null;
   $("#opt-light").addEventListener("change", () => {
     outputs.quiet();
     if (choice("#opt-light") !== "torch") outputs.releaseTorch();
     wantTorch();
-    /* invert flips the whole screen as you key: ask first, as the
-       signal lamp does (twice if your speed means more than 3 a second) */
-    const was = lightBefore;
-    lightBefore = choice("#opt-light");
-    if ($("#opt-light").value === "invert" && was !== "invert") {
-      const rate = 1000 / (2 * timingNow().unit);    // dits: one flash every two units
-      askLamp(rate, () => { }, {
-        invert: true,
-        cancel: () => {
-          $("#opt-light").value = was ?? "off";
-          $("#opt-light").dispatchEvent(new Event("change", { bubbles: true }));
-        }
-      });
-    }
   });
 
 
@@ -312,15 +432,10 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
     return outputOn("light") && choice("#opt-light") === "signal";
   }
 
-  function askLamp(rate, go, { invert = false, cancel = null } = {}) {
+  function askLamp(rate, go, { cancel = null } = {}) {
     lampPending = { go, cancel, fast: rate > SAFE_RATE, confirmedFast: false };
-    $("#lamp-title").textContent = invert ? "invert" : "signal lamp";
-    $("#lamp-warn .what").textContent = invert
-      ? "Invert flips the whole screen, light for dark, every time the key is down."
-      : "The signal lamp flashes the whole screen with your message.";
     const fast = $("#lamp-warn .fast");
     fast.hidden = true;
-    $("#lamp-go").textContent = invert ? "use it" : "start";
     $("#lamp-warn").hidden = false;
     $("#lamp-go").focus({ preventScroll: true });
     lampPending.rate = rate;
@@ -435,12 +550,23 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
     });
   }
 
-  /* prosigns act (AR returns, HH erases …): remembered, on by default */
-  {
-    const box = $("#opt-prosigns");
-    try { box.checked = localStorage.getItem("dot-dash:tx-prosigns") !== "0"; } catch { }
+  /*
+   * The reading (morse.js READING): prosigns (<AR>, not +; on by
+   * default, and keyed they act: AR returns, HH erases …) and cut
+   * (5NN as 599; off by default). Remembered. A change rereads the
+   * line being written; what's sent keeps the reading it went with.
+   */
+  for (const [id, key, on, part] of [
+    ["#opt-prosigns", "dot-dash:tx-prosigns", true, "pro"],
+    ["#opt-cut", "dot-dash:tx-cut", false, "cut"]
+  ]) {
+    const box = $(id);
+    try { box.checked = on ? localStorage.getItem(key) !== "0" : localStorage.getItem(key) === "1"; } catch { }
+    READING[part] = box.checked;
     box.addEventListener("change", () => {
-      try { localStorage.setItem("dot-dash:tx-prosigns", box.checked ? "1" : "0"); } catch { }
+      READING[part] = box.checked;
+      try { localStorage.setItem(key, box.checked ? "1" : "0"); } catch { }
+      reread();
     });
   }
 
@@ -541,6 +667,10 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
 
   function preview() {
     sound.unlock();
+    if (sound.speaks) {
+      sound.voiceReady().then(() => sound.speak(["A"]), () => toast("couldn't load the voice"));
+      return;
+    }
     const t = timingNow();
     sound.mark(0, Math.max(t.unit, 120) / 1000);
   }
@@ -553,19 +683,21 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
   $("#opt-vol").addEventListener("change", preview);
 
 
-  /* at startup: the saved settings, applied */
-  function start() {
+  /* at startup: the saved settings, then a link's, applied */
+  function start(hash = "") {
     loadSettings();
+    const linked = visit(hash);
     wpmWas = Number($("#opt-wpm").value);
     markFarnsCap();
+    markLevels();
     applySound();
     applyOutputs();
     applyGlow();
-    lightBefore = choice("#opt-light");
+    return linked;
   }
 
   return {
-    outputs, setSignal, openTray, start,
+    outputs, setSignal, openTray, start, linkedSettings,
     trayJustClosed: () => performance.now() - trayClosedAt < 600,
     wantsLamp, lampOk: rate => lampAgreed && rate <= SAFE_RATE, askLamp, openLamp, closeLamp, cancelLamp,
     torchOn: () => choice("#opt-light") === "torch" && outputOn("light")

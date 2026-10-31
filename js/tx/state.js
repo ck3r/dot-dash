@@ -43,7 +43,7 @@
  * this device, stored as Morse in the URL's canonical form
  * (lossless: prosigns and codes with no letter survive).
  */
-import { DECODE, format } from "../morse.js";
+import { format, namesOf, READING } from "../morse.js";
 
 const HISTORY_KEY = "dot-dash:tx-history";
 const LINE_KEY = "dot-dash:tx-line";
@@ -75,9 +75,19 @@ export function tookFor(toks, rec = []) {
   });
 }
 
-/* history entries: plain Morse, or { m: Morse, t: recording } */
+/*
+ * History entries: plain Morse, or { m: Morse, t: recording,
+ * r: reading }. The reading is the one it was sent with, kept so
+ * the tape doesn't change under it when the tray does: "p" prosigns,
+ * "c" cut, "pc" both; none (or an entry from before) is plain.
+ */
 export const morseOf = e => (typeof e === "string" ? e : e.m);
 export const recOfEntry = e => (typeof e === "string" ? [] : e.t ?? []);
+export const readingOf = e => {
+  const r = typeof e === "string" ? "" : e.r ?? "";
+  return { pro: r.includes("p"), cut: r.includes("c") };
+};
+const readingCode = ({ pro, cut }) => (pro ? "p" : "") + (cut ? "c" : "");
 
 /* tokens → { done: finished words, word: letters of the word in
    progress, path: the letter being keyed, slash: ends in "/" } */
@@ -118,9 +128,10 @@ export function tokensOf(words) {
   return out;
 }
 
-/* words as plain text, or null if it isn't cleanly typeable */
-export function plainText(words) {
-  const names = words.map(w => w.map(c => DECODE[c]));
+/* words as plain text (as the reading reads them), or null if it
+   isn't cleanly typeable */
+export function plainText(words, reading = READING) {
+  const names = words.map(w => namesOf(w, reading));
   if (names.flat().some(n => !n || (n.length > 1 && !n.startsWith("<")))) return null;   // a prosign, <SK>, is one letter
   return names.map(w => w.join("")).join(" ");
 }
@@ -184,12 +195,14 @@ export function createState() {
       try { localStorage.setItem(HISTORY_KEY, JSON.stringify(this.history)); } catch { /* storage blocked */ }
     },
 
-    /* the line as the tape keeps it: plain Morse, or with the keying */
+    /* the line as the tape keeps it: plain Morse, or with the keying
+       and the reading */
     entry() {
       const words = wordsOf(this.tokens);
       if (!words.length) return null;
-      const rec = recOf(this.tokens, this.took);
-      return rec.length ? { m: format(words), t: rec } : format(words);
+      const rec = recOf(this.tokens, this.took), r = readingCode(READING);
+      if (!rec.length && !r) return format(words);
+      return { m: format(words), ...(rec.length && { t: rec }), ...(r && { r }) };
     },
 
     addToHistory(entry) {

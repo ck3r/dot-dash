@@ -3,6 +3,12 @@ Required Notice: Copyright 2026 ck3r (https://dot-da.sh)
 The font in fonts/ is JetBrains Mono, under its own licence, the SIL
 Open Font License 1.1 (fonts/OFL.txt), not the terms below.
 
+The recordings in voice/ are ck3r's own voice and are not under the
+terms below. All rights reserved, with one exception: you may keep and
+share, non-commercially, what this site's "save spoken .wav" makes for
+you. You may not use them to train, clone or imitate the voice, or use
+them to suggest ck3r said something they didn't.
+
 
 # PolyForm Noncommercial License 1.0.0
 

@@ -1,5 +1,17 @@
 # dot-dash
 ```
+┌─────────────────────────────────────────────────┐
+│                     dot-da.sh                   │
+│                                                 │
+│   .... . .-.. .-.. --- / .-- --- .-. .-.. -..   │
+│    H   E  L    L    O     W   O   R   L    D    │
+│                                                 │
+│                                                 │
+│               Morse Code Translator             │
+└─────────────────────────────────────────────────┘
+```
+
+```
 index.html      page + reference chart
 style.css
 js/morse.js     the core: tree, encode/decode, URL formats, cost
@@ -26,5 +38,6 @@ Source-available under the PolyForm Noncommercial License 1.0.0
 (LICENSE.md): study it, change it, and use it for anything
 non-commercial (a hobby, teaching, a club station). Selling it, or
 running it with ads, isn't allowed. The font has its own licence
-(fonts/OFL.txt). To contribute, see CONTRIBUTING.md.
+(fonts/OFL.txt), and the voice recordings (voice/) have their own
+terms, at the top of LICENSE.md. To contribute, see CONTRIBUTING.md.
 

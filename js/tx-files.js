@@ -4,8 +4,9 @@
  * ============================================================
  *
  * A .txt, a shell script that keys it (.sh), a .wav (rendered with
- * the page's own sound, at the keyed timing), or the link-preview
- * .gif (made by the worker). Loaded the first time a file is saved
+ * the page's own sound, at the keyed timing), a spoken .wav (the text
+ * read out from the recordings), or the link-preview .gif (made by
+ * the worker). Loaded the first time a file is saved
  * (js/tx/share.js), not at startup.
  */
 
@@ -13,6 +14,7 @@ import { format, DECODE } from "./morse.js";
 import { createSound } from "./tx-sound.js";
 import { timeline } from "./tx-player.js";
 import { morseText, plainText, linkTo } from "./tx-share.js";
+import { loadVoice, wordPlace, spokenWords, SAY_GAP, WORD_GAP } from "./tx/voice.js";
 
 export function gifLink(words, origin = location.origin) {
   return `${origin}/og/${format(words)}.gif`;
@@ -159,9 +161,42 @@ export async function renderWav({ words, rec, timing, kind, wave = "sine", pitch
   sound.setVolume(volume);
   for (const m of line.marks) sound.mark(lead + m.start / 1000, (m.end - m.start) / 1000);
 
-  const data = (await ctx.startRendering()).getChannelData(0);
+  return wavFile((await ctx.startRendering()).getChannelData(0), rate);
+}
 
-  /* 16-bit mono PCM */
+/*
+ * The message read out in the phonetic alphabet, as a .wav: built
+ * from the text, word by recorded word, at its own even pace (not
+ * the Morse's timing). Null if there's nothing in it to say.
+ */
+export async function renderSpoken(text) {
+  const said = spokenWords(text);
+  if (!said.length) return null;
+  const buffer = await loadVoice();
+  const rate = 44100;
+  const lead = 0.25, tail = 0.5;   // s
+
+  let at = lead;
+  const parts = said.map((word, i) => {
+    if (word === null) { at += WORD_GAP; return null; }
+    const place = { ...wordPlace(word), at };
+    at += place.length + (said[i + 1] === null ? 0 : SAY_GAP);
+    return place;
+  }).filter(Boolean);
+
+  const Offline = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const ctx = new Offline(1, Math.ceil(rate * (at + tail)), rate);
+  for (const { at: when, offset, length } of parts) {
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(ctx.destination);
+    src.start(when, offset, length);
+  }
+  return wavFile((await ctx.startRendering()).getChannelData(0), rate);
+}
+
+/* 16-bit mono PCM */
+function wavFile(data, rate) {
   const out = new DataView(new ArrayBuffer(44 + data.length * 2));
   const str = (o, s) => [...s].forEach((c, i) => out.setUint8(o + i, c.charCodeAt(0)));
   str(0, "RIFF"); out.setUint32(4, 36 + data.length * 2, true); str(8, "WAVEfmt ");

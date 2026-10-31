@@ -33,6 +33,44 @@
 const MIN_MARK = 1.6;     // px: thinner than this, draw letters as blocks
 const POP_UNITS = 40;     // the pop-out's window, in units (two or three letters)
 
+/*
+ * The preview's look (the pop-out's, and /ref's timing bar under the
+ * tree): a window of the signal, the marks as blocks on a thin line,
+ * each letter centred under its marks, lit while the position is on
+ * it (else greyed, to come).
+ *
+ *     ▁▁█▁███▁▁▁▁
+ *         A
+ *
+ * m: { marks: [{ start, end, … }], letters: [{ start, end, label }],
+ * duration }; c: the colours, c.markColor(mark) for each mark.
+ */
+export function drawPreview(ctx, w, h, m, { from, windowMs, position, unit }, c) {
+  const x = t => ((t - from) / windowMs) * w;
+  const mid = Math.round(h * 0.36) + 0.5;
+  const tall = Math.round(h * 0.3);
+
+  ctx.fillStyle = c.wire;
+  ctx.fillRect(Math.max(0, x(0)), mid - 0.5, Math.min(w, x(m.duration)) - Math.max(0, x(0)), 1);
+  for (const mk of m.marks) {
+    if (mk.end < from || mk.start > from + windowMs) continue;
+    const a = x(mk.start), b = Math.max(x(mk.end), a + 2);
+    ctx.fillStyle = c.markColor(mk);
+    ctx.fillRect(a, mid - tall / 2, b - a, tall);
+  }
+  /* the letters, centred under their marks */
+  ctx.font = `700 ${Math.round(h * 0.3)}px Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", "dot-dash mono", monospace`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  for (const l of m.letters) {
+    if (l.end < from || l.start > from + windowMs) continue;
+    const cx = x((l.start + l.end) / 2);
+    const here = position >= l.start && position <= l.end + unit;
+    ctx.fillStyle = here ? c.paper : c.toCome;
+    ctx.fillText(l.label ?? "", cx, h - Math.round(h * 0.1));
+  }
+}
+
 export function createTrace({ canvas, pop, popCanvas, thumb, colors, unit }) {
   let line = { marks: [], letters: [], duration: 0 };
   let position = 0;
@@ -128,30 +166,7 @@ export function createTrace({ canvas, pop, popCanvas, thumb, colors, unit }) {
     pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     pctx.clearRect(0, 0, w, h);
     const windowMs = POP_UNITS * unit();
-    const from = position - windowMs / 2;
-    const x = t => ((t - from) / windowMs) * w;
-    const mid = Math.round(h * 0.36) + 0.5;
-    const tall = Math.round(h * 0.3);
-
-    pctx.fillStyle = c.wire;
-    pctx.fillRect(Math.max(0, x(0)), mid - 0.5, Math.min(w, x(m.duration)) - Math.max(0, x(0)), 1);
-    for (const mk of m.marks) {
-      if (mk.end < from || mk.start > from + windowMs) continue;
-      const a = x(mk.start), b = Math.max(x(mk.end), a + 2);
-      pctx.fillStyle = c.markColor(mk);
-      pctx.fillRect(a, mid - tall / 2, b - a, tall);
-    }
-    /* the letters, centred under their marks */
-    pctx.font = `700 ${Math.round(h * 0.3)}px Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", "dot-dash mono", monospace`;
-    pctx.textAlign = "center";
-    pctx.textBaseline = "alphabetic";
-    for (const l of m.letters) {
-      if (l.end < from || l.start > from + windowMs) continue;
-      const cx = x((l.start + l.end) / 2);
-      const here = position >= l.start && position <= l.end + unit();
-      pctx.fillStyle = here ? c.paper : c.toCome;
-      pctx.fillText(l.label ?? "", cx, h - Math.round(h * 0.1));
-    }
+    drawPreview(pctx, w, h, m, { from: position - windowMs / 2, windowMs, position, unit: unit() }, c);
     /* the playhead */
     pctx.fillStyle = c.brass;
     pctx.fillRect(Math.round(w / 2) - 1, 2, 2, h - 4);

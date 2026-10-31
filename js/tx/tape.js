@@ -3,7 +3,7 @@
  * caret, the > and the eye beside it), the history above it, and
  * the counts under it.
  *
- *   createTape({ state, update, setTyped, resetKeyer }) → {
+ *   createTape({ state, update, setTyped, resetKeyer, forgetUndo }) → {
  *     drawTape(), drawStats()
  *     settleTape()       the current line at the top, the caret in view
  *     fadeTape()         the top edge fades while there's history above
@@ -12,12 +12,12 @@
  *     clearCurrent()     the message on the board: gone
  *   }
  */
-import { DECODE, parse } from "../morse.js";
-import { morseOf, recOfEntry, structure, wordsOf, tokensOf, tookFor, plainText } from "./state.js";
-import { $, el, icon, toast } from "./dom.js";
+import { parse, namesOf, READING } from "../morse.js";
+import { morseOf, recOfEntry, readingOf, structure, wordsOf, tokensOf, tookFor, plainText } from "./state.js";
+import { $, el, icon, toast, flash } from "./dom.js";
 import * as share from "../tx-share.js";
 
-export function createTape({ state, update, setTyped, resetKeyer }) {
+export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) {
   /*
    * ============================================================
    * THE TAPE: the message being written, and the history above it
@@ -25,12 +25,13 @@ export function createTape({ state, update, setTyped, resetKeyer }) {
    */
 
 
-  /* one letter: its code over its character (under the 2nd mark) */
-  function letter(code, partial = false) {
+  /* one letter: its code over its character (under the 2nd mark),
+     named as its word's reading reads it */
+  function letter(code, name, partial = false) {
     const c = el("span", partial ? "c partial" : "c");
     const m = el("span", "m");
     for (const s of code) m.append(el("span", s === "." ? "dot" : "dash", s));
-    const name = DECODE[code] ?? (partial ? "?" : "�");
+    name ??= partial ? "?" : "�";
     const under = Math.min(1, code.length - 1);
     const p = el("span", "p", " ".repeat(under));   // only the name is underlined
     p.append(el("span", "n", name));
@@ -39,19 +40,27 @@ export function createTape({ state, update, setTyped, resetKeyer }) {
   }
 
   /* a line: words of letters with slashes between; optionally the
-     letter being keyed, a trailing slash and the caret */
-  function line(words, { path = "", slash = false, caret = false } = {}) {
+     letter being keyed, a trailing slash and the caret. Each word
+     knows its place (key: which line), to stay shown if tapped. The
+     reading: the tray's now, or the one a sent message went with */
+  function line(words, { path = "", slash = false, caret = false, key = "", reading = READING } = {}) {
     const box = el("span", "line");
     words.forEach((word, w) => {
       if (w) box.append(el("span", "slash", "/"));
       const wEl = el("span", "w");
-      word.forEach(code => wEl.append(letter(code)));
-      if (w === words.length - 1 && path) wEl.append(letter(path, true));
+      wEl.dataset.word = `${key}:${w}`;
+      if (shownWords.has(wEl.dataset.word)) wEl.classList.add("shown");
+      const keying = w === words.length - 1 && path;
+      const names = namesOf(keying ? [...word, path] : word, reading);
+      word.forEach((code, i) => wEl.append(letter(code, names[i])));
+      if (keying) wEl.append(letter(path, names.at(-1), true));
       box.append(wEl);
     });
     if (path && !words.length) {
       const wEl = el("span", "w");
-      wEl.append(letter(path, true));
+      wEl.dataset.word = `${key}:0`;
+      if (shownWords.has(wEl.dataset.word)) wEl.classList.add("shown");
+      wEl.append(letter(path, namesOf([path], reading)[0], true));
       box.append(wEl);
     }
     if (slash) box.append(el("span", "slash", "/"));
@@ -65,9 +74,19 @@ export function createTape({ state, update, setTyped, resetKeyer }) {
     return box;
   }
 
+  /*
+   * Words shown through the bars (a tap on a word's bar: that word
+   * only). No memory: anything but bars (the eye tapped, held, the
+   * other mode) and a new message on the tape forget them all.
+   */
+  const shownWords = new Set();
+  let shownFor = null;
+
   function drawTape() {
     const tape = $("#tape");
     tape.textContent = "";
+    const now = state.hidden && !state.collapsed ? `${state.mode} ${state.history.length}` : null;
+    if (now !== shownFor) { shownWords.clear(); shownFor = now; }
 
     /* the top of the history: clear it (tap twice) */
     if (state.history.length) {
@@ -81,8 +100,9 @@ export function createTape({ state, update, setTyped, resetKeyer }) {
 
     state.history.forEach((saved, i) => {
       const li = el("li", "entry past");
+      li.dataset.i = String(i);       // (a long-press copies it: js/tx/share.js)
       li.append(el("span", "marker", ""));
-      const l = line(parse(morseOf(saved)));
+      const l = line(parse(morseOf(saved)), { key: i, reading: readingOf(saved) });
       l.title = "tap to key it again";
       l.addEventListener("click", () => recall(i));
       li.append(l);
@@ -113,7 +133,7 @@ export function createTape({ state, update, setTyped, resetKeyer }) {
       li.append(hint);
     } else {
       const words = word.length || path ? [...done, word] : done;
-      li.append(line(words, { path, slash, caret: true }));
+      li.append(line(words, { path, slash, caret: true, key: "now" }));
       const x = el("button", "x");
       x.innerHTML = icon("x");
       x.type = "button";
@@ -181,10 +201,10 @@ export function createTape({ state, update, setTyped, resetKeyer }) {
    * eye"). Each letter wears the old look until its turn, and the
    * rest of the tape (the history) changes when it's done:
    *
-   *   shown → bars       each code (typing) or letter (keying) a bar
-   *   bars → collapsed   the bars go; typing, the letters close up
+   *   shown → collapsed  typing, the letters close up
    *   collapsed → shown  typing, it unzips: ███ / SOS, then each
    *                      letter opens into its code (... --- ...)
+   *   → bars             each code (typing) or letter (keying) a bar
    *
    * Quick: 60 ms a letter, 0.6 s at most. A redraw (a key) ends it.
    */
@@ -250,17 +270,18 @@ export function createTape({ state, update, setTyped, resetKeyer }) {
     const active = el("span", "m-active", ">");
     const what = state.mode === "type" ? "Morse" : "letters";
     /*
-     * A tap goes between shown and bars; holding it collapses (the
-     * hidden row takes no room); a tap from collapsed opens it again.
+     * A tap shows or hides the row outright (hidden, it takes no
+     * room); holding redacts it instead (bars: how many words, how
+     * long, not what they say); a tap from the bars opens it again.
      *
-     *   tap:   shown ⇄ bars        hold: → collapsed      tap: → shown
+     *   tap:   shown ⇄ collapsed     hold: → bars         tap: → shown
      */
     const now = !state.hidden ? "shown" : state.collapsed ? "collapsed" : "bars";
-    const tap = now === "shown" ? "bars" : "shown";
+    const tap = now === "shown" ? "collapsed" : "shown";
     const eye = el("button", "eye");
     eye.type = "button";
     eye.innerHTML = { shown: EYE_OPEN, bars: EYE_SHUT, collapsed: EYE_FLAT }[now];
-    eye.title = (tap === "bars" ? "hide " : "show ") + what + (now === "collapsed" ? "" : " (hold: collapse)");
+    eye.title = (tap === "collapsed" ? "hide " : "show ") + what + (now === "bars" ? "" : " (hold: redact)");
     eye.setAttribute("aria-label", eye.title);
     eye.setAttribute("aria-pressed", String(now !== "shown"));
     const go = next => {
@@ -270,25 +291,25 @@ export function createTape({ state, update, setTyped, resetKeyer }) {
       try { localStorage.setItem("dot-dash:tx-hide", JSON.stringify(state.collapsed ? "collapsed" : state.hidden)); } catch { }
       update();
       eyeChange(now, next);
-      toast(`${what} ${{ shown: "shown", bars: "hidden", collapsed: "collapsed" }[next]}`);
+      toast(`${what} ${{ shown: "shown", bars: "redacted", collapsed: "hidden" }[next]}`);
     };
     /* held long enough, it's armed: brass, and a toast says what letting
-       go will do; the release collapses. Sliding off lets it go */
+       go will do; the release redacts. Sliding off lets it go */
     let holdTimer = null, armed = false;
     const disarm = () => { clearTimeout(holdTimer); armed = false; eye.classList.remove("armed"); };
     eye.addEventListener("pointerdown", () => {
       eyeHeld = false;   // a new press (a hold's release lands on the eye it replaced)
       disarm();
-      if (now !== "collapsed") holdTimer = setTimeout(() => {
+      if (now !== "bars") holdTimer = setTimeout(() => {
         armed = true;
         eye.classList.add("armed");
-        toast(`release to collapse ${what}`);
+        toast(`release to redact ${what}`);
       }, EYE_HOLD);
     });
     eye.addEventListener("pointerup", () => {
       const go_ = armed;
       disarm();
-      if (go_) { eyeHeld = true; go("collapsed"); }
+      if (go_) { eyeHeld = true; go("bars"); }
     });
     for (const t of ["pointercancel", "pointerleave"]) eye.addEventListener(t, disarm);
     eye.addEventListener("contextmenu", event => event.preventDefault());
@@ -507,16 +528,31 @@ export function createTape({ state, update, setTyped, resetKeyer }) {
   async function copyCounts(box, what) {
     const words = wordsOf(state.tokens);
     if (!words.length) return;
-    clearTimeout(box.flashTimer);
-    if (hiding() === (what === "text" ? "letters" : "morse")) box.dataset.flash = "hidden";   // says why (the eye's word), copies nothing
-    else try {
+    if (hiding() === (what === "text" ? "letters" : "morse")) return flash(box, "hidden");   // says why (the eye's word), copies nothing
+    try {
       await navigator.clipboard.writeText(what === "text" ? share.plainText(words) : share.morseText(words));
-      box.dataset.flash = "copied";
+      flash(box, "copied");
     } catch {
-      box.dataset.flash = "can't copy";
+      flash(box, "can't copy");
     }
-    box.flashTimer = setTimeout(() => delete box.dataset.flash, 1200);
   }
+  /* a tap on a word's bar shows that word (or hides it again); first
+     in line, so the tap doesn't also key the message again or open
+     the board. Only the bar's row, and only as bars */
+  $("#tape").addEventListener("click", event => {
+    const tape = event.currentTarget;
+    const row = tape.classList.contains("hide-p") ? ".p" : tape.classList.contains("hide-m") ? ".m" : null;
+    const c = row && event.target.closest(".entry:not(.anim) .w .c");
+    if (!c) return;
+    const r = c.querySelector(row).getBoundingClientRect();
+    if (event.clientY < r.top || event.clientY > r.bottom) return;
+    event.stopPropagation();
+    event.preventDefault();
+    const w = c.closest(".w");
+    const shown = w.classList.toggle("shown");
+    if (shown) shownWords.add(w.dataset.word); else shownWords.delete(w.dataset.word);
+  }, { capture: true });
+
   $("#stats-text").addEventListener("click", () => copyCounts($("#stats-text"), "text"));
   $("#stats-morse").addEventListener("click", () => copyCounts($("#stats-morse"), "morse"));
 
@@ -536,6 +572,7 @@ export function createTape({ state, update, setTyped, resetKeyer }) {
     state.history = [];
     state.saveHistory();
     clearCurrent();              // the unsent message goes too: a clean board
+    forgetUndo();                // (and it stays clean)
     update();
   }
 

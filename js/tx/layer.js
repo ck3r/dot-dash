@@ -12,7 +12,7 @@
  */
 import { DECODE, ENCODE, CUT, NAME_CODE } from "../morse.js";
 import { aboutHref } from "./about.js";
-import { $ } from "./dom.js";
+import { $, nearest } from "./dom.js";
 
 export function createLayer({
   state, about, update, clearCurrent, putKeysAway, isChord, openHold, menu, openShare, hideBubble,
@@ -84,6 +84,10 @@ export function createLayer({
    *        │ off  tone  …  │      the current one lit
    *        └──────┬────────┘
    *              [♪]
+   *
+   * As the keyboard's fan: still holding, slide along the list and
+   * let go on one to choose it. Let go without sliding and the list
+   * stays open for a tap.
    */
   const LONG_PRESS = 450;   // ms
   const LISTS = [['[data-out="sound"]', "#opt-sound"], ['[data-out="light"]', "#opt-light"],
@@ -125,16 +129,36 @@ export function createLayer({
     (list.querySelector(".on") ?? list.firstChild)?.focus({ preventScroll: true });
   }
 
+  const SLIDE = 8;          // px: a finger moved this far is sliding, not resting
   for (const [sel, listSel] of LISTS) {
     const button = $(sel), select = $(listSel);
     if (!button || !select) continue;
-    let timer = null, held = false;
-    button.addEventListener("pointerdown", () => {
-      held = false;
+    let timer = null, held = false, from = null, slid = false, pick = null;
+    button.addEventListener("pointerdown", event => {
+      held = false; slid = false; pick = null;
+      from = { x: event.clientX, y: event.clientY };
+      button.setPointerCapture?.(event.pointerId);   // the slide stays ours, off the button too
       clearTimeout(timer);
-      timer = setTimeout(() => { held = true; openList(button, select); }, LONG_PRESS);
+      timer = setTimeout(() => { held = true; from = null; openList(button, select); }, LONG_PRESS);
     });
-    for (const t of ["pointerup", "pointercancel", "pointerleave"]) button.addEventListener(t, () => clearTimeout(timer));
+    button.addEventListener("pointermove", event => {
+      if (!held) {
+        /* moved off before the list opened: a drag, not a hold */
+        if (from && Math.hypot(event.clientX - from.x, event.clientY - from.y) > SLIDE * 1.5) clearTimeout(timer);
+        return;
+      }
+      if (!list) return;
+      from ??= { x: event.clientX, y: event.clientY };
+      if (!slid && Math.hypot(event.clientX - from.x, event.clientY - from.y) < SLIDE) return;
+      slid = true;
+      pick = nearest([...list.querySelectorAll("button")], event.clientX, event.clientY);
+      for (const b of list.querySelectorAll("button")) b.classList.toggle("on", b === pick);
+    });
+    button.addEventListener("pointerup", () => {
+      clearTimeout(timer);
+      if (held && slid && pick && list) pick.click();   // let go on one: chosen
+    });
+    for (const t of ["pointercancel", "lostpointercapture"]) button.addEventListener(t, () => clearTimeout(timer));
     /* the release after a long-press isn't also a tap (the toggle) */
     button.addEventListener("click", event => {
       if (!held) return;
@@ -246,7 +270,9 @@ export function createLayer({
       stopEating();              // a new tap: whatever the last one left behind goes
       const privacy = $("#privacy-pop"), heard = $("#heard-pop"), hold = $("#hold-pop"), about = $("#about-pop"), train = $("#train-pop"), cut = $("#cut-pop"), report = $("#report-pop");
       let closed = false;
+      const farns = $("#farns-pop");
       if (!report.hidden) { if (!report.contains(event.target)) { $("#report-cancel").click(); closed = true; } }
+      else if (!farns.hidden) { if (!farns.contains(event.target)) { $("#farns-ok").click(); closed = true; } }
       else if (!about.hidden) { if (!about.contains(event.target)) { openAbout(null); closed = true; } }
       else if (!hold.hidden) { if (!hold.contains(event.target)) { openHold(false); closed = true; } }
       else if (!heard.hidden) { if (!heard.contains(event.target)) { openHeard(false); closed = true; } }
@@ -282,6 +308,7 @@ export function createLayer({
     if (open("#notice")) return;                                    // its own handler dismisses it
     if (open("#lamp-warn")) cancelLamp();
     else if (open("#report-pop")) $("#report-cancel").click();
+    else if (open("#farns-pop")) $("#farns-ok").click();
     else if (open("#lamp")) { stopPlayback(); closeLamp(); }
     else if (open("#privacy-pop")) openPrivacy(false);
     else if (open("#heard-pop")) openHeard(false);
@@ -291,7 +318,7 @@ export function createLayer({
     else if (open("#hold-pop")) openHold(false);
     else if (open("#about-pop")) openAbout(null);
     else if (open("#share")) openShare(false);
-    else if (open("#paste-bubble")) hideBubble();
+    else if (open("#paste-bubble") || open("#copy-bubble")) hideBubble();
     else if (playerBusy()) stopPlayback();                                // playing, or paused part-way: cancel it
     else if (isPlayerActive()) setPlayerActive(false);                   // let go of the player first
     else {

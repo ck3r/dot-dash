@@ -14,7 +14,8 @@
  * busy; everything you SEE (logo, message, tree, scrub bar) is
  * drawn each frame from the same position.
  *
- *   createPlayer({ sound, timing, frame, end, rounds, gap })
+ *   createPlayer({ sound, timing, lineOf, frame, end, rounds, gap })
+ *     lineOf(words, rec)  the timeline, if not timing's (the voice)
  *     load(words)     set the message (array of words of codes)
  *     play()  pause()  stop()  seek(ms)
  *     playing, position, duration
@@ -77,7 +78,7 @@ export function timeline(words, t, rec = []) {
 }
 
 
-export function createPlayer({ sound, timing, frame, end, rounds = () => 1, gap = () => 0 }) {
+export function createPlayer({ sound, timing, lineOf = (words, rec) => timeline(words, timing(), rec), frame, end, rounds = () => 1, gap = () => 0 }) {
   let words = [];
   let rec = [];
   let line = { marks: [], letters: [], duration: 0 };
@@ -101,11 +102,19 @@ export function createPlayer({ sound, timing, frame, end, rounds = () => 1, gap 
   const round = () => line.duration + gap();
   const current = () => (playing ? Math.min(elapsed() - viewBase, line.duration) : position);
 
+  /* what sounds: the marks, or a spoken line's words (all marks if
+     there's nothing in it to say, so it's never just silence) */
+  const cues = () => (line.speech?.length ? line.speech : line.marks);
+  const cue = (c, delay, skip = 0) => {
+    if (c.word) sound.say(c.word, delay, skip / 1000);
+    else sound.mark(delay, (c.end - c.start - skip) / 1000);
+  };
+
   function load(next, recording = []) {
     stop();
     words = next;
     rec = recording;
-    line = timeline(words, timing(), rec);
+    line = lineOf(words, rec);
   }
 
   /*
@@ -118,7 +127,7 @@ export function createPlayer({ sound, timing, frame, end, rounds = () => 1, gap 
     const was = playing;
     const pos = current();
     const old = line;
-    line = timeline(words, timing(), rec);
+    line = lineOf(words, rec);
 
     let next = 0;
     const ms = old.marks;
@@ -177,7 +186,7 @@ export function createPlayer({ sound, timing, frame, end, rounds = () => 1, gap 
 
   function schedule() {
     const t = elapsed();
-    const { marks } = line;
+    const marks = cues();
     for (;;) {
       if (nextMark >= marks.length) {
         if (soundRound + 1 >= rounds()) break;
@@ -192,10 +201,10 @@ export function createPlayer({ sound, timing, frame, end, rounds = () => 1, gap 
       const length = m.end - m.start;
       if (at < t - 5) {
         /* started already (a seek, a speed change): sound what's left of it */
-        if (at + length > t + 5) sound.mark(0, (at + length - t) / 1000);
+        if (at + length > t + 5) cue(m, 0, t - at);
         continue;
       }
-      sound.mark((at - t) / 1000, length / 1000);
+      cue(m, (at - t) / 1000);
     }
   }
 
@@ -230,8 +239,8 @@ export function createPlayer({ sound, timing, frame, end, rounds = () => 1, gap 
     startedAt = now() - position;
     soundBase = viewBase = 0;
     soundRound = viewRound = 0;
-    nextMark = line.marks.findIndex(m => m.end > position + 5);   // including one under way
-    if (nextMark < 0) nextMark = line.marks.length;
+    nextMark = cues().findIndex(m => m.end > position + 5);   // including one under way
+    if (nextMark < 0) nextMark = cues().length;
     schedule();
     ticker = setInterval(schedule, TICK);
     loop();

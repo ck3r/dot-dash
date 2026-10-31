@@ -15,8 +15,6 @@
  *   signal lamp  full screen, for playback (see tx/settings.js: it asks
  *                first, and twice if it would flash faster than
  *                3 times a second)
- *   invert       the whole screen flips while the key is down (asks
- *                first, like the signal lamp)
  *   flashlight   the phone's torch (Android Chrome only: it goes
  *                through the camera, so it asks for camera access)
  *
@@ -117,10 +115,7 @@ export function createOutputs({ settings, lampTarget, overlay }) {
     lampTarget.classList.toggle("lit", down);          // the lamp: always
     if (s.light) {
       if (s.lightMode === "torch") torch(down);
-      else if (s.lightMode === "invert") document.documentElement.classList.toggle("inverted", down);
       else if (overlay.isOpen()) overlay.flash(down);
-    } else {
-      document.documentElement.classList.remove("inverted");
     }
     vibrate(down);
   }
@@ -129,7 +124,6 @@ export function createOutputs({ settings, lampTarget, overlay }) {
   function quiet() {
     down = false;
     lampTarget.classList.remove("lit");
-    document.documentElement.classList.remove("inverted");
     overlay.flash(false);
     torch(false);
     vibrate(false);

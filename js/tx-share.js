@@ -17,7 +17,7 @@
  * first time one is saved.
  */
 
-import { encode, parse, format, pretty, DECODE } from "./morse.js";
+import { encode, parse, readLink, format, pretty, namesOf, READING } from "./morse.js";
 
 
 /* ---------- in ---------- */
@@ -28,9 +28,10 @@ const DASHES = /[–—−‒―]/g;
 export function readPaste(raw) {
   const s = raw.trim();
 
-  /* a dot-da.sh link: the message is after "?/" */
-  const link = s.match(/\?\/(\S+)/);
-  if (link) return { words: clean(parse(link[1])), morse: true };
+  /* a dot-da.sh link: the message is after "?/" (Morse or text), up
+     to any settings after "#" */
+  const link = s.match(/\?\/([^\s#]+)/);
+  if (link) return { words: clean(readLink(link[1])), morse: true };
 
   const n = s.replace(DOTS, ".").replace(DASHES, "-")
     .replace(/\s*\|\s*/g, " / ")      // "|" between words
@@ -53,8 +54,9 @@ function clean(words) {
 
 export const morseText = words => pretty(words);
 
-export function plainText(words) {
-  return words.map(w => w.map(c => DECODE[c] ?? "�").join("")).join(" ");
+/* as the reading reads it (morse.js READING: the tray's prosigns, cut) */
+export function plainText(words, reading = READING) {
+  return words.map(w => namesOf(w, reading).map(n => n ?? "�").join("")).join(" ");
 }
 
 export function linkTo(words, origin = location.origin) {

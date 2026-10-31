@@ -10,7 +10,8 @@
  */
 import { DECODE, ENCODE, CUT, NAME_CODE } from "../morse.js";
 import { PHONETIC, PROSIGNS_BY_CODE, splits } from "../characters.js";
-import { $, el } from "./dom.js";
+import { $, el, flash } from "./dom.js";
+import { say } from "./voice.js";
 
 export const aboutHref = code => `/ref/?/_${code}_`;
 
@@ -37,8 +38,8 @@ export function createAbout({ hiding, redact, openHeard, openCut, greet }) {
    *     (i)      the full about, on the reference page (always
    *              there, even with the whole tree open)
    *
-   * Each part does its own thing: the marks copy, the name will say
-   * itself (recordings to come), the cut opens the reference tree in
+   * Each part does its own thing: the marks copy, the name says
+   * itself (voice.js), the cut opens the reference tree in
    * cut numbers, and ~ explains mishearing. Only (i) goes to the
    * character's page (a new tab, so the message stays put).
    */
@@ -87,12 +88,8 @@ export function createAbout({ hiding, redact, openHeard, openCut, greet }) {
     fitAbout();
   }
 
-  /* a moment's word in the column ("copied", "soon"), over the part tapped */
-  function flashWord(button, word) {
-    button.dataset.flash = word;
-    clearTimeout(button.flashTimer);
-    button.flashTimer = setTimeout(() => delete button.dataset.flash, 1200);
-  }
+  /* a moment's word in the column ("copied"), over the part tapped */
+  const flashWord = (button, word) => flash(button, word);
 
   function buildAbout(box, code, ch) {
     box.textContent = "";
@@ -118,10 +115,13 @@ export function createAbout({ hiding, redact, openHeard, openCut, greet }) {
     if (spoken) {
       const name = el("button", "about-name");
       name.type = "button";
-      name.title = isName ? "dot-da.sh: this site's name, in its own marks (tap: the tab keys it)" : `say ${spoken} (recordings coming soon)`;
+      name.title = isName ? "dot-da.sh: this site's name, in its own marks (tap: the tab keys it)" : `say ${spoken}`;
       name.setAttribute("aria-label", name.title);
       name.addEventListener("click", () => {
-        if (!isName) return flashWord(name, "soon");
+        if (!isName) {
+          say(ch, Number($("#opt-vol").value) / 100).catch(() => flashWord(name, "can't say it here"));
+          return;
+        }
         greet();
         flashWord(name, "in the tab");
       });

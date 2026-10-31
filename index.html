@@ -117,6 +117,10 @@
       <button type="button" data-do="copy-morse"><span>copy morse</span><span class="peek" data-peek="morse"></span></button>
       <button type="button" data-do="copy-text"><span>copy text</span><span class="peek" data-peek="text"></span></button>
       <button type="button" data-do="copy-link"><span>copy link</span><span class="peek" data-peek="link"></span></button>
+      <!-- how it sounds here (speed, pitch, wave …), after the link's "#" -->
+      <label class="share-with" title="the link carries your speed, pitch and sound; it opens with them, for that visit">
+        <span class="check"><input type="checkbox" id="share-settings"></span><span>with my settings</span><span class="peek" data-peek="settings"></span>
+      </label>
     </div>
     <div class="rows saves">
       <span class="lead">save</span>
@@ -125,9 +129,9 @@
       <button type="button" data-do="save-wav">.wav</button>
       <button type="button" data-do="save-gif" id="save-gif">.gif</button>
     </div>
-    <!-- the message read out in the phonetic alphabet: waiting on the recordings -->
+    <!-- the message read out in the phonetic alphabet, from recordings -->
     <div class="rows" id="share-voice">
-      <button type="button" data-do="save-voice" data-soon disabled title="coming soon"><span>save spoken .wav</span><span class="peek">soon</span></button>
+      <button type="button" data-do="save-voice" title="the text read out in the phonetic alphabet"><span>save spoken .wav</span></button>
     </div>
     <div class="rows" id="share-native" hidden>
       <button type="button" data-do="share"><span>share…</span></button>
@@ -168,6 +172,11 @@
 
   <!-- long-press the message: a paste bubble, like a text field's -->
   <button type="button" id="paste-bubble" class="paste-bubble" hidden>paste</button>
+  <!-- a long-press on a message: copy it, as Morse or as text -->
+  <div id="copy-bubble" class="copy-bubble" role="menu" aria-label="copy" hidden>
+    <button type="button" role="menuitem" data-copy="morse">copy morse</button>
+    <button type="button" role="menuitem" data-copy="text">copy text</button>
+  </div>
   <p id="toast" class="toast" aria-live="polite" hidden></p>
 
 
@@ -308,6 +317,22 @@
     </div>
   </section>
 
+  <!-- Farnsworth, explained (a tap on "farns." under its slider) -->
+  <section id="farns-pop" class="popup" role="dialog" aria-labelledby="farns-title" hidden>
+    <span class="frame-label" id="farns-title">farnsworth</span>
+    <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+    <p>Each letter is sent at full speed (<b>wpm</b>), with longer
+    gaps between letters and words, so the message as a whole runs
+    slower (<b>farns.</b>).</p>
+    <p>Learn the sound of a whole letter at speed, not dits and dahs
+    to count; close the gaps as you get quicker. It's never faster
+    than wpm: at the same number, there's no stretch at all.</p>
+    <p class="farns-eg"><span>wpm 20, farns. 20</span>  <span class="dot">.</span><span class="dash">-</span>   <span class="dash">-</span><span class="dot">...</span><br><span>wpm 20, farns. 10</span>  <span class="dot">.</span><span class="dash">-</span>         <span class="dash">-</span><span class="dot">...</span></p>
+    <div class="actions">
+      <button type="button" id="farns-ok" class="quiet">ok</button>
+    </div>
+  </section>
+
   <!-- the details, in a small popup (× / tap outside / Escape to close) -->
   <section id="privacy-pop" class="popup" role="dialog" aria-labelledby="privacy-title" hidden>
     <span class="frame-label" id="privacy-title">privacy</span>
@@ -428,7 +453,7 @@
             <option value="off">off</option>
             <option value="tone" selected>tone</option>
             <option value="sounder">sounder</option>
-            <option value="voice" disabled title="coming soon">voice</option>
+            <option value="voice" title="spoken letters, at their own pace">voice</option>
           </select>
         </label>
         </div>
@@ -445,7 +470,6 @@
           <select id="opt-light">
             <option value="off">off</option>
             <option value="signal" selected>signal lamp</option>
-            <option value="invert">invert lamp</option>
             <option value="torch" id="torch-choice">flashlight</option>
           </select>
         </label>
@@ -460,11 +484,14 @@
         <label class="flag">invert
           <span class="check"><input type="checkbox" id="opt-theme"></span>
         </label>
-        <label class="flag" title="play back in textbook timing, not as it was keyed">pretty<br>play
+        <label class="flag" title="play back in textbook timing, not as it was keyed">pretty <br>play
           <span class="check"><input type="checkbox" id="opt-pretty"></span>
         </label>
-        <label class="flag" title="keyed as one letter, a prosign does its job: AR, BT, SK, BK and CL return (↵), HH erases a word (off: they're the symbols + = and the rest)">pro-<br>signs
+        <label class="flag" title="prosigns, not symbols: <AR> <BT> <KN> <AS> for + = ( &amp;; and keyed as one letter, a prosign does its job: AR, BT, SK, BK and CL return (↵), HH erases a word"><span>pro<span class="hy">-</span><br>signs</span>
           <span class="check"><input type="checkbox" id="opt-prosigns" checked></span>
+        </label>
+        <label class="flag" title="cut numbers: in a word with a digit, T A U V E B D N read 0 1 2 3 5 7 8 9 (5NN: 599)">cut
+          <span class="check"><input type="checkbox" id="opt-cut"></span>
         </label>
       </div>
 
@@ -474,7 +501,7 @@
             <label class="fader"><output for="opt-wpm">10</output>
               <input type="range" id="opt-wpm" min="5" max="40" value="10"><span>wpm</span></label>
             <label class="fader"><output for="opt-fwpm">10</output>
-              <span class="track"><input type="range" id="opt-fwpm" min="5" max="40" value="10"><i class="cap" aria-hidden="true"></i></span><span>farns.</span></label>
+              <span class="track"><input type="range" id="opt-fwpm" min="5" max="40" value="10"><i class="cap" aria-hidden="true"></i></span><button type="button" class="fader-name" id="farns-what" aria-haspopup="dialog" title="what's Farnsworth?">farns.</button></label>
           </div>
           <span class="group-name">speed</span>
         </div>

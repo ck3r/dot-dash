@@ -79,6 +79,12 @@ for (const [code, sign] of Object.entries(PROSIGNS)) {
   ENCODE[sign] = code;
 }
 
+/* <AR> and the rest can be typed too, though the node reads + (SHARED, below) */
+ENCODE["<AR>"] = ".-.-.";
+ENCODE["<BT>"] = "-...-";
+ENCODE["<KN>"] = "-.--.";
+ENCODE["<AS>"] = ".-...";
+
 
 /*
  * Character at a node, or null for an empty node.
@@ -104,6 +110,44 @@ export function decode(words) {
   return words
     .map(word => word.map(code => DECODE[code] ?? "�").join(""))
     .join(" ");
+}
+
+/*
+ * ============================================================
+ * READINGS: one code, more than one character
+ * ============================================================
+ *
+ * A few nodes read two ways, and the reader picks (the tray's
+ * "prosigns" and "cut", tx/settings.js):
+ *
+ *   prosigns   .-.-.  +  or <AR>     -...-  =  or <BT>
+ *              -.--.  (  or <KN>     .-...  &  or <AS>
+ *
+ *   cut        T 0  A 1  U 2  V 3  E 5  B 7  D 8  N 9 (CUT, below),
+ *              but only in a word that already has a digit in it,
+ *              as a contest exchange: 5NN is 599, 1TT is 100, and
+ *              TEN stays TEN
+ *
+ * A reading is { pro, cut } (both off: the tree's own characters).
+ * READING is the one being written now (the tray keeps it); a sent
+ * message keeps the one it went with (tx/state.js readingOf).
+ */
+
+export const SHARED = {
+  ".-.-.": "<AR>",
+  "-...-": "<BT>",
+  "-.--.": "<KN>",
+  ".-...": "<AS>"
+};
+
+export const PLAIN = { pro: false, cut: false };
+export const READING = { ...PLAIN };
+
+/* a word's characters, as the reading reads them (null: no character) */
+export function namesOf(word, { pro = false, cut = false } = READING) {
+  const numbers = cut && word.some(code => /^\d$/.test(DECODE[code] ?? ""));
+  return word.map(code =>
+    (pro && SHARED[code]) || (numbers && CUT[code]) || (DECODE[code] ?? null));
 }
 
 /* a prosign is written in its brackets, <SK>, one letter */
@@ -151,6 +195,28 @@ export function parse(raw) {
   return words
     .map(word => word.filter(Boolean))
     .filter(word => word.length);
+}
+
+
+/*
+ * What a link says, after "?/": Morse in either format, or, with
+ * anything in it that isn't Morse, plain text to encode. A "+" is
+ * a space, as in a form (a real + is %2B).
+ *
+ *   ?/_...._._/_.--_        Morse
+ *   ?/hello+world           HELLO WORLD
+ *   ?/hello%20world         HELLO WORLD
+ */
+
+export function readLink(raw) {
+  let s = raw.replace(/\+/g, " ");
+  try {
+    s = decodeURIComponent(s);
+  } catch {
+    /* malformed %-escape: use as-is */
+  }
+  if (/^[.\-_/\s]*$/.test(s)) return parse(s);
+  return encode(s);
 }
 
 

@@ -28,12 +28,6 @@
  * Type sizes, the shared measures, the page itself.
  */
 
-/* light: invert: the whole screen flips while the key is down
-   (dimmed with the light level) */
-html.inverted {
-  filter: invert(1) hue-rotate(180deg) brightness(var(--glow, 1));   /* light for dark; red stays red, blue blue */
-}
-
 /*
  * The shared measures:
  *   --fs-*       the four type sizes (above)
@@ -388,18 +382,11 @@ body.tx {
 }
 
 /* a moment's word over the part tapped: "copied", "soon" (the about
-   column, the counts) */
-.about [data-flash],
-.stats[data-flash],
-.profile[data-flash] { position: relative; }
-
-.about [data-flash]::after,
-.stats[data-flash]::after,
-.profile[data-flash]::after {
-  content: attr(data-flash);
-  position: absolute;
-  left: 50%;
-  top: 50%;
+   column, the counts, the profile). One tip on top of everything
+   (tx/dom.js flash): no neighbour covers it, no edge clips it */
+.flash-tip {
+  position: fixed;
+  z-index: 1000;
   transform: translate(-50%, -50%);
   padding: 0.1rem 0.25rem;
   background: var(--bakelite);
@@ -712,6 +699,8 @@ body.tree-open .tree-edge {
   transition: opacity 0.25s;
 }
 .tx .tape-thumb { touch-action: none; }   /* a drag (outranks .tx button's manipulation) */
+.tx .outputs [data-out],
+.tx .input-mode { touch-action: none; }   /* held, a slide along the quick list (tx/layer.js) */
 .tape-thumb::before { content: ""; position: absolute; inset: -0.4rem -1rem -0.4rem -1.4rem; }   /* the finger's room */
 .tape-thumb.up { opacity: 1; pointer-events: auto; }
 .tape-thumb.held { background: var(--brass); }
@@ -822,17 +811,17 @@ body[data-mode="type"] .entry.current .empty-line {
  *   .... . .-.. .-.. ---      ████████████████      (the row, empty)
  *    H   E  L    L   O         H   E  L    L   O    HELLO
  */
-.tape.hide-p .entry:not(.anim) .line .p,
-.tape.hide-m .entry:not(.anim) .line .m,
-.tape.hide-m .entry:not(.anim) .line .m span,
+.tape.hide-p .entry:not(.anim) .line .w:not(.shown) .p,
+.tape.hide-m .entry:not(.anim) .line .w:not(.shown) .m,
+.tape.hide-m .entry:not(.anim) .line .w:not(.shown) .m span,
 .line .c.bar-p .p,
 .line .c.bar-m .m,
 .line .c.bar-m .m span {
   color: transparent !important;
 }
 
-.tape.hide-p .entry:not(.anim) .line .c::after,
-.tape.hide-m .entry:not(.anim) .line .c::after,
+.tape.hide-p .entry:not(.anim) .line .w:not(.shown) .c::after,
+.tape.hide-m .entry:not(.anim) .line .w:not(.shown) .c::after,
 .line .c.bar-p::after,
 .line .c.bar-m::after {
   content: "";
@@ -844,8 +833,8 @@ body[data-mode="type"] .entry.current .empty-line {
   pointer-events: none;
 }
 
-.tape.hide-p .entry:not(.anim) .line .c:not(:last-child)::after,
-.tape.hide-m .entry:not(.anim) .line .c:not(:last-child)::after,
+.tape.hide-p .entry:not(.anim) .line .w:not(.shown) .c:not(:last-child)::after,
+.tape.hide-m .entry:not(.anim) .line .w:not(.shown) .c:not(:last-child)::after,
 .line .c.bar-p:not(:last-child)::after,
 .line .c.bar-m:not(:last-child)::after {
   right: -1.45ch;    /* across the 1.4ch gap to the next letter */
@@ -855,6 +844,21 @@ body[data-mode="type"] .entry.current .empty-line {
 .line .c.bar-p::after { bottom: 0.12em; }   /* the letters row */
 .tape.hide-m .entry:not(.anim) .line .c::after,
 .line .c.bar-m::after { top: 0.15em; }      /* the Morse row */
+
+/*
+ * A bar is a word you can check: tap it and that word shows (its
+ * spacing and all), tap again and it's a bar again. Only as bars
+ * (not shown, not collapsed); the eye resets every word (tx/tape.js).
+ *
+ *   .... ..  --.- ...- .--.       .... ..  --.- ...- .--.
+ *   ██████   ███████████     tap   H   I   ███████████
+ */
+.tape.hide-p .entry:not(.anim) .line .w:not(.shown) .p,
+.tape.hide-m .entry:not(.anim) .line .w:not(.shown) .m { cursor: pointer; }
+@media (hover: hover) {
+  .tape.hide-p .entry:not(.anim) .line .w:not(.shown):has(.p:hover) .c::after,
+  .tape.hide-m .entry:not(.anim) .line .w:not(.shown):has(.m:hover) .c::after { background: var(--brass); }
+}
 
 .tape.collapse-p .entry:not(.anim) .line .p,
 .line .c.flat-p .p { display: none; }
@@ -1470,7 +1474,7 @@ body.reading .caret { visibility: hidden; }
   align-self: center;
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
+  gap: 0.6rem;
   padding-left: 0.5rem;
   border-left: 1px dashed var(--wire);
   color: var(--graphite);
@@ -1487,6 +1491,11 @@ body.reading .caret { visibility: hidden; }
 .flags .flag .check {
   font-size: var(--fs-xs);
 }
+
+/* stacked, a name on one line ("pretty play", "prosigns"), so all six
+   fit the tray's height; phones break them again (two rows, below) */
+.flags .flag br,
+.flags .flag .hy { display: none; }
 
 /* the foot: a report for support, quiet, across the tray */
 .tray-foot {
@@ -1549,16 +1558,77 @@ body.reading .caret { visibility: hidden; }
   white-space: nowrap;
 }
 
-/* vertical: low at the bottom, high at the top */
+/*
+ * Vertical: low at the bottom, high at the top. Drawn like the scrub
+ * bar: a thin line, brass up to the level (--p, tx/settings.js), and
+ * a brass bar across it for the handle (its touch target taller than
+ * it looks). Above farnsworth's reach the line gives way to the cap.
+ *
+ *     │
+ *     │       the line (wire)
+ *    ━━━      the handle: a bar, 4px of an 16px target
+ *     ┃       brass, down to the bottom
+ *     ┃
+ */
 .fader input[type="range"] {
+  --r: 8px;                 /* half the handle's target: its centre travels r … height − r */
+  --at: calc(var(--r) + var(--p, 0.5) * (100% - 2 * var(--r)));
   flex: 1;
   min-height: 0;
   width: 2rem;
+  margin: 0;
   writing-mode: vertical-lr;
   direction: rtl;
-  accent-color: var(--brass);
+  -webkit-appearance: none;
+  appearance: none;
+  background: linear-gradient(to top,
+      var(--brass) 0 var(--at),
+      var(--wire) 0 calc(100% - var(--f, 0) * (100% - 2 * var(--r))),
+      transparent 0) center / 2px 100% no-repeat;
   cursor: pointer;
+  touch-action: none;
+  position: relative;
+  z-index: 1;               /* the handle over farnsworth's cap */
 }
+.fader input[type="range"]::-webkit-slider-runnable-track { background: transparent; border: 0; }
+.fader input[type="range"]::-moz-range-track              { background: transparent; border: 0; }
+.fader input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 16px;
+  border: 0;
+  background: linear-gradient(var(--brass), var(--brass)) center / 100% 4px no-repeat;
+}
+.fader input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 16px;
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(var(--brass), var(--brass)) center / 100% 4px no-repeat;
+}
+.fader input[type="range"]:disabled { background-image: linear-gradient(var(--wire), var(--wire)); }
+.fader input[type="range"]:disabled::-webkit-slider-thumb { background-image: linear-gradient(var(--wire), var(--wire)); }
+.fader input[type="range"]:disabled::-moz-range-thumb     { background-image: linear-gradient(var(--wire), var(--wire)); }
+
+/* farns.: a name that explains itself (a popup), not part of the slider */
+.tx .fader .fader-name {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  line-height: inherit;
+  color: var(--graphite);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: help;
+}
+@media (hover: hover) {
+  .tx .fader .fader-name:hover { color: var(--brass); }
+}
+.farns-eg { white-space: pre; font-size: var(--fs-xs); color: var(--graphite); }
+.farns-eg span:not(.dot):not(.dash) { color: var(--paper); }
 
 /*
  * farnsworth can't be faster than wpm: the track above wpm is out
@@ -1584,6 +1654,7 @@ body.reading .caret { visibility: hidden; }
   width: 10px;
   transform: translateX(-50%);
   height: calc(var(--f) * (100% - 2 * var(--r)));
+  z-index: 0;               /* under the handle */
   background:
     repeating-linear-gradient(to bottom, var(--graphite) 0 2px, transparent 2px 5px) center / 2px 100% no-repeat,
     var(--bakelite);
@@ -1633,6 +1704,8 @@ body.reading .caret { visibility: hidden; }
   border-radius: 0;
   border-bottom: 1px dotted var(--graphite);
   padding: 0.1rem 0.75rem 0.1rem 0;
+  width: 12.5ch;           /* every list one width, room for the longest ("signal lamp") */
+  text-overflow: ellipsis;
   cursor: pointer;
 }
 
@@ -1694,16 +1767,16 @@ body.reading .caret { visibility: hidden; }
 .switches.placed .lead { display: contents; }
 .switches.placed label { position: absolute; top: 0; margin: 0; }
 
-/* narrow phones: no room to line up; two to a row */
 /*
- * Narrow phones (384px and less): three rows, the tray scrolling
- * if the sliders run past the bottom:
+ * Phones (480px and less): no room to line the lists up over their
+ * sliders in one row, so three rows, the tray scrolling if the
+ * sliders run past the bottom:
  *
  *   key  ctrl  sound    wave
- *   light    color  invert  pretty play
+ *   light    color  invert  pretty play  prosigns
  *   │ │  │ │  │  │      the sliders, full width, full height
  */
-@media (max-width: 384px) {
+@media (max-width: 480px) {
   .tray {
     grid-template-columns: minmax(0, 1.35fr) repeat(2, minmax(0, 1fr));   /* the first a little wider: key and ctrl share it */
     grid-template-rows: auto auto auto auto;
@@ -1718,6 +1791,8 @@ body.reading .caret { visibility: hidden; }
   .switches .lead > label:has(#opt-sound) { grid-column: 2; grid-row: 1; }
   .switches label:has(#opt-wave)       { grid-column: 3; grid-row: 1; }
   .switches > label[data-needs="light"] { grid-column: 1; grid-row: 2; }
+  .tray .flags .flag br { display: initial; }
+  .tray .flags .flag .hy { display: inline; }
   .tray .flags {
     grid-column: 2 / -1;
     grid-row: 2;
@@ -1735,8 +1810,18 @@ body.reading .caret { visibility: hidden; }
     min-height: 200px;     /* as tall as on bigger screens; the tray scrolls */
   }
   /* the captions under six slim columns ("strength" is the widest) */
-  .tray .fader span { letter-spacing: -0.06em; font-size: 0.66rem; }
+  .tray .fader span,
+  .tx .tray .fader .fader-name { letter-spacing: -0.06em; font-size: 0.66rem; }
   .tray { overflow-x: clip; }
+}
+
+/* the smallest phones (320px): every list a little narrower, still one
+   width ("signal lamp" ends in … there), so key stays clear of ctrl;
+   the checkboxes closer, so cut fits at the end of their row */
+@media (max-width: 360px) {
+  .switches select { width: 11ch; }
+  .tray .flags { gap: 0.2rem; }
+  .tray .flags .flag { letter-spacing: -0.06em; }
 }
 
 /* a checkbox's real input: inside its box, never past the edge */
@@ -2091,6 +2176,9 @@ body:has(#train:not([hidden])) .pad {
 }
 
 .quick-list button {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
   border: 0;
   padding: 0.45rem 0.6rem;
   color: var(--graphite);
@@ -2374,6 +2462,24 @@ body:has(#train:not([hidden])) .pad {
   white-space: nowrap;
 }
 
+/* under copy link: a checkbox, the link with your settings */
+.share-menu .share-with {
+  display: flex;
+  align-items: center;
+  gap: 0.6ch;
+  padding: 0 0.2rem 0.3rem;
+  color: var(--graphite);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.share-menu .share-with:has(input:checked) { color: var(--paper); }
+.share-menu .share-with > span:not(.check):not(.peek) { flex: none; white-space: nowrap; }
+.share-menu .share-with .peek { margin-left: auto; }
+.share-menu .share-with:has(input:disabled) { color: var(--wire); cursor: default; }
+@media (hover: hover) {
+  .share-menu .share-with:not(:has(input:disabled)):hover { color: var(--brass); }
+}
+
 .share-menu .peek {
   min-width: 0;
   overflow: hidden;
@@ -2398,14 +2504,6 @@ body:has(#train:not([hidden])) .pad {
   border: 1px solid var(--wire);
   padding: 0.25rem 0.6rem;
 }
-
-/* not ready yet (the spoken .wav, until the recordings are in) */
-.share-menu button[data-soon] {
-  color: var(--wire);
-  cursor: default;
-}
-
-.share-menu button[data-soon] .peek { color: var(--wire); }
 
 /* in the share menu, under everything */
 .share-menu .privacy {
@@ -2635,19 +2733,70 @@ a.switch { text-decoration: none; }
   border-top-color: var(--paper);
 }
 
+/* a long-press on a message: copy it (as the quick lists: slide, let go) */
+.copy-bubble {
+  position: fixed;
+  z-index: 12;
+  transform: translate(-50%, calc(-100% - 16px));
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bakelite);
+  border: 1px solid var(--paper);
+  font-size: var(--fs-s);
+  white-space: nowrap;
+}
+.copy-bubble[hidden] { display: none; }
+.copy-bubble button {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  border: 0;
+  padding: 0.45rem 0.7rem;
+  color: var(--graphite);
+  background: transparent;
+}
+.copy-bubble button.on { background: var(--paper); color: var(--bakelite); }
+.copy-bubble button:disabled { color: var(--wire); }
+@media (hover: hover) {
+  .copy-bubble button:not(.on):not(:disabled):hover { color: var(--brass); }
+}
+
 /* a short message (nothing to paste, …) under the header */
+/* placed in the middle of the message (tx/dom.js toast) */
 .toast {
   position: fixed;
   z-index: 12;
-  top: 2.9rem;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   padding: 0.3rem 0.8rem;
   border: 1px solid var(--wire);
   background: var(--bakelite);
   color: var(--brass);
   font-size: var(--fs-xs);
   white-space: nowrap;
+}
+
+/* with something to do about it (a link's settings: keep) */
+.toast.acts {
+  white-space: normal;
+  width: max-content;
+  max-width: min(22rem, 90vw);
+  text-align: center;
+  line-height: 1.6;
+}
+.toast-act {
+  border: 1px solid var(--brass);
+  background: transparent;
+  color: var(--paper);
+  padding: 0 0.6rem;
+  margin-left: 0.4rem;
+  font: inherit;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .toast-act:hover { background: var(--brass); color: var(--bakelite); }
 }
 
 /* the about card: wider than the other popups, scrolling inside */

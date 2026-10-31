@@ -12,6 +12,7 @@ import { ENCODE, encode } from "../morse.js";
 import { tokensOf } from "./state.js";
 import { createKeyboard } from "./keyboard.js";
 import { $ } from "./dom.js";
+import { spokenWords } from "./voice.js";
 
 export function createTyping({ state, sound, update, send, soundLetter, playing, stopPlayback }) {
   /*
@@ -56,14 +57,16 @@ export function createTyping({ state, sound, update, send, soundLetter, playing,
     if (/^Q[A-Z]{2}$/.test(k)) {
       state.record("type", { char: k });
       sound.unlock();
-      for (const ch of k) soundLetter(ENCODE[ch]);
+      if (sound.speaks) sound.speak(spokenWords(k));
+      else for (const ch of k) soundLetter(ENCODE[ch]);
       return retype(state.typed + (state.typed && !state.typed.endsWith(" ") ? " " : "") + k);
     }
     const code = ENCODE[k];
     if (!code) return;
     state.record("type", { char: k });
     sound.unlock();
-    soundLetter(code);
+    if (sound.speaks) sound.speak(spokenWords(k));
+    else soundLetter(code);
     retype(state.typed + k);
   }
 

@@ -271,6 +271,26 @@ button {
   color: var(--graphite);
 }
 
+/* the timing bar under the tree (js/main.js): the station's scrub-bar
+   preview, its box and fading edges (tx.css .seek-pop), wider */
+.tree-timing {
+  width: 16rem;
+  max-width: 100%;
+  height: 3.4rem;
+  margin: 1rem auto 0;
+  padding: 0.25rem;
+  border: 1px solid var(--graphite);
+  background: var(--bakelite);
+}
+
+.tree-timing canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 14%, #000 86%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 14%, #000 86%, transparent);
+}
+
 .options-look {
   margin-top: 1.25rem;
   padding-top: 1rem;

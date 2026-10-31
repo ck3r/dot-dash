@@ -23,12 +23,14 @@
  * (stopPlayback: () => stopPlayback()), so the order above holds.
  */
 
-import { parse, format, NAME_CODE } from "../morse.js";
+import { parse, readLink, format, DECODE, NAME_CODE } from "../morse.js";
+import { spokenWords } from "./voice.js";
 import { createSound } from "../tx-sound.js";
 import { PROSIGNS_BY_CODE } from "../characters.js";
-import { $, toast } from "./dom.js";
+import { $, toast, flash } from "./dom.js";
 import { createState, structure, wordsOf, tokensOf, tookFor, morseOf, recOfEntry, plainText } from "./state.js";
 import { createTape } from "./tape.js";
+import { createUndo } from "./undo.js";
 import { createTreeEdge } from "./tree.js";
 import { createKeys, timingNow } from "./keys.js";
 import { createTyping } from "./typing.js";
@@ -40,6 +42,7 @@ import { createTab } from "./tab.js";
 
 /* the message, the tape, the modes, the event log: js/tx/state.js */
 const state = createState();
+const undo = createUndo({ state });
 
 /* errors, into the event log from the start (the report, in settings,
    lists the last few) */
@@ -187,6 +190,8 @@ function press(act, timing = null) {
   }
   state.record(act === "." || act === "-" ? "mark" : act, act === "." || act === "-" ? { mark: act, timing } : {});
   const closed = act === "letter" || act === "word";
+  /* a letter just landed: with the voice on, it's said */
+  if (closed && sound.speaks && (last === "." || last === "-")) sound.speak(spokenWords(DECODE[wordsOf(state.tokens).flat().at(-1)] ?? ""));
   if (closed && prosignsAct()) {
     if (erased()) { state.record("erase"); toast("HH: error, the word erased"); }
     const code = returned();
@@ -255,14 +260,32 @@ function send() {
   state.tokens = [];
   state.took = [];
   setTyped("");
+  undo.forget();     // a new line: what's sent stays sent
   trace.rest();
   update();
 }
 
+/* Ctrl/⌘+Z: the line, back a step; Ctrl/⌘+Shift+Z or Ctrl/⌘+Y, forward
+   again (js/tx/undo.js). With the ctrl keys as paddles, Ctrl is a key
+   on the pad, so ⌘ only */
+document.addEventListener("keydown", event => {
+  const key = event.key.toLowerCase();
+  const back = key === "z" && !event.shiftKey, forward = (key === "z" && event.shiftKey) || (key === "y" && !event.shiftKey);
+  if ((!back && !forward) || event.altKey) return;
+  if (!event.metaKey && !(event.ctrlKey && !$("#opt-ctrl").checked)) return;
+  if (event.target.closest?.("input, select, textarea")) return;
+  event.preventDefault();
+  keyer.reset();
+  cancelTaps();
+  if (!(back ? undo.step() : undo.redo())) return;
+  state.record(back ? "undo-step" : "redo-step");
+  update();
+});
+
 
 /* the tape: js/tx/tape.js */
 const { drawTape, drawStats, settleTape, fadeTape, hiding, redact, clearCurrent } = createTape({
-  state, update, setTyped: text => setTyped(text), resetKeyer: () => keyer.reset()
+  state, update, setTyped: text => setTyped(text), resetKeyer: () => keyer.reset(), forgetUndo: () => undo.forget()
 });
 
 
@@ -280,6 +303,7 @@ const { tree, about, drawLocal, drawTree, followNode, openTree, isTreeOpen, inTr
  */
 
 function update() {
+  undo.watch();
   const { word, path } = structure(state.tokens);
   /* the message changed under the player: stop it */
   if (state.playKey !== null && state.playKey !== messageKey()) stopPlayback();
@@ -346,12 +370,9 @@ function setMode(next, focus = true) {
   update();
 }
 
-/* profiles: not yet (a moment's "soon" over it, as the spoken names) */
+/* profiles: not yet (a moment's "soon" over it) */
 $("#profile").addEventListener("click", () => {
-  const b = $("#profile");
-  b.dataset.flash = "soon";
-  clearTimeout(b.flashTimer);
-  b.flashTimer = setTimeout(() => delete b.dataset.flash, 1200);
+  flash($("#profile"), "soon");
 });
 
 /* one switch: a press anywhere flips it; the side that comes on
@@ -385,11 +406,16 @@ const { setTyped, retype, openHold } = createTyping({
 
 /* the settings tray, the outputs, the light: js/tx/settings.js */
 const {
-  outputs, setSignal, openTray, start: startSettings, trayJustClosed,
+  outputs, setSignal, openTray, start: startSettings, linkedSettings, trayJustClosed,
   wantsLamp, lampOk, askLamp, openLamp, closeLamp, cancelLamp, torchOn
 } = createSettings({
   state, sound, logo, ctrlPaddle, timingNow, showInput, drawStats,
-  stopPlayback: () => stopPlayback(), redrawTrace: () => trace.redraw()
+  stopPlayback: () => stopPlayback(), redrawTrace: () => trace.redraw(),
+  /* the tray's reading changed: the line reads again (typing: the box too) */
+  reread: () => {
+    if (state.mode === "type") setTyped(plainText(wordsOf(state.tokens)) ?? state.typed);
+    update();
+  }
 });
 
 /*
@@ -415,8 +441,12 @@ $(".field").addEventListener("click", event => {
  */
 const TORCH_WPM = 20;
 const playTiming = () => timingNow(torchOn() ? TORCH_WPM : Infinity);
-const speedNote = () =>
-  torchOn() && Number($("#opt-wpm").value) > TORCH_WPM ? `flashlight: played at ${TORCH_WPM} wpm, as fast as it switches` : null;
+let paceNoted = false;
+const speedNote = () => {
+  /* speech can't change speed without changing pitch; said once a visit */
+  if (sound.speaks && !paceNoted) { paceNoted = true; return "voice: at its own pace, whatever the speed"; }
+  return torchOn() && Number($("#opt-wpm").value) > TORCH_WPM ? `flashlight: played at ${TORCH_WPM} wpm, as fast as it switches` : null;
+};
 
 /* the player row: js/tx/player.js */
 const {
@@ -429,7 +459,7 @@ const {
 
 /* paste and share: js/tx/share.js */
 const { menu, openShare, hideBubble } = createShare({
-  state, keyer, shareable, choice, timingNow, setMode, putKeysAway, setTyped
+  state, keyer, shareable, choice, timingNow, setMode, putKeysAway, setTyped, linkedSettings
 });
 
 
@@ -448,7 +478,9 @@ const { openPrivacy, openHeard, openCut } = createLayer({
  * ============================================================
  */
 
-startSettings();
+/* settings after "#" in a link: for this visit (js/tx/settings.js);
+   read, they leave the address */
+if (startSettings(location.hash)) window.history.replaceState(null, "", location.pathname + location.search);
 trainView.build();
 setKeyMode($("#opt-key").value);
 
@@ -463,7 +495,7 @@ setKeyMode($("#opt-key").value);
   const kept = state.savedLine();
   if (q.startsWith("?/")) {
     let words = [];
-    try { words = parse(decodeURIComponent(q.slice(2))); } catch { }
+    try { words = readLink(q.slice(2)); } catch { }
     if (words.length && kept && morseOf(kept) !== format(words)) state.addToHistory(kept);
     if (words.length) {
       state.tokens = tokensOf(words);
@@ -481,6 +513,7 @@ setKeyMode($("#opt-key").value);
     }
     tab.arrive(null);     // the name keys itself
   }
+  undo.forget();          // what's on the line now is where undo stops
 }
 
 let savedMode = "key";

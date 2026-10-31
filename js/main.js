@@ -19,6 +19,7 @@
 import * as morse from "./morse.js";
 import * as keyer from "./keyer.js";
 import { createTree, buildModel } from "./tree.js";
+import { drawPreview } from "./tx-trace.js";
 import { renderCard } from "./overview.js";
 
 
@@ -142,7 +143,105 @@ keyer.on(event => {
     return;
   }
   trees.forEach(tree => tree.handle(event));
+  timing.handle(event);
 });
+
+/*
+ * ============================================================
+ * THE TIMING BAR
+ * ============================================================
+ *
+ * Under the tree: the character it's on, drawn as the station's
+ * scrub-bar preview draws it (js/tx-trace.js drawPreview). It
+ * follows the trace: each mark grows a unit at a time as it's
+ * keyed, and the name under it is the node it's reached (greyed on
+ * the way, lit when it lands). A selected character waits in grey
+ * underneath, so you see how far there is to go.
+ *
+ *     ▁▁█▁███▁▁▁▁        ▁▁█▁▒▒▒▁▁▁
+ *         A                  E         (on the way to A)
+ *
+ * One scale for every character (units, not the box's width), so
+ * lengths compare: E is short, 0 is long.
+ */
+const timing = (() => {
+  const canvas = $(".tree-timing canvas");
+  const ctx = canvas.getContext("2d");
+  const WINDOW = 32;     // units across the box: the longest (SOS, 23) inside the fades
+  let marks = [];        // traced so far: { start, end, mark } in units
+  let path = "";
+  let landed = false;
+
+  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+  /* a code laid out in units: a mark, a unit's gap, the next */
+  function laid(code) {
+    let at = 0;
+    return [...code].map(s => {
+      const m = { start: at, end: at + (s === "." ? 1 : 3), mark: s };
+      at = m.end + 1;
+      return m;
+    });
+  }
+
+  function draw() {
+    const r = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.max(1, Math.round(r.width * dpr));
+    canvas.height = Math.max(1, Math.round(r.height * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, r.width, r.height);
+
+    const target = selected && selected.startsWith(path.slice(0, -1)) ? laid(selected) : [];
+    const ahead = target.slice(marks.length).map(m => ({ ...m, ahead: true }));
+    /* the mark being held: what's left of it, still to come */
+    const last = marks.at(-1), whole = target[marks.length - 1];
+    if (last && whole && last.end < whole.end) ahead.unshift({ ...whole, start: last.end, ahead: true });
+    const all = [...ahead, ...marks];
+    if (!all.length) return;
+    const end = Math.max(...all.map(m => m.end));
+    const name = path ? morse.DECODE[path] ?? "" : morse.DECODE[selected] ?? "";
+
+    const signal = document.body.classList.contains("signal");
+    const c = { wire: css("--wire"), paper: css("--paper"), toCome: css("--graphite") };
+    c.markColor = m => m.ahead ? c.wire : signal ? css(m.mark === "." ? "--dot" : "--dash") : c.paper;
+    drawPreview(ctx, r.width, r.height,
+      { marks: all, letters: [{ start: 0, end, label: name }], duration: end },
+      { from: end / 2 - WINDOW / 2, windowMs: WINDOW, position: landed || !path ? 0 : -Infinity, unit: 1 }, c);
+  }
+
+  return {
+    draw,
+    /* a new character chosen: shown whole, waiting to be traced */
+    show() { marks = []; path = ""; landed = false; draw(); },
+    handle(event) {
+      switch (event.type) {
+        case "start": marks = []; path = ""; landed = false; break;
+        /* a unit of a mark: a new mark, or the held one a unit longer.
+           Held, a mark is a dit for its first unit and a dah after
+           (as the tree's path moves on), so it changes colour too */
+        case "beat":
+          if (landed) { marks = []; landed = false; }   // the next letter
+          if (event.path.length > marks.length) {
+            const at = marks.length ? marks.at(-1).end + 1 : 0;
+            marks.push({ start: at, end: at + 1, mark: event.path.at(-1) });
+          } else {
+            marks.at(-1).end++;
+            marks.at(-1).mark = event.path.at(-1);
+          }
+          path = event.path;
+          break;
+        case "letter":
+        case "end":
+          if (event.path) { path = event.path; landed = true; }
+          break;
+        default: return;
+      }
+      draw();
+    }
+  };
+})();
+addEventListener("resize", () => timing.draw());
 
 /* Click a node to select it (and play just that character). */
 for (const tree of trees) {
@@ -186,6 +285,7 @@ function select(code) {
   selected = code;
   drawTrees();      /* lights it, and grows its branch if the options hide it */
   renderSelected();
+  timing.show();
   trace(code);
 }
 
@@ -262,6 +362,7 @@ for (const [id, className] of [
   const apply = () => {
     document.body.classList.toggle(className, box.checked);
     try { localStorage.setItem("dot-dash:" + className, box.checked ? "1" : "0"); } catch { }
+    timing.draw();   /* dot/dash colours, or not */
   };
   box.addEventListener("change", apply);
   apply();
@@ -323,6 +424,7 @@ function show(next) {
 
   drawTrees();   /* the message may need branches the options hide */
   renderSelected();
+  timing.show();
 
   if (selected) trace(selected);
   else keyer.play(words);

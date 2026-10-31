@@ -11,7 +11,7 @@
  *   createKeyboard({ typeKey }) → { openHold }
  */
 import { DECODE, ENCODE } from "../morse.js";
-import { $, el } from "./dom.js";
+import { $, el, nearest } from "./dom.js";
 
 export function createKeyboard({ typeKey }) {
   /*
@@ -282,10 +282,8 @@ export function createKeyboard({ typeKey }) {
 
   $("#kbd").addEventListener("pointermove", event => {
     if (!held?.fan) return;
-    /* the item under the finger (by its column, so a slight drift up or down is fine) */
-    const x = event.clientX;
-    const item = held.items.find(i => { const r = i.getBoundingClientRect(); return x >= r.left && x < r.right; });
-    if (item) choose(item);
+    /* the item under the finger, or nearest it (dom.js) */
+    choose(nearest(held.items, event.clientX, event.clientY));
   });
 
   function release(event, commit) {
