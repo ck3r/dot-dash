@@ -177,8 +177,10 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) 
    */
   /* what the eye is hiding right now: "letters" (keying), "morse"
      (typing), or null. The tree and the about column hide it too,
-     and a hidden part can't be tapped either (no copying, no links). */
-  const hiding = () => (state.hidden ? (state.mode === "type" ? "morse" : "letters") : null);
+     and a hidden part can't be tapped either (no copying, no links).
+     Collapsed isn't hiding: the row is only put away for room, so
+     the about column and the counts stay as they are */
+  const hiding = () => (state.hidden && !state.collapsed ? (state.mode === "type" ? "morse" : "letters") : null);
 
   /* make a part hidden: a bar, out of reach of taps and the keyboard */
   function redact(e) {
@@ -202,10 +204,10 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) 
    * eye"). Each letter wears the old look until its turn, and the
    * rest of the tape (the history) changes when it's done:
    *
-   *   shown → collapsed  typing, the letters close up
+   *   shown → bars       each code (typing) or letter (keying) a bar
+   *   bars → collapsed   the bars go; typing, the letters close up
    *   collapsed → shown  typing, it unzips: ███ / SOS, then each
    *                      letter opens into its code (... --- ...)
-   *   → bars             each code (typing) or letter (keying) a bar
    *
    * Quick: 60 ms a letter, 0.6 s at most. A redraw (a key) ends it.
    */
@@ -271,18 +273,17 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) 
     const active = el("span", "m-active", ">");
     const what = state.mode === "type" ? "Morse" : "letters";
     /*
-     * A tap shows or hides the row outright (hidden, it takes no
-     * room); holding redacts it instead (bars: how many words, how
-     * long, not what they say); a tap from the bars opens it again.
+     * A tap goes between shown and bars; holding it collapses (the
+     * hidden row takes no room); a tap from collapsed opens it again.
      *
-     *   tap:   shown ⇄ collapsed     hold: → bars         tap: → shown
+     *   tap:   shown ⇄ bars        hold: → collapsed      tap: → shown
      */
     const now = !state.hidden ? "shown" : state.collapsed ? "collapsed" : "bars";
-    const tap = now === "shown" ? "collapsed" : "shown";
+    const tap = now === "shown" ? "bars" : "shown";
     const eye = el("button", "eye");
     eye.type = "button";
     eye.innerHTML = { shown: EYE_OPEN, bars: EYE_SHUT, collapsed: EYE_FLAT }[now];
-    eye.title = (tap === "collapsed" ? "hide " : "show ") + what + (now === "bars" ? "" : " (hold: redact)");
+    eye.title = (tap === "bars" ? "hide " : "show ") + what + (now === "collapsed" ? "" : " (hold: collapse)");
     eye.setAttribute("aria-label", eye.title);
     eye.setAttribute("aria-pressed", String(now !== "shown"));
     const go = next => {
@@ -292,25 +293,25 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) 
       try { localStorage.setItem("dot-dash:tx-hide", JSON.stringify(state.collapsed ? "collapsed" : state.hidden)); } catch { }
       update();
       eyeChange(now, next);
-      toast(`${what} ${{ shown: "shown", bars: "redacted", collapsed: "hidden" }[next]}`);
+      toast(`${what} ${{ shown: "shown", bars: "hidden", collapsed: "collapsed" }[next]}`);
     };
     /* held long enough, it's armed: brass, and a toast says what letting
-       go will do; the release redacts. Sliding off lets it go */
+       go will do; the release collapses. Sliding off lets it go */
     let holdTimer = null, armed = false;
     const disarm = () => { clearTimeout(holdTimer); armed = false; eye.classList.remove("armed"); };
     eye.addEventListener("pointerdown", () => {
       eyeHeld = false;   // a new press (a hold's release lands on the eye it replaced)
       disarm();
-      if (now !== "bars") holdTimer = setTimeout(() => {
+      if (now !== "collapsed") holdTimer = setTimeout(() => {
         armed = true;
         eye.classList.add("armed");
-        toast(`release to redact ${what}`);
+        toast(`release to collapse ${what}`);
       }, EYE_HOLD);
     });
     eye.addEventListener("pointerup", () => {
       const go_ = armed;
       disarm();
-      if (go_) { eyeHeld = true; go("bars"); }
+      if (go_) { eyeHeld = true; go("collapsed"); }
     });
     for (const t of ["pointercancel", "pointerleave"]) eye.addEventListener(t, disarm);
     eye.addEventListener("contextmenu", event => event.preventDefault());

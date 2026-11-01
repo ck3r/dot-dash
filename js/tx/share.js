@@ -321,7 +321,7 @@ export function createShare({ state, keyer, shareable, choice, timingNow, setMod
     longPressed = true;
     const msg = messageAt(target);
     if (msg) {
-      const hidden = state.hidden ? (state.mode === "type" ? "morse" : "text") : null;
+      const hidden = state.hidden && !state.collapsed ? (state.mode === "type" ? "morse" : "text") : null;
       for (const b of copier.querySelectorAll("button")) {
         b.classList.remove("on");
         b.disabled = b.dataset.copy === hidden;

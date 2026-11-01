@@ -429,6 +429,12 @@ body.tx {
 .signal .about-marks i.dot  { background: var(--dot); }
 .signal .about-marks i.dash { background: var(--dash); }
 
+/* playing, the letter on its way: the marks fill in as they're sent,
+   the rest waits in grey until it lands (tx/about.js) */
+.about-marks i.todo,
+.signal .about-marks i.todo { background: var(--wire); }
+.about.pending :is(.about-name, .about-name .stress, .about-prosign, .about-label, .about-cut b, .about-heard b) { color: var(--wire); }
+
 /* the phonetic name, down the column (a letter's first letter bold) */
 .about-name {
   text-align: center;

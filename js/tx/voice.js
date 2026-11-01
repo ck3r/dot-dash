@@ -84,11 +84,16 @@ export function spokenWords(text) {
  * timeline: the speed sliders don't reach it. It's the shape
  * tx-player.js expects, so the scrub bar, the trace and the keys all
  * work as ever: each letter's marks are spread over its spoken word,
- * and `speech` is what actually sounds.
+ * for the bar and the lamp, and `speech` is what actually sounds.
  *
  *   H       I
  *   HOTEL   INDIA      speech
  *   ▪▪▪▪    ▪ ▪        marks, a letter's worth of each
+ *
+ * The marks are never traced on the line, or the name would sound
+ * before its letter had finished keying. A name is said once a letter
+ * is whole, so here the letter is whole the moment it's said: code,
+ * text and name together (tx-player.js stateAt).
  */
 export function voiceTimeline(words, names) {
   const marks = [], letters = [], speech = [];

@@ -61,9 +61,12 @@ export function flash(part, word, ms = 1200) {
     tip.setAttribute("role", "status");
     document.body.append(tip);
   }
-  const r = part.getBoundingClientRect();
+  /* on what it holds, not its padding: the Morse count keeps a column
+     clear for the ↵, and the middle of that box is off to the right */
+  const r = part.getBoundingClientRect(), s = getComputedStyle(part);
+  const left = r.left + parseFloat(s.paddingLeft), right = r.right - parseFloat(s.paddingRight);
   tip.textContent = word;
-  tip.style.left = `${r.left + r.width / 2}px`;
+  tip.style.left = `${(left + right) / 2}px`;
   tip.style.top = `${r.top + r.height / 2}px`;
   tip.hidden = false;
   part.dataset.flash = word;

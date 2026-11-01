@@ -4,7 +4,9 @@
  * cut and what it could be misheard as; and the (i) below it.
  *
  *   createAbout({ hiding, redact, openHeard, openCut, greet })
- *     .draw(code)    show this character ("" for none)
+ *     .draw(code, sent)   show this character ("" for none); sent:
+ *                    playing, how many of its marks have gone so far
+ *                    (see below); null when it's whole
  *     .current()     the character showing
  *   aboutHref(code)  its page on the reference
  */
@@ -38,6 +40,15 @@ export function createAbout({ hiding, redact, openHeard, openCut, greet }) {
    *     (i)      the full about, on the reference page (always
    *              there, even with the whole tree open)
    *
+   * Playing, it doesn't give the letter away early. From its first
+   * mark the column holds the whole letter, in grey; the marks fill
+   * in as they're sent, and the rest comes up when the letter lands
+   * (on the tape, its name white and underlined):
+   *
+   *     ▪  sent          ▪        ▪
+   *     ▫  to come       ▪        ▪
+   *     alfa (grey)      alfa     alfa (bright)
+   *
    * Each part does its own thing: the marks copy, the name says
    * itself (voice.js), the cut opens the reference tree in
    * cut numbers, and ~ explains mishearing. Only (i) goes to the
@@ -68,10 +79,11 @@ export function createAbout({ hiding, redact, openHeard, openCut, greet }) {
 
   let aboutCode = "";
 
-  function drawAbout(code) {
+  function drawAbout(code, sent = null) {
     aboutCode = code;
     const box = $("#about");
     box.textContent = "";
+    box.classList.toggle("pending", sent !== null);
     const ch = code ? DECODE[code] : null;
 
     /* (i), always at the foot of the column (tree open or not):
@@ -82,16 +94,16 @@ export function createAbout({ hiding, redact, openHeard, openCut, greet }) {
     info.title = code && !secret ? `everything about ${ch ?? code}` : code ? "everything about this character" : "the reference: every character";
     info.setAttribute("aria-label", info.title);
     if (!code) return;
-    if (box.hidden) return buildAbout(box, code, ch);
+    if (box.hidden) return buildAbout(box, code, ch, sent);
 
-    buildAbout(box, code, ch);
+    buildAbout(box, code, ch, sent);
     fitAbout();
   }
 
   /* a moment's word in the column ("copied"), over the part tapped */
   const flashWord = (button, word) => flash(button, word);
 
-  function buildAbout(box, code, ch) {
+  function buildAbout(box, code, ch, sent) {
     box.textContent = "";
     /* the marks (always full size), and its name: the phonetic word
        stepped down the column by syllable, the stressed one bold,
@@ -101,7 +113,7 @@ export function createAbout({ hiding, redact, openHeard, openCut, greet }) {
     marks.type = "button";
     marks.title = `copy ${code}`;
     marks.setAttribute("aria-label", `copy the marks, ${code}`);
-    for (const m of code) marks.append(el("i", m === "." ? "dot" : "dash"));
+    [...code].forEach((m, i) => marks.append(el("i", (m === "." ? "dot" : "dash") + (sent !== null && i >= sent ? " todo" : ""))));
     marks.addEventListener("click", async () => {
       try { await navigator.clipboard.writeText(code); flashWord(marks, "copied"); }
       catch { flashWord(marks, "can't copy"); }

@@ -27,6 +27,9 @@
  *              timing bar (null before the first / after the last)
  *       letter / mark: indexes of the letter and mark reached
  *       path: that letter's marks so far (".-" …), "" in a gap
+ *     A spoken line (line.speech) has no letter under way: each lands
+ *     whole as its word starts, the word and the letter one moment
+ *     (path ""; mark: the letter's last; no symbol or phase)
  *   end()         reached the end (not called while repeating)
  *
  *   rounds()  → how many times to play it (1, 3, Infinity …).
@@ -167,20 +170,22 @@ export function createPlayer({ sound, timing, lineOf = (words, rec) => timeline(
       /* inside the letter (or its inner gaps): the path so far;
          at the very end the last letter is over too, so it lands
          (between rounds and when the message ends, not just mid-way) */
-      if (pos < l.end + 1 && pos < duration) path = l.code.slice(0, m.index + 1);
+      if (!line.speech && pos < l.end + 1 && pos < duration) path = l.code.slice(0, m.index + 1);
     }
-    const symbol = down ? marks[mark].mark : null;
+    const symbol = down && !line.speech ? marks[mark].mark : null;
 
     /* for the timing bar: what's happening now, and how long it
        should ideally last */
     let phase = null;
-    if (mark >= 0 && down) {
+    if (line.speech) phase = null;
+    else if (mark >= 0 && down) {
       const m = marks[mark];
       phase = { kind: "hold", elapsed: pos - m.start, ideal: m.ideal, symbol: m.mark };
     } else if (mark >= 0 && mark + 1 < marks.length) {
       const next = marks[mark + 1];
       phase = { kind: "gap", elapsed: pos - marks[mark].end, ideal: next.idealGap, gap: next.gapKind };
     }
+    if (line.speech && letter >= 0) mark = letters[letter].last;
     return { position: Math.min(pos, duration), duration, down, symbol, letter, mark, path, phase };
   }
 

@@ -132,7 +132,7 @@ export function createPlayback({
     const line = lineOf(p.words, p.rec);
     /* each letter as its message reads it (the tray's now, or as sent) */
     const names = namesFor(p.words, readingNow()).flat();
-    line.letters.forEach((l, i) => { l.label = names[i]?.replace(/^<(.*)>$/, "$1") ?? "?"; });
+    line.letters.forEach((l, i) => { l.label = names[i] ?? "?"; });
     trace.line(line);
   }
 
@@ -233,6 +233,7 @@ export function createPlayback({
     const wasPast = state.playEntry !== null && state.playEntry !== "current";
     player.stop();
     clearHighlight();
+    drawLocal();
     if (wasPast) settleTape();
     state.playKey = null;
     state.playEntry = null;
@@ -292,8 +293,10 @@ export function createPlayback({
       followLetter(lineEl.querySelectorAll(".c")[now.letter]);
     }
 
-    /* the trees follow the letter being sounded */
-    drawLocal(now.path || (now.letter >= 0 ? wordsAt()[now.letter] ?? "" : ""));
+    /* the trees follow the letter being sounded; the about column
+       has the whole letter from its first mark, waiting in grey */
+    const code = now.letter >= 0 ? wordsAt()[now.letter] ?? "" : "";
+    drawLocal(now.path || code, now.path ? code : undefined);
     if (isTreeOpen()) {
       tree.handle({ type: "start" });
       if (now.path) tree.handle({ type: "beat", path: inTree(now.path) });

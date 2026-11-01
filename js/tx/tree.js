@@ -7,7 +7,7 @@
  *     tree               the whole tree: { handle(event) }, a no-op until
  *                        it's first opened (js/tree.js loads then)
  *     about              the about column (js/tx/about.js)
- *     drawLocal(code?), drawTree(), followNode()
+ *     drawLocal(code?, whole?), drawTree(), followNode()
  *     openTree(open), isTreeOpen()
  *     inTree(code), REAL   as far as a code goes in the tree; its nodes
  *   }
@@ -58,7 +58,9 @@ export function createTreeEdge({
   /* the last letter is showing, finished: tapping a child extends it */
   const showingDone = () => !structure(state.tokens).path && !state.localCleared && wordsOf(state.tokens).length > 0;
 
-  function drawLocal(override) {
+  /* whole: playing, the letter this path is on the way to (the tree
+     traces the path, the about column waits for the letter) */
+  function drawLocal(override, whole) {
     const path = override ?? focusCode();
     const box = $("#local");
     box.textContent = "";
@@ -93,7 +95,7 @@ export function createTreeEdge({
       const letters = [box.children[0]?.firstElementChild, box.querySelector(".here"), ...box.querySelectorAll("button")];
       for (const e of letters) if (e && e.textContent.trim() && e.textContent !== "_") redact(e);
     }
-    about.draw(path);
+    about.draw(whole ?? path, whole ? path.length : null);
   }
 
   /* a child of what's showing: key that mark onto it (a finished
