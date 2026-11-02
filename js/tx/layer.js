@@ -6,13 +6,14 @@
  * closes whatever is on top.
  *
  *   createLayer({ state, about, menu, ... }) → {
- *     openPrivacy(open), openHeard(open), openCut(code)
+ *     openPrivacy(open), openHeard(open), openCut(code), openWord({ term, codes })
  *   }
  *
  * (The player's own active state is in js/tx/player.js.)
  */
-import { DECODE, ENCODE, CUT, NAME_CODE } from "../morse.js";
-import { aboutHref } from "./about.js";
+import { DECODE, ENCODE, CUT, NAME_CODE, format } from "../morse.js";
+import { PROSIGNS_BY_CODE, TERMS, isQ } from "../characters.js";
+import { aboutHref, termOf } from "./about.js";
 import { $, el, nearest } from "./dom.js";
 import { timingNow } from "./keys.js";
 
@@ -204,6 +205,61 @@ export function createLayer({
   $("#suggest-info").addEventListener("click", () => openSuggest(true));
   $("#suggest-pop .close").addEventListener("click", () => openSuggest(false));
 
+  /*
+   * A prosign or an operators' word in the about column, tapped: what
+   * it means, under its marks. A Q code says both ways, as on /ref:
+   *
+   *   QTH   --.- - ....
+   *   a Q code: three letters for a sentence
+   *   QTH   my location is …
+   *   QTH?  what is your location?
+   */
+  function openWord(word) {
+    const pop = $("#word-pop");
+    if (!word) { pop.hidden = true; return; }
+    const { term, codes } = word;
+    $("#word-title").textContent = term;
+    const marks = $("#word-marks");
+    marks.textContent = "";
+    codes.forEach((code, i) => {
+      if (i) marks.append(" ");
+      for (const m of code) marks.append(el("span", m === "." ? "dot" : "dash", m));
+    });
+    $("#word-means").replaceChildren(...meaningOf(term));
+    $("#word-full").href = `/ref/?/${format([codes])}`;
+    pop.hidden = false;
+    $("#word-pop .close").focus({ preventScroll: true });
+  }
+
+  /* what a prosign, Q code or abbreviation is, and what it means */
+  function meaningOf(term) {
+    const line = (t, means) => {
+      const p = el("p", "word-line");
+      p.append(el("b", "", t), " ", means);
+      return p;
+    };
+    const sign = term.startsWith("<") && Object.values(PROSIGNS_BY_CODE).find(([s]) => `<${s}>` === term);
+    if (term.startsWith("<")) {
+      const kind = el("p", "word-kind", `a prosign: ${sign ? sign[1] : term.slice(1, -1).split("").join(" ")}, run together as one letter, no gap`);
+      return sign ? [kind, line(term, sign[2])] : [kind];
+    }
+    if (isQ(term)) {
+      const q = term.replace("?", "");
+      return [el("p", "word-kind", "a Q code: three letters for a sentence; sent with ? it asks"), line(q, TERMS[q]), line(q + "?", TERMS[q + "?"])];
+    }
+    return [el("p", "word-kind", "an abbreviation: what operators send to save time"), line(term, TERMS[term])];
+  }
+  $("#word-pop .close").addEventListener("click", () => openWord(null));
+
+  /* "about" in the tray, tapped: what the column shows, each part a switch */
+  function openAboutSet(open) {
+    $("#about-set-pop").hidden = !open;
+    $("#about-set-info").setAttribute("aria-expanded", String(open));
+    if (open) $("#about-set-pop .close").focus({ preventScroll: true });
+  }
+  $("#about-set-info").addEventListener("click", () => openAboutSet(true));
+  $("#about-set-pop .close").addEventListener("click", () => openAboutSet(false));
+
   /* a checkbox's word, tapped: what it does */
   function openFlag(name) {
     $("#flag-pop").hidden = !name;
@@ -226,6 +282,12 @@ export function createLayer({
     let renderCard;
     try { ({ renderCard } = await (card ??= import("../overview.js"))); } catch { card = null; return; }
     renderCard($("#about-card"), code);
+    /* the word it ends, if that's one of the operators' (QTH, 73): what
+       it means, under the card (the column keeps to the letter) */
+    const term = termOf(about.word());
+    const box = $("#about-term");
+    box.hidden = !term;
+    if (term) box.replaceChildren(el("p", "about-term-title", term), ...meaningOf(term));
     $("#about-title").textContent = `about ${code === NAME_CODE ? "dot-da.sh" : DECODE[code] ?? code}`;
     $("#about-full").href = aboutHref(code);
     $("#about-card").scrollTop = $("#about-card").scrollLeft = 0;
@@ -308,6 +370,7 @@ export function createLayer({
     window.addEventListener("pointerdown", event => {
       stopEating();              // a new tap: whatever the last one left behind goes
       const privacy = $("#privacy-pop"), heard = $("#heard-pop"), hold = $("#hold-pop"), about = $("#about-pop"), train = $("#train-pop"), suggest = $("#suggest-pop"), flag = $("#flag-pop"), cut = $("#cut-pop"), report = $("#report-pop");
+      const word = $("#word-pop"), aboutSet = $("#about-set-pop");
       let closed = false;
       const farns = $("#farns-pop");
       if (!report.hidden) { if (!report.contains(event.target)) { $("#report-cancel").click(); closed = true; } }
@@ -319,6 +382,8 @@ export function createLayer({
       else if (!suggest.hidden) { if (!suggest.contains(event.target)) { openSuggest(false); closed = true; } }
       else if (!flag.hidden) { if (!flag.contains(event.target)) { openFlag(null); closed = true; } }
       else if (!cut.hidden) { if (!cut.contains(event.target)) { openCut(null); closed = true; } }
+      else if (!word.hidden) { if (!word.contains(event.target)) { openWord(null); closed = true; } }
+      else if (!aboutSet.hidden) { if (!aboutSet.contains(event.target)) { openAboutSet(false); closed = true; } }
       else if (list) { if (!list.contains(event.target)) { closeList(); closed = true; } }
       else if (!privacy.hidden && !privacy.contains(event.target)) { openPrivacy(false); closed = true; }
       else if (privacy.hidden && !menu.hidden && !menu.contains(event.target)) { openShare(false); closed = true; }
@@ -357,6 +422,8 @@ export function createLayer({
     else if (open("#suggest-pop")) openSuggest(false);
     else if (open("#flag-pop")) openFlag(null);
     else if (open("#cut-pop")) openCut(null);
+    else if (open("#word-pop")) openWord(null);
+    else if (open("#about-set-pop")) openAboutSet(false);
     else if (list) closeList();
     else if (open("#hold-pop")) openHold(false);
     else if (open("#about-pop")) openAbout(null);
@@ -372,5 +439,5 @@ export function createLayer({
     event.stopPropagation();
   }, true);
 
-  return { openPrivacy, openHeard, openCut };
+  return { openPrivacy, openHeard, openCut, openWord };
 }

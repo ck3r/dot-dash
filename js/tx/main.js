@@ -294,7 +294,7 @@ const { drawTape, drawStats, settleTape, fadeTape, hiding, redact, clearCurrent 
 /* the collapsed tree, the about column, the whole tree: js/tx/tree.js */
 const { tree, about, drawLocal, drawTree, followNode, openTree, isTreeOpen, inTree, REAL } = createTreeEdge({
   state, press, retype: text => retype(text), update, settleTape, hiding, redact, cancelKeyer: () => keyer.cancel(),
-  openHeard: open => openHeard(open), openCut: code => openCut(code), greet: () => tab.greet(), playing: () => player.playing, stopPlayback: () => stopPlayback()
+  openHeard: open => openHeard(open), openCut: code => openCut(code), openWord: word => openWord(word), greet: () => tab.greet(), playing: () => player.playing, stopPlayback: () => stopPlayback()
 });
 
 
@@ -479,7 +479,7 @@ const { menu, openShare, hideBubble } = createShare({
 
 
 /* popups, outside taps, Escape: js/tx/layer.js */
-const { openPrivacy, openHeard, openCut } = createLayer({
+const { openPrivacy, openHeard, openCut, openWord } = createLayer({
   state, about, update, clearCurrent, putKeysAway, isChord, openHold, menu, openShare, hideBubble,
   cancelLamp, closeLamp, stopPlayback, isPlayerActive, setPlayerActive,
   /* something to cancel: playing, or paused part-way (not at the start or the end) */

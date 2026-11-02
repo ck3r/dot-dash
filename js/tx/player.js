@@ -296,7 +296,7 @@ export function createPlayback({
     /* the trees follow the letter being sounded; the about column
        has the whole letter from its first mark, waiting in grey */
     const code = now.letter >= 0 ? wordsAt()[now.letter] ?? "" : "";
-    drawLocal(now.path || code, now.path ? code : undefined);
+    drawLocal(now.path || code, now.path ? code : undefined, wordAt(now.letter));
     if (isTreeOpen()) {
       tree.handle({ type: "start" });
       if (now.path) tree.handle({ type: "beat", path: inTree(now.path) });
@@ -330,6 +330,17 @@ export function createPlayback({
   function wordsAt() {
     const p = playable();
     return p ? p.words.flat() : [];
+  }
+
+  /* the word the i-th letter is in, and where in it: { codes, at } */
+  function wordAt(i) {
+    if (i < 0) return null;
+    let n = 0;
+    for (const codes of playable()?.words ?? []) {
+      if (i < n + codes.length) return { codes, at: i - n };
+      n += codes.length;
+    }
+    return null;
   }
 
   function playbackEnded() {

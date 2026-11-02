@@ -1,0 +1,136 @@
+/* ============================================================
+ * THE DESIGN NOTES
+ * ============================================================
+ *
+ * A page to read: everything else comes from style.css, frames
+ * included. What's here is prose, and the sketches kept from
+ * pushing a phone sideways.
+ */
+
+.notes h1 {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.notes .lead {
+  margin-top: 0.75rem;
+  max-width: 62ch;
+  color: var(--graphite);
+}
+
+.notes nav {
+  margin-top: 1.5rem;
+  color: var(--graphite);
+}
+
+.notes nav ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5ch;
+  list-style: none;
+}
+
+.notes .frame {
+  max-width: 100%;
+  scroll-margin-top: 1.5rem;
+}
+
+.notes .frame p,
+.notes .frame ul,
+.notes .frame pre,
+.notes .frame dl,
+.notes .swatches {
+  max-width: 62ch;
+}
+
+.notes .frame * + p,
+.notes .frame * + ul,
+.notes .frame * + pre,
+.notes .frame * + dl,
+.notes .frame * + .swatches {
+  margin-top: 0.9rem;
+}
+
+/* the label is the frame's first child, on its border: nothing to
+   clear under it */
+.notes .frame .frame-label + * {
+  margin-top: 0;
+}
+
+.notes ul {
+  list-style: none;
+}
+
+.notes ul li {
+  padding-left: 2ch;
+  text-indent: -2ch;
+}
+
+.notes ul li::before {
+  content: "· ";
+  color: var(--graphite);
+}
+
+.notes li + li {
+  margin-top: 0.4rem;
+}
+
+/* the sketches scroll inside themselves on the narrowest phones */
+.notes pre {
+  overflow-x: auto;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--graphite);
+}
+
+.notes code {
+  font: inherit;
+}
+
+.notes .d { color: var(--dot); }
+.notes .t { color: var(--dash); }
+.notes .on { color: var(--paper); }
+
+.notes dt {
+  font-weight: 700;
+}
+
+.notes dd {
+  color: var(--graphite);
+}
+
+.notes dd + dt {
+  margin-top: 0.75rem;
+}
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11ch, 1fr));
+  gap: 0.75rem 1ch;
+  list-style: none;
+}
+
+/* the block is drawn in the token it names, so the light theme
+   and this list can't disagree */
+.notes .swatches li {
+  margin: 0;
+  padding: 0;
+  text-indent: 0;
+  font-size: 13px;
+  color: var(--graphite);
+}
+
+.notes .swatches li::before {
+  content: "";
+  display: block;
+  height: 2rem;
+  margin-bottom: 0.25rem;
+  border: 1px solid var(--wire);
+  background: var(--swatch);
+}
+
+.notes footer {
+  margin-top: 2.5rem;
+  color: var(--graphite);
+}

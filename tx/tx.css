@@ -497,6 +497,10 @@ body.tx {
   letter-spacing: -0.02em;
 }
 
+/* switched off in the tray: gone, but its room kept, so the (i) stays put */
+.about.off { visibility: hidden; }
+
+
 /* the foot: cut, then misheard as, sitting on the bottom */
 .about-foot {
   align-self: stretch;
@@ -2390,6 +2394,26 @@ body:has(#train:not([hidden])) .pad {
 .cut-chart .dash { color: var(--paper); }
 .cut-note { color: var(--graphite); font-size: var(--fs-xs); }
 
+/* a prosign or word, explained: its marks big, then what it is and
+   what it means (a Q code both ways) */
+.word-pop .word-marks { font-size: var(--fs-m); font-weight: 700; letter-spacing: 0.15em; }
+.word-pop .word-kind { color: var(--graphite); font-size: var(--fs-xs); }
+.word-pop .word-line { margin-top: 0.3rem; }
+.word-pop .word-line b { color: var(--paper); }
+.word-pop #word-means + p { margin-top: 0.6rem; }
+
+/* the same, under the (i)'s card, for the word the letter ends */
+.about-term { margin-top: 0.7rem; padding-top: 0.6rem; border-top: 1px dashed var(--wire); }
+.about-term .about-term-title { color: var(--paper); font-weight: 700; }
+.about-term .word-kind { color: var(--graphite); font-size: var(--fs-xs); }
+.about-term .word-line { margin-top: 0.3rem; }
+.about-term .word-line b { color: var(--paper); }
+
+/* the about column's parts, a switch each, with what it is beside it */
+.about-parts { list-style: none; margin: 0.6rem 0; padding: 0; color: var(--graphite); font-size: var(--fs-xs); }
+.about-parts li + li { margin-top: 0.35rem; }
+.about-parts .check { display: inline-block; min-width: 9ch; }
+
 /* the report, as it would be copied: scrolls if long, wraps if wide */
 .report-text {
   margin: 0.6rem 0 0;
@@ -2880,16 +2904,11 @@ a.switch { text-decoration: none; }
 .about-pop { width: min(34rem, calc(100vw - 1.5rem)); }
 
 .about-pop .about-card {
-  max-height: min(70vh, 34rem);
+  max-height: min(74vh, 40rem);
   overflow: auto;
-  margin: 0;
-  font-size: var(--fs-xs);
-  line-height: 1.45;
+  margin: 0.4rem 0 0;
 }
 
-.about-pop .about-card a { color: var(--paper); text-decoration: none; }
-/* misheard: a line over each letter's stretch of the bar, just above it */
-.about-pop .about-card .over { box-shadow: inset 0 -2px 0 -1px var(--graphite); }
 .about-pop .about-more { margin: 0.6rem 0 0; font-size: var(--fs-xs); }
 .about-pop .about-more a { color: var(--graphite); text-decoration: none; }
 

@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>stroke editor · dot-da.sh</title>
+  <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
+
+  <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
+  <link rel="stylesheet" href="/style.css">
+
+  <style>
+    /*
+     * The stroke letters, set by hand: drag a mark's middle and it
+     * slides along its own stroke, never off it, never past the next
+     * mark. Each letter has its own size (a mark's length) and weight
+     * (its width). What's changed comes out as lines for js/strokes.js.
+     *
+     *   ┌───────────────┐   size    ──●──────
+     *   │      ●        │   weight  ────●────
+     *   │     / \       │   [square dots]
+     *   │    ●   ▬●▬    │
+     *   └───────────────┘   1  .65   2  .6
+     *   A B C … 9 0          (each letter, as it is now)
+     */
+    .sheet { padding: 1.5rem 16px; max-width: 60rem; margin: 0 auto; }
+    .sheet h1 { font-size: 1.05rem; font-weight: 700; }
+    .sheet p { margin-top: 0.5rem; color: var(--graphite); }
+
+    .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5ch; margin-top: 0.75rem; }
+    .sheet button {
+      font: inherit; color: var(--graphite); background: none;
+      border: 1px solid var(--wire); padding: 0.25rem 1ch; cursor: pointer;
+    }
+    .sheet [aria-pressed="true"] { color: var(--paper); border-color: var(--paper); }
+    .sheet button:focus-visible { color: var(--brass); border-color: var(--brass); outline: none; }
+    @media (hover: hover) {
+      .sheet button:hover { color: var(--brass); border-color: var(--brass); }
+    }
+
+    .bench { display: grid; grid-template-columns: minmax(0, 28rem) minmax(0, 1fr); gap: 1.5rem; margin-top: 1.25rem; }
+    @media (max-width: 640px) { .bench { grid-template-columns: minmax(0, 1fr); } }
+    .stage { border: 1px solid var(--wire); touch-action: none; }
+    .stage svg { display: block; width: 100%; }
+    .stage .who { display: flex; justify-content: space-between; padding: 0.25rem 0.5rem; color: var(--graphite); }
+
+    .side label { display: grid; grid-template-columns: 7ch minmax(0, 1fr) 6ch; align-items: center; gap: 1ch; margin-top: 0.5rem; color: var(--graphite); }
+    .side input[type="range"] { accent-color: var(--paper); min-width: 0; }
+    .side output { color: var(--paper); text-align: right; }
+    .side .buttons { display: flex; flex-wrap: wrap; gap: 0.5rem 1ch; margin-top: 0.75rem; }
+    .marks { margin-top: 0.75rem; color: var(--graphite); line-height: 1.6; }
+    .marks .dot { color: var(--dot); }
+    .marks .dash { color: var(--dash); }
+    .marks .touch { color: var(--paper); }
+    .faults { margin-top: 0.5rem; color: var(--dot); min-height: 1.6em; }
+
+    /* the 36, as they are now: tap one to set it */
+    .strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(3.2rem, 1fr)); gap: 0.4rem; margin-top: 1.5rem; }
+    .strip button { padding: 0.2rem; position: relative; }
+    .strip button svg { display: block; width: 100%; }
+    .strip button[aria-current="true"] { border-color: var(--paper); }
+    .strip button.changed::after { content: "•"; position: absolute; top: 0; right: 0.2rem; color: var(--paper); }
+    .strip button.bad::before { content: "!"; position: absolute; top: 0; left: 0.25rem; color: var(--dot); }
+
+    .out { margin-top: 1.5rem; }
+    .out h2 { font-size: 1rem; font-weight: 400; color: var(--graphite); }
+    .out pre { margin-top: 0.5rem; padding: 0.5rem; border: 1px dashed var(--wire); color: var(--paper); font-size: 0.8rem; white-space: pre-wrap; overflow-wrap: anywhere; min-height: 2.5em; }
+
+    /* the three layers, as on the sheet */
+    .stroked path { fill: none; }
+    .stroked .scaffold path { stroke: var(--graphite); stroke-width: 1.5; }
+    .stroked.keyed .scaffold path { stroke: var(--paper); }
+    .stroked .grey path { stroke: var(--wire); }
+    .stroked .fill .dot { stroke: var(--dot); }
+    .stroked .fill .dash { stroke: var(--dash); }
+    .stroked .grey circle { fill: var(--wire); }
+    .stroked .fill circle.dot { fill: var(--dot); stroke: none; }
+
+    /* a mark's middle: grab it and slide; red ring where marks touch */
+    .handle { fill: var(--paper); stroke: var(--bakelite); stroke-width: 1.5; cursor: grab; outline: none; }
+    .handle:focus-visible { fill: var(--brass); }
+    @media (hover: hover) { .handle:hover { fill: var(--brass); } }
+    .handle.held { cursor: grabbing; fill: var(--brass); }
+    .ring { fill: none; stroke: var(--dot); stroke-width: 1.5; stroke-dasharray: 3 2; pointer-events: none; }
+  </style>
+</head>
+
+<body>
+  <main class="sheet">
+    <h1>stroke editor</h1>
+    <p>Drag a mark's middle along its stroke (or focus it and use the arrow
+    keys, Shift for bigger steps). Size and weight are the letter's own.
+    Edits stay in this browser until copied out. <a href="/design/strokes/">the sheet</a></p>
+
+    <div class="controls">
+      <button id="play">play</button>
+      <button id="round" aria-pressed="false">circles</button>
+      <button id="theme">invert</button>
+    </div>
+
+    <div class="bench">
+      <div class="stage">
+        <div id="stage"></div>
+        <div class="who"><span id="who"></span><span id="code"></span></div>
+      </div>
+      <div class="side">
+        <label>size <input id="size" type="range" min="0.3" max="1.3" step="0.01"><output id="size-out"></output></label>
+        <label>weight <input id="weight" type="range" min="6" max="30" step="0.5"><output id="weight-out"></output></label>
+        <div class="buttons">
+          <button id="square">square dots</button>
+          <button id="reset">reset letter</button>
+          <button id="reset-all">reset all</button>
+        </div>
+        <div class="marks" id="marks"></div>
+        <div class="faults" id="faults" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <div class="strip" id="strip"></div>
+
+    <section class="out">
+      <h2>changed, as lines for js/strokes.js</h2>
+      <pre id="out"></pre>
+      <div class="controls"><button id="copy">copy changes</button></div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { ENCODE } from "/js/morse.js";
+    import { timeline } from "/js/tx-player.js";
+    import { STROKES, WEIGHT, DOT, DASH, ROUND, substrokes, createLetter } from "/js/strokes.js";
+
+    const ORDER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+    const FIGURE = 15 / WEIGHT;           // the numbers' size and weight (strokes.js figure)
+    const KEY = "dot-dash:strokes-edit";
+    const $ = id => document.getElementById(id);
+    const NS = "http://www.w3.org/2000/svg";
+    const shape = (tag, attrs, parent) => {
+      const n = document.createElementNS(NS, tag);
+      for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+      parent?.append(n);
+      return n;
+    };
+
+    /* a letter, as plain data: its strokes ([d, ...middles]), size, weight */
+    const plain = strokes => ({
+      strokes: strokes.map(([d, ...m]) => [d, ...m]),
+      scale: strokes.scale ?? 1,
+      weight: strokes.weight ?? WEIGHT
+    });
+    const ORIGINAL = Object.fromEntries([...ORDER].map(c => [c, plain(STROKES[c])]));
+    let edits = {};
+    try { edits = JSON.parse(localStorage.getItem(KEY)) ?? {}; } catch { }
+    const letterOf = c => edits[c] ?? ORIGINAL[c];
+    const save = () => { try { localStorage.setItem(KEY, JSON.stringify(edits)); } catch { } };
+    const own = c => (edits[c] ??= structuredClone(ORIGINAL[c]));
+    const asStrokes = l => Object.assign(l.strokes.map(s => [...s]), { scale: l.scale, weight: l.weight });
+
+    /*
+     * Out as strokes.js writes it: the path's name where it has one
+     * (read from the module's own source), the middles as .65, and the
+     * size and weight as tight, figure or sized:
+     *
+     *   J: tight(.7, [["M76 0 V64 A36 36 0 1 1 4 64", .049, .263, .563, .864]]),
+     */
+    let NAMES = {};
+    const num = n => String(+n.toFixed(3)).replace(/^(-?)0\./, "$1.");
+    const same = (a, b) => Math.abs(a - b) < 1e-6;
+    function lineOf(c) {
+      const l = letterOf(c);
+      /* a path by its name only where the letter's own line names it
+         (K spells out the stem B and D call STEM) */
+      const named = d => NAMES[d] && (ORIGINAL_LINES[c] ?? "").includes(`[${NAMES[d]},`) ? NAMES[d] : JSON.stringify(d);
+      const body = "[" + l.strokes.map(([d, ...m]) => "[" + [named(d), ...m.map(num)].join(", ") + "]").join(", ") + "]";
+      let value = body;
+      if (same(l.weight, WEIGHT)) value = same(l.scale, 1) ? body : `tight(${num(l.scale)}, ${body})`;
+      else if (same(l.weight, FIGURE * WEIGHT)) value = same(l.scale, FIGURE) ? `figure(${body})` : `figure(${body}, ${num(l.scale)})`;
+      else value = `sized(${num(l.scale)}, ${num(l.weight)}, ${body})`;
+      return `  ${c}: ${value},`;
+    }
+
+    /* the marks, with each one's stroke and place in it */
+    function marksOf(c) {
+      const l = letterOf(c), code = ENCODE[c];
+      const subs = substrokes(asStrokes(l), code);
+      let i = 0;
+      return l.strokes.flatMap(([d, ...middles], s) => middles.map((_, k) => ({ ...subs[i], s, k, i: i++ })));
+    }
+
+    /*
+     * Marks that touch, as tests/strokes.cjs measures them: each pair
+     * painted a little fat (CLEAR units), and any pixel they share
+     */
+    const CLEAR = 2, ZOOM = 2;
+    const canvas = new OffscreenCanvas(160 * ZOOM, 160 * ZOOM);
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const paint = (m, weight, round) => {
+      ctx.save(); ctx.scale(ZOOM, ZOOM); ctx.translate(30, 30);
+      if (round && m.mark === ".") {
+        ctx.beginPath(); ctx.arc(m.x, m.y, (ROUND * weight + CLEAR) / 2, 0, 7); ctx.fill();
+      } else {
+        ctx.lineWidth = weight + CLEAR;
+        ctx.setLineDash([m.to - m.from + CLEAR, 9999]);
+        ctx.lineDashOffset = -m.from + CLEAR / 2;
+        ctx.stroke(new Path2D(m.d));
+      }
+      ctx.restore();
+    };
+    function touching(c, round) {
+      const marks = marksOf(c), weight = letterOf(c).weight, out = new Set();
+      for (let a = 0; a < marks.length; a++) for (let b = a + 1; b < marks.length; b++) {
+        ctx.globalCompositeOperation = "source-over";
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        paint(marks[a], weight, round);
+        ctx.globalCompositeOperation = "source-in";
+        paint(marks[b], weight, round);
+        const px = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        for (let p = 3; p < px.length; p += 4) if (px[p] > 128) { out.add(a); out.add(b); break; }
+      }
+      return out;
+    }
+
+    let current = "A", round = false, playing = null;
+    const finished = code => [...code].map((mark, i) => ({ mark, start: i, end: i + 1 }));
+    const draw = (c, marks = finished(ENCODE[c])) => createLetter(asStrokes(letterOf(c)), marks, { round });
+
+    /* ---------- the big one, with a handle on each mark ---------- */
+    let letter = null;
+    function drawStage() {
+      letter = draw(current);
+      letter.at(Infinity);
+      const svg = letter.el;
+      svg.removeAttribute("aria-hidden");
+      svg.setAttribute("role", "group");
+      svg.setAttribute("aria-label", `${current}, its marks`);
+      const touch = touching(current, round);
+      const handles = shape("g", { class: "handles" }, svg);
+      for (const m of marksOf(current)) {
+        if (touch.has(m.i)) shape("circle", { class: "ring", cx: m.x, cy: m.y, r: letterOf(current).weight * 0.9 }, handles);
+        const h = shape("circle", { class: "handle", cx: m.x, cy: m.y, r: 4.5, tabindex: 0, "data-i": m.i,
+          role: "slider", "aria-label": `${m.mark === "." ? "dot" : "dash"} ${m.i + 1}`, "aria-valuenow": letterOf(current).strokes[m.s][m.k + 1] }, handles);
+        if (held?.i === m.i) h.classList.add("held");
+      }
+      $("stage").replaceChildren(svg);
+      $("who").textContent = current;
+      $("code").textContent = ENCODE[current];
+      drawSide(touch);
+      if (held) svg.querySelector(`.handle[data-i="${held.i}"]`)?.focus({ preventScroll: true });
+    }
+
+    function drawSide(touch) {
+      const l = letterOf(current);
+      $("size").value = l.scale; $("size-out").textContent = num(l.scale);
+      $("weight").value = l.weight; $("weight-out").textContent = num(l.weight);
+      $("square").setAttribute("aria-pressed", String(same(l.weight, l.scale * WEIGHT)));
+      $("marks").replaceChildren(...marksOf(current).map(m => {
+        const row = document.createElement("div");
+        row.className = touch.has(m.i) ? "touch" : "";
+        const sign = document.createElement("span");
+        sign.className = m.mark === "." ? "dot" : "dash";
+        sign.textContent = m.mark === "." ? "dot " : "dash";
+        row.append(sign, `  stroke ${m.s + 1}  at ${num(l.strokes[m.s][m.k + 1])}`);
+        return row;
+      }));
+      $("faults").textContent = touch.size ? `marks touch${round ? " (as circles)" : ""}: ${[...touch].map(i => i + 1).join(", ")}` : "";
+    }
+
+    /* ---------- the strip: every letter as it is ---------- */
+    function drawStrip() {
+      $("strip").replaceChildren(...[...ORDER].map(c => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.title = c;
+        b.setAttribute("aria-label", c);
+        b.setAttribute("aria-current", String(c === current));
+        b.classList.toggle("changed", lineOf(c) !== ORIGINAL_LINES[c]);
+        b.classList.toggle("bad", touching(c, false).size > 0 || touching(c, true).size > 0);
+        const l = draw(c);
+        l.at(Infinity);
+        b.append(l.el);
+        b.addEventListener("click", () => { current = c; drawAll(); });
+        return b;
+      }));
+    }
+
+    function drawOut() {
+      const lines = [...ORDER].map(lineOf).filter((line, i) => line !== ORIGINAL_LINES[ORDER[i]]);
+      $("out").textContent = lines.join("\n");
+    }
+
+    const drawAll = () => { drawStage(); drawStrip(); drawOut(); };
+    const changed = () => { save(); drawStage(); drawOut(); queueStrip(); };
+    /* the strip redraws all 36 with their checks: once a frame at most */
+    let stripQueued = false;
+    const queueStrip = () => {
+      if (stripQueued) return;
+      stripQueued = true;
+      requestAnimationFrame(() => { stripQueued = false; drawStrip(); });
+    };
+
+    /* ---------- sliding a mark ---------- */
+
+    /*
+     * A mark's middle may go from where it would touch the mark before
+     * it on the stroke (or the stroke's start) to where it would touch
+     * the next (or the end): it slides, it never passes another.
+     *
+     *   start ├──[prev]──────●──────[next]──┤ end
+     *                    ↑ low        ↑ high
+     */
+    function range(c, s, k) {
+      const l = letterOf(c);
+      const all = marksOf(c).filter(m => m.s === s);
+      const len = all[0].length;
+      const half = m => (m.to - m.from) / 2;
+      const me = all[k], prev = all[k - 1], next = all[k + 1];
+      const low = ((prev ? prev.to : 0) + half(me)) / len;
+      const high = ((next ? next.from : len) - half(me)) / len;
+      return [Math.min(low, high), Math.max(low, high)];
+    }
+    function place(i, middle) {
+      const m = marksOf(current)[i];
+      const [low, high] = range(current, m.s, m.k);
+      /* to three places, rounded inward: never just off the end */
+      const [lo, hi] = [Math.ceil(low * 1000) / 1000, Math.floor(high * 1000) / 1000];
+      own(current).strokes[m.s][m.k + 1] = +Math.min(hi, Math.max(lo, middle)).toFixed(3);
+      changed();
+    }
+
+    /* the nearest point of the stroke to the pointer, as a fraction of it */
+    const samples = {};
+    function nearest(d, x, y) {
+      if (!samples[d]) {
+        const p = shape("path", { d });
+        const len = p.getTotalLength(), n = 600;
+        samples[d] = Array.from({ length: n + 1 }, (_, j) => {
+          const pt = p.getPointAtLength(len * j / n);
+          return { x: pt.x, y: pt.y, f: j / n };
+        });
+      }
+      let best = null, dist = Infinity;
+      for (const s of samples[d]) {
+        const e = (s.x - x) ** 2 + (s.y - y) ** 2;
+        if (e < dist) { dist = e; best = s.f; }
+      }
+      return best;
+    }
+
+    let held = null;     // { i, d }: the mark being dragged
+    $("stage").addEventListener("pointerdown", event => {
+      const h = event.target.closest(".handle");
+      if (!h) return;
+      event.preventDefault();
+      const m = marksOf(current)[+h.dataset.i];
+      held = { i: m.i, d: m.d };
+      $("stage").setPointerCapture(event.pointerId);
+      h.classList.add("held");
+      h.focus({ preventScroll: true });
+    });
+    $("stage").addEventListener("pointermove", event => {
+      if (!held) return;
+      const svg = $("stage").querySelector("svg");
+      const pt = new DOMPoint(event.clientX, event.clientY).matrixTransform(svg.getScreenCTM().inverse());
+      place(held.i, nearest(held.d, pt.x, pt.y));
+    });
+    const letGo = () => {
+      if (!held) return;
+      held = null;
+      drawStage();
+    };
+    $("stage").addEventListener("pointerup", letGo);
+    $("stage").addEventListener("pointercancel", letGo);
+
+    /* arrows: a small step along the stroke (Shift: bigger), either way */
+    $("stage").addEventListener("keydown", event => {
+      const h = event.target.closest?.(".handle");
+      if (!h) return;
+      const step = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[event.key];
+      if (!step) return;
+      event.preventDefault();
+      const m = marksOf(current)[+h.dataset.i];
+      held = { i: m.i, d: m.d };
+      place(m.i, letterOf(current).strokes[m.s][m.k + 1] + step * (event.shiftKey ? 0.02 : 0.002));
+      held = null;
+      $("stage").querySelector(`.handle[data-i="${m.i}"]`)?.focus({ preventScroll: true });
+    });
+
+    /* ---------- size, weight ---------- */
+
+    /* a new size moves nothing: each middle stays, and any mark it
+       would push into its neighbour shows the touch, to set by hand */
+    $("size").addEventListener("input", () => { own(current).scale = +$("size").value; changed(); });
+    $("weight").addEventListener("input", () => { own(current).weight = +$("weight").value; changed(); });
+    $("square").addEventListener("click", () => { own(current).weight = +(letterOf(current).scale * WEIGHT).toFixed(2); changed(); });
+    $("reset").addEventListener("click", () => { delete edits[current]; changed(); });
+    $("reset-all").addEventListener("click", () => {
+      if (!confirm("Put every letter back as it is in strokes.js?")) return;
+      edits = {}; save(); drawAll();
+    });
+
+    $("round").addEventListener("click", () => {
+      round = !round;
+      $("round").setAttribute("aria-pressed", String(round));
+      drawAll();
+    });
+    $("theme").addEventListener("click", () => document.documentElement.classList.toggle("light"));
+
+    /* play: the letter keyed at 8 wpm, filling as it goes */
+    $("play").addEventListener("click", () => {
+      cancelAnimationFrame(playing);
+      const unit = 1200 / 8;
+      const { marks, duration } = timeline([[ENCODE[current]]], { unit, letter: 3 * unit, word: 7 * unit });
+      const l = draw(current, marks);
+      $("stage").replaceChildren(l.el);
+      const t0 = performance.now();
+      const step = now => {
+        l.at(now - t0);
+        playing = now - t0 < duration + 400 ? requestAnimationFrame(step) : (drawStage(), null);
+      };
+      playing = requestAnimationFrame(step);
+    });
+
+    $("copy").addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText($("out").textContent); $("copy").textContent = "copied"; }
+      catch { $("copy").textContent = "can't copy: select the lines"; }
+      setTimeout(() => { $("copy").textContent = "copy changes"; }, 1500);
+    });
+
+    /* the path names, and each letter's line as it is in the source:
+       an edit is whatever no longer reads the same (so what comes out
+       is known to be strokes.js's own way of writing it) */
+    let ORIGINAL_LINES = {};
+    try {
+      const source = await (await fetch("/js/strokes.js")).text();
+      for (const [, name, d] of source.matchAll(/^const ([A-Z]+) = "([^"]+)";/gm)) NAMES[d] = name;
+      const block = source.slice(source.indexOf("export const STROKES = {"), source.indexOf("\n};", source.indexOf("export const STROKES = {")));
+      for (const line of block.split("\n")) {
+        const m = line.match(/^  (\w): /);
+        if (m) ORIGINAL_LINES[m[1]] = line;
+      }
+    } catch { }
+    /* (no source to read: then as this page writes them) */
+    if (Object.keys(ORIGINAL_LINES).length !== ORDER.length) {
+      const saved = edits;
+      edits = {};
+      ORIGINAL_LINES = Object.fromEntries([...ORDER].map(c => [c, lineOf(c)]));
+      edits = saved;
+    }
+    /* an edit that's back where it started is no edit */
+    for (const c of Object.keys(edits)) if (lineOf(c) === ORIGINAL_LINES[c]) delete edits[c];
+    drawAll();
+  </script>
+</body>
+</html>

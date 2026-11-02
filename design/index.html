@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#1c1916">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <title>design notes · dot-da.sh</title>
+  <meta name="description" content="Why dot-da.sh looks and behaves as it does: the decisions behind a Morse station on the web.">
+
+  <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
+
+  <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/design/design.css">
+
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://dot-da.sh/design/">
+  <meta property="og:title" content="design notes · dot-da.sh">
+  <meta property="og:description" content="Why dot-da.sh looks and behaves as it does.">
+  <meta property="og:image" content="https://dot-da.sh/preview.png">
+</head>
+
+<body class="notes">
+  <header class="top">
+    <a href="/" class="home">dot-da.sh</a>
+  </header>
+
+  <main>
+    <h1>design notes</h1>
+    <p class="lead">Why the site looks and behaves as it does. Most of this is one idea: a Morse station should feel like an instrument, something with a fixed shape that you learn with your hands.</p>
+
+    <nav aria-label="on this page">
+      <ol>
+        <li><a href="#station">a station</a></li>
+        <li><a href="#look">the look</a></li>
+        <li><a href="#touch">what can be touched</a></li>
+        <li><a href="#permanence">object permanence</a></li>
+        <li><a href="#tape">the tape</a></li>
+        <li><a href="#tree">the tree as a hint</a></li>
+        <li><a href="#reading">one code, several readings</a></li>
+        <li><a href="#signal">one signal</a></li>
+        <li><a href="#link">the link is the message</a></li>
+        <li><a href="#build">how it's built</a></li>
+        <li><a href="#against">decided against</a></li>
+      </ol>
+    </nav>
+
+    <section class="frame" id="station" aria-labelledby="l-station">
+      <h2 class="frame-label" id="l-station">a station, not a translator</h2>
+      <p>A translator takes text and gives back dots. That's useful once. A station is somewhere you key, listen and practise, so the home page is the key itself, and the reference sits one tap behind it.</p>
+      <p>Underneath, the core only knows marks. Everything you see, hear or feel is a renderer hanging off the same few characters, so a new output never has to understand Morse.</p>
+<pre>
+           .-.
+            │
+   ┌────┬───┼────┬─────┐
+ sound light buzz tree  tab
+</pre>
+    </section>
+
+    <section class="frame" id="look" aria-labelledby="l-look">
+      <h2 class="frame-label" id="l-look">the look: bakelite and brass</h2>
+      <p>The palette comes from a telegraph key: a black Bakelite base, brass contacts, and paper to write on. Every colour is a named token, and the light theme is the same instrument printed on paper.</p>
+      <ul class="swatches">
+        <li style="--swatch: var(--bakelite)">bakelite</li>
+        <li style="--swatch: var(--paper)">paper</li>
+        <li style="--swatch: var(--graphite)">graphite</li>
+        <li style="--swatch: var(--wire)">wire</li>
+        <li style="--swatch: var(--brass)">brass</li>
+        <li style="--swatch: var(--dot)">dot</li>
+        <li style="--swatch: var(--dash)">dash</li>
+      </ul>
+      <p>Everything is monospace, for a practical reason: box-drawing lines only join up when every character is the same width, and the tree is drawn in them. System fonts come first, so most people download nothing. A small bundled subset catches the phones with no suitable font, where the tree would otherwise come apart.</p>
+      <p>Dot is short, small, <span class="d">red</span> and on the left. Dash is long, large, <span class="t">blue</span> and on the right. That holds everywhere: the tree, the two paddles, the colours. The logo is a schematic switch, which also reads as a dot and a dash, and it closes when the station keys.</p>
+    </section>
+
+    <section class="frame" id="touch" aria-labelledby="l-touch">
+      <h2 class="frame-label" id="l-touch">one language for what can be touched</h2>
+      <p>Every control speaks the same three states, so a new one needs no explaining:</p>
+<pre>
+grey    idle, or off
+<span style="color: var(--brass)">brass</span>   under the pointer, or in focus
+<span class="on">paper</span>   on, or chosen
+</pre>
+      <p>Brass is kept for that one job. Hover only exists where a real pointer does, so a phone never gets stuck showing a state left behind by a tap.</p>
+      <p>Controls are words rather than icons wherever there's room. Words read at a glance and suit the labelled-panel look. The narrowest phones swap "settings" for a gear, the one icon safe enough to stand alone.</p>
+    </section>
+
+    <section class="frame" id="permanence" aria-labelledby="l-permanence">
+      <h2 class="frame-label" id="l-permanence">object permanence</h2>
+      <p>A real key doesn't rearrange itself between messages, and neither does the station. Controls stay where they are and change in place. Keying is muscle memory, so a button that moves costs more here than on most sites.</p>
+      <ul>
+        <li>The player's readout has one fixed width, so the scrub bar never moves or changes length.</li>
+        <li>⌫ and ↵ sit in the same place on the Morse pad and the text keyboard.</li>
+        <li>Switching an output off leaves its settings in place, greyed, and touching one switches it back on.</li>
+        <li>Suggestions are chips on the edge of a dial. They turn under the controls beside them instead of pushing them along, and always settle with one chip whole in the centre.</li>
+      </ul>
+    </section>
+
+    <section class="frame" id="tape" aria-labelledby="l-tape">
+      <h2 class="frame-label" id="l-tape">the tape</h2>
+      <p>The message is a paper tape: each letter sits under its marks, placed under the second mark so it stays attached to its code as the line grows.</p>
+<pre>
+<span class="d">....</span> <span class="d">.</span> <span class="d">.</span><span class="t">-</span><span class="d">..</span> <span class="d">.</span><span class="t">-</span><span class="d">..</span> <span class="t">---</span>
+ H   E  L    L    O
+</pre>
+      <p>Return feeds the line up into the history, like a typewriter. It sends nothing anywhere. A pause never ends a message either: on the air a pause is thinking, and a message ends on purpose.</p>
+      <p>The eye hides one side of the tape so you can practise copying, as a redaction bar rather than a blank. A tap goes between shown and redacted. A long hold collapses the row for room, and since collapsing is about space and not secrecy, nothing else is redacted then.</p>
+    </section>
+
+    <section class="frame" id="tree" aria-labelledby="l-tree">
+      <h2 class="frame-label" id="l-tree">the tree as a hint</h2>
+      <p>Morse is a binary tree: each mark is a step left or right, and the common letters sit near the top because they're the cheapest to send. Showing that is the fastest way to stop it feeling like a table to memorise.</p>
+      <p>At the station the whole tree would be too much, so the edge of the page shows a magnified piece: where you are, how you got there, and where you could go. Tap a child to key that mark.</p>
+<pre>
+  E      the letter before
+  <span class="d">|</span>      the step that got here
+ [A]     here
+ / \
+R   W    tap one to key that mark
+</pre>
+      <p>It's a hint rather than an answer, and playback keeps it that way. The tree can trace a letter mark by mark, but the rest waits. The about column holds the letter in grey, its marks fill in as they're sent, and the name only comes up when the letter lands.</p>
+<pre>
+sent     ▪      ▪      ▪
+to come  ▫      ▪      ▪
+         alfa   alfa   <span class="on">alfa</span>
+         grey   grey   landed
+</pre>
+      <p>With playback set to voice, the letter lands whole as its name is said, because a name sounding halfway through keying its letter would give it away.</p>
+    </section>
+
+    <section class="frame" id="reading" aria-labelledby="l-reading">
+      <h2 class="frame-label" id="l-reading">one code, several readings</h2>
+      <p>The same marks can mean different things: <code>.-.-.</code> is both + and the prosign &lt;AR&gt;, and operators cut numbers down, so 599 goes out as 5NN. Meaning is a setting on top of the marks, so "pro" and "cut" change how a code reads, and a sent message keeps the reading it went with.</p>
+      <p>Typed cut digits need more care, since their marks are the same as a letter's. The typed text travels with the line, so a 9 stays a 9 even though it went out as an N.</p>
+      <p>Prosigns can act: keyed as one letter, &lt;AR&gt; returns the line and &lt;HH&gt; erases the word before it, as they do on the air. They only act when keyed. Typed, pasted or arriving in a link they stay text, so a message can never operate your station.</p>
+    </section>
+
+    <section class="frame" id="signal" aria-labelledby="l-signal">
+      <h2 class="frame-label" id="l-signal">one signal</h2>
+      <p>Everything that keys sends one signal, key closed or key open. Presses, taps, the keyboard and playback all go through it, and the lamp, the light and the vibration follow. Sound is the exception: it's scheduled ahead to stay exact.</p>
+      <p>Flashing is treated with care. The everyday light is the switch and a glow round the message, never the whole screen, so it's safe at any speed. The full-screen lamp asks first, and asks again, explicitly, if the message would flash more than 3 times a second, the photosensitivity guideline.</p>
+      <p>The browser tab keys too. It shows a link's message when one arrives, and keys the site's name while a message plays, since a tab icon can't keep pace with the message itself.</p>
+    </section>
+
+    <section class="frame" id="link" aria-labelledby="l-link">
+      <h2 class="frame-label" id="l-link">the link is the message</h2>
+      <p>A message is its own address, so sharing needs no account and no database:</p>
+<pre>
+dot-da.sh/?/_...._.._
+             h    i
+</pre>
+      <p>Links stay Morse, which is half the fun of receiving one. Opening one puts the message on the line, ready to play. It doesn't start by itself, because browsers need a tap before sound, and that's the right order anyway. In a chat, a small Cloudflare Worker turns the link's preview into a card that keys the message.</p>
+      <p>What you key or type stays in your browser, history included, until you share it. A link carries its message in the address, so sharing is what sends it. The site is free, with no ads and no tracking, in the spirit of amateur radio.</p>
+    </section>
+
+    <section class="frame" id="build" aria-labelledby="l-build">
+      <h2 class="frame-label" id="l-build">how it's built</h2>
+      <ul>
+        <li><b>No build step.</b> Static HTML, CSS and plain JavaScript modules, so what's on the server is what was written, and it stays easy to read and easy to keep running.</li>
+        <li><b>Light on old phones.</b> The heavy parts load on first use: the whole tree, the about card, the file makers.</li>
+        <li><b>Offline, and never stale.</b> The service worker goes to the network first, so you always get what's deployed, and keeps a copy for when there's no signal. Install it and it works as an app.</li>
+        <li><b>Checked in a real browser.</b> Over a hundred Playwright checks run after every change. A refactor can then move code without moving behaviour, and CSS tidying is compared against style snapshots.</li>
+        <li><b>Comments say why.</b> The code explains its reasons in plain words, often with a small sketch. Several on this page started as comments.</li>
+      </ul>
+    </section>
+
+    <section class="frame" id="against" aria-labelledby="l-against">
+      <h2 class="frame-label" id="l-against">decided against</h2>
+      <p>The ideas that didn't make it explain the design as well as the ones that did.</p>
+      <dl>
+        <dt>Sending on a long pause</dt>
+        <dd>A pause is thinking, and the station shouldn't guess.</dd>
+        <dt>Keyboard-style control codes</dt>
+        <dd>Some Morse keyboards use ..-- for space and .-.- for enter. Those codes are Ü and Ä, and the accented letters will need them.</dd>
+        <dt>Number and symbol colours at the station</dt>
+        <dd>They don't matter while transmitting, so they stay on the reference.</dd>
+        <dt>Saved files through the share sheet</dt>
+        <dd>The device already shares a downloaded file, and does it better.</dd>
+        <dt>Icons for everything</dt>
+        <dd>Share's icon differs by platform, and a clipboard can read as copy. Words don't have that problem.</dd>
+      </dl>
+    </section>
+
+    <footer>
+      <p><a href="/">the station</a> · <a href="/ref/">the reference</a> · made by ck3r</p>
+    </footer>
+  </main>
+</body>
+</html>

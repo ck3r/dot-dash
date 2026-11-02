@@ -21,10 +21,21 @@
  * Vibration (where the phone supports it; not iPhone): buzzes for
  * each mark. A web page can't set how hard a phone vibrates, so
  * "strength" pulses the motor: 100 = steady, lower = short bursts
- * with gaps, which feels lighter.
+ * with gaps, which feels lighter. A motor needs tens of milliseconds
+ * to spin up, so a burst can't go below LEAST: shorter ones (10 ms
+ * was the old middle setting) are sent, and never felt.
+ *
+ *   strength 0    ▪▪▫▫▪▪▫▫     25 on, 35 off
+ *   strength 50   ▪▪▪▫▪▪▪▫     43 on, 17 off
+ *   strength 100  ▪▪▪▪▪▪▪▪     steady
+ *
+ * A page can't tell if it's felt: Android stays still in silent mode
+ * or battery saver, and navigator.vibrate still says yes.
  */
 
-const PULSE = 20;        // ms per on/off cycle when pulsing
+const PULSE = 60;        // ms per on/off cycle when pulsing
+const LEAST = 25;        // ms: the shortest burst a motor shows
+const GAP = 10;          // ms: the shortest gap that still reads as one
 const REISSUE = 900;     // ms: a held key re-sends the buzz this often
 
 /*
@@ -40,8 +51,8 @@ export function createOutputs({ settings, lampTarget, overlay }) {
   function buzzPattern() {
     const { strength } = settings();
     if (strength >= 95) return [REISSUE + 200];
-    const on = Math.max(6, Math.round(PULSE * strength / 100));
-    const off = Math.max(4, PULSE - on);
+    const on = Math.round(LEAST + (PULSE - LEAST) * strength / 100);
+    const off = Math.max(GAP, PULSE - on);
     const pattern = [];
     for (let t = 0; t < REISSUE + 200 && pattern.length < 96; t += on + off) pattern.push(on, off);
     return pattern;

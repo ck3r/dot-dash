@@ -45,8 +45,6 @@
 
   --dot:  #e2604f;
   --dash: #6ea8e0;
-  --num:  #6ea8e0;
-  --sym:  #e2604f;
   --dim:  #4a443c;
 
   --mono: Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", "dot-dash mono", monospace;
@@ -68,8 +66,6 @@
 
   --dot:  #c4412e;
   --dash: #2b69ad;
-  --num:  #2b69ad;
-  --sym:  #c4412e;
   --dim:  #c2baab;
 
   color-scheme: light;
@@ -241,6 +237,12 @@ a {
   color: var(--graphite);
 }
 
+/* the way to the design notes, under the last frame */
+.colophon {
+  margin-top: 1.5rem;
+  color: var(--graphite);
+}
+
 
 /* ============================================================
  * CONTROLS
@@ -269,26 +271,6 @@ button {
   gap: 0.5rem 1.75rem;
   font-size: 0.9rem;
   color: var(--graphite);
-}
-
-/* the timing bar under the tree (js/main.js): the station's scrub-bar
-   preview, its box and fading edges (tx.css .seek-pop), wider */
-.tree-timing {
-  width: 16rem;
-  max-width: 100%;
-  height: 3.4rem;
-  margin: 1rem auto 0;
-  padding: 0.25rem;
-  border: 1px solid var(--graphite);
-  background: var(--bakelite);
-}
-
-.tree-timing canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 14%, #000 86%, transparent);
-  mask-image: linear-gradient(to right, transparent, #000 14%, #000 86%, transparent);
 }
 
 .options-look {
@@ -320,6 +302,25 @@ button {
   content: "[x] ";
   color: var(--paper);
 }
+
+/* the box after its word, so a row of them lines up at the right:
+     stroke [ ]       cut [x]                                      */
+.check.box-after::before,
+.check.box-after:has(input:checked)::before { content: none; }
+.check.box-after::after {
+  content: " [ ]";
+  white-space: pre;
+  color: var(--graphite);
+}
+.check.box-after:has(input:checked)::after {
+  content: " [x]";
+  color: var(--paper);
+}
+
+/* the box alone, its word above it (cards, on /ref):  cards
+                                                        [ ]   */
+.check.box-only::before { content: "[ ]"; }
+.check.box-only:has(input:checked)::before { content: "[x]"; }
 
 .check:has(input:focus-visible) {
   outline: 1px dashed var(--brass);
@@ -414,48 +415,194 @@ button {
 .signal .tree .on.dash,
 .signal .tree .legend.dash  { color: var(--dash); }
 
-/* category colours: characters in the tree (when not dimmed) */
-.category .tree:not(.live) .lbl.num,
-.category .tree .lbl.num.on  { color: var(--num); }
-.category .tree:not(.live) .lbl.sym,
-.category .tree .lbl.sym.on  { color: var(--sym); }
-
-/* one tree at a time */
-@media (max-width: 720px) {
-  .tree-h { display: none; }
-}
-
-@media (min-width: 721px) {
-  .tree-v { display: none; }
-}
+/* one tree at a time, as the layout menu says (horizontal until
+   js/main.js has read it); a wide one scrolls sideways */
+.tree-frame:not([data-layout="vertical"]) .tree-v,
+.tree-frame[data-layout="vertical"] .tree-h { display: none; }
 
 
 /* ============================================================
  * SELECTED CHARACTER (its card: overview.js renderCard)
  * ============================================================ */
 
-/* misheard: a line over each letter's stretch of the bar, just above it */
-.selected-frame .over { box-shadow: inset 0 -2px 0 -1px var(--graphite); }
-
-.overview {
+/*
+ * The station's about column down the left, and across from each
+ * part what goes with it (a row each, so they line up):
+ *
+ *   tree     its place: path, depth, parent, twin …
+ *   marks    the card (type, code, glyph, weight, dots and dashes)
+ *   name     how it sounds, and its timeline
+ *   cut      the digit's timeline, what's not sent grey
+ *   ~        how it could be misheard, one reading at a time
+ */
+.card {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  column-gap: 1rem;
+  align-items: start;
   font-family: var(--mono);
   font-size: 14px;
-  line-height: 1.4;
-  white-space: pre;
-  overflow-x: auto;
+  line-height: 1.25;
+  color: var(--paper);
 }
 
-.overview .char {
-  font-weight: 700;   /* same size as the rest, so the columns line up */
-}
+.card a { color: var(--paper); text-decoration: none; }
+.card .na, .card a.na, .card .na * { color: var(--graphite); }
+.signal .card .dot  { color: var(--dot); }
+.signal .card .dash { color: var(--dash); }
 
-.overview .here {
+.card-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-bottom: 1.15rem;
+}
+.card-right { padding-bottom: 1.15rem; container-type: inline-size; }
+/* a part's word (cut, ~) on its own row, so the right lines up with its letters */
+.card-left.r-label, .card-right.r-label { padding-bottom: 0.15rem; }
+.card-left.r-marks { padding-top: 0.5rem; }   /* under the tree, level with the card's top */
+
+/* the little tree: parent, the edge down, it, its two children */
+.card-tree { font-size: 1.1rem; line-height: 1.2; white-space: pre; }
+.card-tree .tree-line { display: block; }
+.card .here { background: var(--paper); color: var(--bakelite); padding: 0 0.15em; }
+
+/* its place in the whole tree */
+.card-place {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: 2ch;
+}
+.card-place dt { color: var(--graphite); }
+.card-place dt.na { color: var(--wire); }   /* nothing there: dimmer still */
+.card-place dd { white-space: nowrap; }
+.card-place dd:has(.step) { white-space: normal; }
+.card-place .step { white-space: pre; }
+
+/* the marks, one per row, as the column draws them */
+.card-marks { display: flex; flex-direction: column; align-items: center; gap: 0.3em; font-size: 1.5rem; }
+.card-marks i { display: block; height: 0.42em; width: 0.42em; background: var(--paper); }
+.card-marks i.dash { width: 1.3em; }
+.signal .card-marks i.dot  { background: var(--dot); }
+.signal .card-marks i.dash { background: var(--dash); }
+
+/* the card, like a periodic table's: type and code at the top, the
+   glyph, its weight in units and its dots and dashes at the foot */
+.card-tile-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.8rem 1rem; }
+/* sized in its own em, so a smaller one (the cards on /ref) is the same, smaller */
+.card-tile {
+  flex: none;
+  display: grid;
+  grid-template: "type code" 2.6em "glyph glyph" 1fr "weight stats" 2.6em / max-content 1fr;   /* the same rows on every tile, so the glyphs line up */
+  column-gap: 0.5em;
+  width: 11.3em;
+  height: 14.7em;
+  padding: 0.45em 0.6em;
+  border: 1px solid var(--wire);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  line-height: 1.25;
+  color: var(--graphite);
+}
+.tile-type { grid-area: type; display: flex; flex-direction: column; }
+.tile-type .also::before { content: "+ "; }
+.card-tile .tile-code { grid-area: code; justify-self: end; white-space: nowrap; }
+.signal .card-tile .tile-code .dot  { color: var(--dot); }
+.signal .card-tile .tile-code .dash { color: var(--dash); }
+.signal .card-tile .tile-stats .dot  { color: var(--dot); }
+.signal .card-tile .tile-stats .dash { color: var(--dash); }
+.tile-glyph { grid-area: glyph; display: grid; place-items: center; min-height: 0; }
+.tile-glyph .stroked { width: 7.5em; height: 7.5em; }
+.tile-glyph .char { color: var(--paper); font-size: 4.5em; line-height: 1; font-weight: 700; }
+.tile-glyph .char.pro { font-size: 2em; }
+.tile-glyph .char.na { color: var(--graphite); }
+.tile-glyph:has(.stroked) .char { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.tile-weight { grid-area: weight; align-self: end; }
+.tile-stats { grid-area: stats; justify-self: end; align-self: end; white-space: pre; text-align: right; }
+
+/* beside the card (or under it, without the room): a prosign, another
+   reading, a tidbit */
+.card-note { flex: 1 1 9rem; min-width: 0; font-size: 0.9rem; line-height: 1.4; color: var(--paper); }
+.card-note:empty { display: none; }
+.card-note p + p { margin-top: 0.5rem; }
+
+/* the name as a stair, as in the column (js/stair.js) */
+.card-name { color: var(--graphite); font-size: 1.3rem; }
+.card .stair { display: block; position: relative; width: 100%; height: calc(var(--h) * 1em); }
+.card .stair > * {
+  position: absolute;
+  left: calc(50% + var(--dx) * 0.72em);
+  top: calc(var(--y) * 1em);
+  transform: translateX(-50%);
+  line-height: 1;
+}
+.card .stair .stress { color: var(--paper); font-weight: 700; }
+.card-sign { color: var(--graphite); font-size: 1.1rem; white-space: nowrap; }
+
+.card-sounds { font-weight: 700; margin-bottom: 0.55rem; }
+.card-label { color: var(--graphite); font-size: 0.95rem; }
+.card-stack { display: flex; flex-direction: column; align-items: center; }
+.card .card-big { font-size: 1.3rem; font-weight: 700; line-height: 1.15; }
+.card-right > p.na { font-size: 0.85rem; }
+
+/*
+ * A timeline: the marks along a wire, as long as they sound, filling
+ * in once as they play (--t: when, --d: how long); under each
+ * stretch a line and its letter. A unit is as wide as fits (--n: the
+ * units in it), up to 0.7rem.
+ */
+.tl {
+  --u: min(0.7rem, calc((100cqw - 2.5rem) / var(--n)));
+  display: inline-flex;
+  flex-direction: column;
+}
+.tl-marks {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(var(--wire), var(--wire)) center / 100% 1px no-repeat;
+}
+.tl-marks i { display: block; flex: none; }
+.tl .m { position: relative; height: 0.9rem; background: var(--wire); }
+.tl .m::after {
+  content: "";
+  position: absolute;
+  inset: 0;
   background: var(--paper);
-  color: var(--bakelite);
+  transform-origin: left;
+  animation: tl-fill var(--d) linear var(--t) both;
 }
+.signal .tl .m.dot::after  { background: var(--dot); }
+.signal .tl .m.dash::after { background: var(--dash); }
+.tl .m.gone::after { content: none; }
+@keyframes tl-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { .tl .m::after { animation: none; } }
 
-.signal .overview .dot  { color: var(--dot); }
-.signal .overview .dash { color: var(--dash); }
+.tl-labels { display: flex; margin-top: 0.3rem; }
+.tl-labels > * { flex: none; }
+.tl-label { border-top: 1px solid var(--graphite); padding-top: 0.15rem; text-align: center; font-weight: 700; }
+
+/* the misheard readings, one at a time: ˄ 1/8 ˅ */
+/* the turn between the columns: it stays put, however long the reading,
+   and the timeline starts where the others do */
+.card-heard { position: relative; }
+.card-turn { position: absolute; right: calc(100% + 0.2rem); top: -0.35rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.2rem; font-size: 0.7rem; color: var(--graphite); line-height: 1; }
+.card-turn span { display: block; min-width: 4ch; text-align: center; }
+.card-turn.one { visibility: hidden; }
+.card-turn button {
+  border: 0;
+  padding: 0 0.3rem;
+  background: transparent;
+  color: var(--paper);
+  font-size: 0.95rem;
+  line-height: 1.1;
+}
+@media (hover: hover) {
+  .card a:hover { background: transparent; }   /* not the page's paper block: brass, in place */
+  .card a:hover, .card a:hover * { color: var(--brass); }
+  .card .card-turn button:hover { background: transparent; color: var(--brass); }
+}
+.card a:focus-visible, .card-turn button:focus-visible { outline: 1px dashed var(--brass); outline-offset: 2px; }
 
 
 /* ============================================================
@@ -467,8 +614,86 @@ button {
   margin: 0 auto;
 }
 
+/* cards: its word (what they are: a popup) over its box, centred */
+.cards-switch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+}
+.flag-word {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--graphite);
+  text-decoration: underline dotted;
+  text-underline-offset: 0.25em;
+}
+:where(body:not(.tx)) .flag-word:hover { background: transparent; color: var(--brass); }
+
+/* each character as its tile (js/main.js), where the lists were */
+.tile-grid { display: none; }
+.morse-code.cards .tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 6.8rem);
+  justify-content: center;
+  gap: 0.6rem;
+  margin: 0.8rem 0 1.8rem;
+  list-style: none;
+}
+.morse-code.cards :is(.morse-letters, .morse-numbers, .morse-symbols, .lists[data-list="prosigns"]) { display: none; }
+.list-grid > .tile-grid { grid-column: 1 / -1; contain: inline-size; }
+.tile-grid a { display: block; color: inherit; text-decoration: none; }
+.tile-grid a:hover { background: transparent; }   /* not the page's paper block: it overran the border */
+.tile-grid .card-tile { font-size: 0.6rem; }
+@media (hover: hover) {
+  .tile-grid a:hover .card-tile { border-color: var(--brass); }
+}
+/* pressed: the tile printed the other way round, paper and bakelite
+   swapped (the swap read on the link, so neither refers to itself) */
+.tile-grid a:active {
+  --swap-paper: var(--bakelite);
+  --swap-bakelite: var(--paper);
+  --swap-graphite: var(--wire);
+  --swap-wire: var(--graphite);
+}
+.tile-grid a:active .card-tile {
+  --paper: var(--swap-paper);
+  --bakelite: var(--swap-bakelite);
+  --graphite: var(--swap-graphite);
+  --wire: var(--swap-wire);
+  background: var(--bakelite);
+}
+.tile-grid a:focus-visible { outline: 1px dashed var(--brass); outline-offset: 2px; }
+
+/* a note over the page (/ref: what the cards show) */
+.ref-pop {
+  margin: auto;
+  width: min(24rem, calc(100vw - 2rem));
+  padding: 1.1rem 1rem 0.9rem;
+  border: 1px solid var(--graphite);
+  background: var(--bakelite);
+  color: var(--paper);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  overflow: visible;
+}
+.ref-pop::backdrop { background: color-mix(in srgb, var(--bakelite) 60%, transparent); }
+.ref-pop .frame-label { left: 0.8rem; }
+.ref-pop .close { position: absolute; top: 0.1rem; right: 0.3rem; border: 0; padding: 0 0.3rem; color: var(--graphite); }
+:where(body:not(.tx)) .ref-pop .close:hover { background: transparent; color: var(--brass); }
+.ref-pop p + p, .ref-pop pre + p { margin-top: 0.6rem; }
+.cards-sketch { margin: 0.6rem 0; font-family: var(--mono); font-size: 0.85rem; line-height: 1.2; color: var(--graphite); white-space: pre; overflow-x: auto; }
+.cards-sketch b { color: var(--paper); }
+.cards-sketch .g { color: var(--graphite); }
+.signal .cards-sketch .dot { color: var(--dot); }
+.signal .cards-sketch .dash { color: var(--dash); }
+
 /* short codes stay close to their characters; prosigns have long names */
 .morse-code > h2,
+.morse-code > .heading-row,
 .morse-code .group-row {
   max-width: 400px;
   margin-inline: auto;
@@ -478,7 +703,7 @@ button {
 .morse-code h2 {
   font-size: 0.9rem;
   font-weight: 400;
-  color: var(--graphite);
+  color: var(--paper);
   margin-top: 1.5rem;
   margin-bottom: 0.5rem;
 }
@@ -486,6 +711,20 @@ button {
 .morse-code h2:first-child {
   margin-top: 0;
 }
+
+/* a heading with its group's switch at the right edge:
+     Letters ···························· [ ] stroke        */
+.morse-code .heading-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1ch;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+.morse-code > .heading-row:first-child { margin-top: 0; }
+.morse-code .heading-row h2 { margin: 0; }
+.morse-code .heading-row .check { font-size: 0.85rem; color: var(--graphite); }   /* the heading is the one in white */
 
 .morse-code ul {
   list-style: none;
@@ -538,6 +777,48 @@ button {
 /* wing effect: codes at the outer edge of each column */
 .morse-code .col-left .code {
   text-align: right;
+}
+
+/* cut numbers (the chart's box): the marks a cut drops greyed, and
+   the letter it's sent as outside its code; its room always kept */
+.morse-code .cut-as { visibility: hidden; min-width: 1ch; color: var(--graphite); }   /* grey: white is the digit's own */
+.morse-code.cut .cut-as { visibility: visible; }
+.morse-code.cut .morse-numbers .code span.gone { color: var(--wire); }
+
+/*
+ * Stroke letters (js/strokes.js), when chosen: the drawing in the
+ * label, the plain character still there but hidden. Sized to the
+ * line, its foot on the baseline (the box has 14 of its 128 units
+ * below the letter), so the rows keep their height.
+ */
+.morse-code .label .stroked { display: none; }
+.morse-code.strokes .label .stroked {
+  display: inline-block;
+  height: 1.25em;
+  width: 1.25em;
+  margin-bottom: calc(-1.25em * 14 / 128);
+}
+/* a number in its full form, or with cut on its cut one (0: one dah) */
+.morse-code.strokes:not(.cut) .label .stroked.cut-form,
+.morse-code.strokes.cut .label .stroked.full-form { display: none; }
+.morse-code.strokes .label:has(.stroked) > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.stroked path { fill: none; }
+.stroked .scaffold path { stroke: var(--graphite); stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.stroked.keyed .scaffold path { stroke: var(--paper); }
+.stroked .grey path { stroke: var(--wire); }
+.stroked .fill .dot { stroke: var(--dot); }
+.stroked .fill .dash { stroke: var(--dash); }
+body:not(.signal) :is(.morse-code, .card) .stroked .fill :is(path, circle) { stroke: var(--paper); }   /* dot/dash colours off (only /ref has the switch) */
+
+@media (hover: hover) {
+  .morse-code li a:hover .stroked .scaffold path { stroke: var(--brass); }
 }
 
 /* the narrowest phones: tighter, so both wings and their names fit */
@@ -651,56 +932,47 @@ button {
    at different heights and widths): one character wide per unit */
 .bar .on { background: var(--paper); }
 
-/* weights: the cost in units, small, up beside each character */
-.tree.weights .lbl[data-cost]:not(.blank) { position: relative; }
-.tree.weights .lbl[data-cost]:not(.blank)::after {
-  content: attr(data-cost);
-  position: absolute;
-  left: 100%;
-  top: -0.35em;
-  font-size: 0.55em;
-  font-weight: 400;
-  color: var(--graphite);
-  pointer-events: none;
-}
-
 /*
- * Prosigns, Q codes, abbreviations: one to a line, three columns
- * across the page shared by every row (subgrid): the code at the
- * left edge, the term centred on the page's middle, the meaning at the
- * right edge (wrapping there). Equal outer columns keep the terms'
- * middles on one axis. A whole row is one link (it lights as one). A
- * Q code's question is the line under it.
+ * Prosigns, Q codes, abbreviations: one to a line, in one grid the
+ * three lists share (each list and row a subgrid of it): the code at
+ * the left, the term on the centre line, the meaning at the right
+ * (wrapping there). Equal outer columns keep the terms on one axis,
+ * and the grid is only as wide as they need: the longest code and
+ * the longest meaning (QSY?, RST), not the page. A whole row is one
+ * link (it lights as one).
  *
- *     ...---...            SOS                 distress
- *     -...-.-               BK     break: back to you
+ *        ...---...       SOS       distress
+ *        -...-.-          BK       break: back to you
  *
- * condensed: the meanings go, a drill sheet of codes and terms.
+ * The headings and notes span it, but don't widen it (they take the
+ * grid's width, not their own: contain: inline-size).
  */
+.morse-code .list-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr);
+  column-gap: 2ch;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+}
+.morse-code .list-grid > * { grid-column: 1 / -1; }
+.morse-code .list-grid > :not(.lists) { contain: inline-size; margin-inline: 0; }   /* stretched across, not shrunk to nothing */
+.morse-code .list-grid > h2 { max-width: 100%; }   /* at the left, as the Q codes' row and the groups above */
 .morse-code .cheat-note {
-  max-width: 480px;
-  margin: 0 auto 0.6rem;
+  margin: 0 0 0.6rem;
   color: var(--graphite);
   font-size: 0.85rem;
   text-align: center;
 }
 .morse-code .list-options {
   justify-content: center;
-  margin: 2rem auto 0;
+  margin: 2rem 0 0;
 }
-.morse-code > h2:has(+ .lists),
-.morse-code > h2:has(+ .cheat-note + .lists),
-.morse-code > .cheat-note,
-.morse-code .lists { max-width: 100%; }
-.morse-code > h2:has(+ .lists),
-.morse-code > h2:has(+ .cheat-note + .lists) { text-align: center; }
 
 .morse-code .lists {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr);
-  gap: 0.15rem 2ch;
-  width: 100%;
-  margin: 0 auto;
+  grid-template-columns: subgrid;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
@@ -710,6 +982,7 @@ button {
   display: grid;
   grid-template-columns: subgrid;
   align-items: baseline;
+  padding-block: 0.075rem;
 }
 .morse-code .lists .code { text-align: left; letter-spacing: 0.12em; }   /* whole words: closer than the letters' */
 .morse-code .lists .label { font-weight: 700; letter-spacing: 0.08em; white-space: nowrap; text-align: center; }
@@ -720,7 +993,33 @@ button {
   text-align: right;
 }
 .morse-code .lists li a:hover .means { color: inherit; }
-.morse-code.condensed .lists .means { display: none; }
+
+/*
+ * Prosigns as bar notation (the "bar" box): the letters with a bar
+ * over them, the old way, instead of brackets. The brackets keep
+ * their room, unseen, so the centre column holds its width.
+ *
+ *    <AR>   →    ‾‾
+ *                AR
+ */
+.morse-code.bar .label.pro .br { visibility: hidden; }
+.morse-code.bar .label.pro .pro-letters { text-decoration: overline; text-decoration-thickness: 0.08em; }
+
+/* an answer's "?" slot (js/main.js): its room kept, so QRL and QRL?
+   centre the same and the letters don't move */
+.morse-code .lists .label .q.unseen { visibility: hidden; }
+
+/*
+ * A Q code, answer or question ("?"): the other row stays in the grid
+ * at no height, unseen, so the widths (and the centre line) hold
+ */
+.morse-code[data-q="answer"] .lists li[data-ask] a,
+.morse-code[data-q="ask"] .lists[data-list="q-codes"] li:not([data-ask]) a {
+  visibility: hidden;
+  height: 0;
+  padding-block: 0;
+  overflow: hidden;
+}
 
 /* phones: the outer columns are narrow, so a long code (a Q code with
    its ?) breaks between its letters, never inside one

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>stroke letters · dot-da.sh</title>
+  <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
+
+  <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
+  <link rel="stylesheet" href="/style.css">
+
+  <style>
+    /*
+     * A test sheet for js/strokes.js: every card runs from one clock,
+     * so the scrub bar moves them all. Not linked from anywhere yet.
+     */
+    .sheet { padding: 1.5rem 16px; max-width: 60rem; margin: 0 auto; }
+    .sheet h1 { font-size: 1.05rem; font-weight: 700; }
+    .sheet p { margin-top: 0.5rem; color: var(--graphite); }
+
+    /* stays in reach while consecutive playback walks down the sheet */
+    .controls {
+      position: sticky; top: 0; z-index: 1; background: var(--bakelite); padding: 0.5rem 0;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5ch; margin-top: 0.75rem;
+    }
+    .card { scroll-margin-top: 6rem; }
+    .controls input[type="range"] { flex: 1 1 12rem; min-width: 0; accent-color: var(--paper); }
+    .controls button, .controls select {
+      font: inherit; color: var(--graphite); background: none;
+      border: 1px solid var(--wire); padding: 0.25rem 1ch; cursor: pointer;
+    }
+    .controls select option { background: var(--bakelite); }
+    .controls [aria-pressed="true"] { color: var(--paper); border-color: var(--paper); }
+    .controls button:focus-visible, .controls select:focus-visible { color: var(--brass); border-color: var(--brass); outline: none; }
+    @media (hover: hover) {
+      .controls button:hover, .controls select:hover { color: var(--brass); border-color: var(--brass); }
+    }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: 1rem; margin-top: 1.25rem; }
+    .card { border: 1px solid var(--wire); padding: 0.5rem; }
+    .card.current { border-color: var(--paper); }
+    .card figcaption { display: flex; justify-content: space-between; color: var(--graphite); }
+    .card svg { display: block; width: 100%; }
+
+    .row { margin-top: 1.5rem; }
+    .row h2 { font-size: 1rem; font-weight: 400; color: var(--graphite); }
+    .row div { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; margin-top: 0.5rem; }
+    .row.done svg { width: 6rem; }
+    .row.text svg { width: 1.6rem; }
+
+    /* the three layers */
+    .stroked path { fill: none; }
+    .stroked .scaffold path { stroke: var(--graphite); stroke-width: 1.5; transition: stroke 150ms; }
+    .stroked.keyed .scaffold path { stroke: var(--paper); }
+    @media (prefers-reduced-motion: reduce) { .stroked .scaffold path { transition: none; } }
+    .stroked .grey path { stroke: var(--wire); }
+    .stroked .fill .dot { stroke: var(--dot); }
+    .stroked .fill .dash { stroke: var(--dash); }
+    .stroked .grey circle { fill: var(--wire); }
+    .stroked .fill circle.dot { fill: var(--dot); stroke: none; }
+    .mono .stroked .fill path { stroke: var(--paper); }
+    .mono .stroked .fill circle.dot { fill: var(--paper); }
+  </style>
+</head>
+
+<body>
+  <main class="sheet">
+    <h1>stroke letters</h1>
+    <p>Marks along the pen's path, filling as they sound. <a href="/design/strokes/edit/">set them by hand</a></p>
+
+    <div class="controls">
+      <button id="play">pause</button>
+      <input id="seek" type="range" min="0" max="1000" value="0" aria-label="position">
+      <select id="wpm" aria-label="speed">
+        <option value="5">5 wpm</option>
+        <option value="8" selected>8 wpm</option>
+        <option value="15">15 wpm</option>
+        <option value="25">25 wpm</option>
+      </select>
+      <button id="turn" aria-pressed="false">consecutive</button>
+      <button id="round" aria-pressed="false">circles</button>
+      <button id="mono" aria-pressed="false">monochrome</button>
+      <button id="theme">invert</button>
+    </div>
+
+    <div class="cards" id="cards"></div>
+
+    <section class="row"><h2>the numbers, cut</h2></section>
+    <div class="cards" id="cut"></div>
+
+    <section class="row done"><h2>finished</h2><div id="done"></div></section>
+    <section class="row text"><h2>at text size</h2><div id="text"></div></section>
+  </main>
+
+  <script type="module">
+    import { ENCODE, codeOf } from "/js/morse.js";
+    import { timeline } from "/js/tx-player.js";
+    import { STROKES, CUT_STROKES, createLetter } from "/js/strokes.js";
+
+    const ORDER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+    const DIGITS = "1234567890";
+
+    const SET = [...ORDER].map(char => ({ char, strokes: STROKES[char], code: ENCODE[char], into: "cards" }));
+    const CUTS = [...DIGITS].map(char => ({ char, strokes: CUT_STROKES[char], code: codeOf(char, { cut: true }), into: "cut" }));
+    const ALL = [...SET, ...CUTS];
+
+    const $ = id => document.getElementById(id);
+    const REST = 900;   // ms: every letter finished, before it starts again
+    const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const timing = wpm => {
+      const unit = 1200 / wpm;
+      return { unit, letter: 3 * unit, word: 7 * unit };
+    };
+    const lineOf = (code, wpm) => timeline([[code]], timing(wpm));
+
+    /* one after another, as a single message: each card takes its own
+       marks from the timeline, so the gaps between them are real ones */
+    const inTurn = wpm => {
+      const { marks, letters, duration } = timeline([ALL.map(({ code }) => code)], timing(wpm));
+      return letters.map(({ first, last }) => ({ marks: marks.slice(first, last + 1), duration }));
+    };
+    const pressed = id => $(id).getAttribute("aria-pressed") === "true";
+
+    let letters = [], length = 0, position = 0, playing = !still, current = null;
+
+    function build() {
+      for (const id of ["cards", "cut", "done", "text"]) $(id).replaceChildren();
+      const wpm = +$("wpm").value, round = pressed("round");
+      const lines = pressed("turn") ? inTurn(wpm) : ALL.map(({ code }) => lineOf(code, wpm));
+      current = null;
+      length = Math.max(...lines.map(l => l.duration));
+      letters = ALL.map(({ char, strokes, code, into }, i) => {
+        const letter = createLetter(strokes, lines[i].marks, { round });
+        const card = document.createElement("figure");
+        card.className = "card";
+        card.append(letter.el);
+        const caption = document.createElement("figcaption");
+        caption.innerHTML = `<span>${char}</span><span>${code}</span>`;
+        card.append(caption);
+        $(into).append(card);
+        return { ...letter, card, end: lines[i].marks.at(-1).end };
+      });
+      /* the rows that stay finished */
+      for (const row of ["done", "text"]) {
+        for (const { strokes, code } of SET) {
+          const letter = createLetter(strokes, lineOf(code, 8).marks, { round });
+          letter.at(Infinity);
+          $(row).append(letter.el);
+        }
+      }
+      show(still ? length : position);
+    }
+
+    function show(ms) {
+      position = ms;
+      for (const letter of letters) letter.at(ms);
+      $("seek").value = Math.min(1000, ms / length * 1000);
+      if (pressed("turn")) follow(letters.find(l => ms < l.end) ?? null);
+    }
+
+    /* the card that's sounding, or next to: kept on screen while it plays */
+    function follow(letter) {
+      if (letter === current) return;
+      current?.card.classList.remove("current");
+      letter?.card.classList.add("current");
+      current = letter;
+      if (letter && playing) letter.card.scrollIntoView({ block: "nearest", behavior: still ? "auto" : "smooth" });
+    }
+
+    let last = 0;
+    function tick(now) {
+      if (playing) {
+        const next = position + (now - last);
+        show(next > length + REST ? 0 : next);
+      }
+      last = now;
+      requestAnimationFrame(tick);
+    }
+
+    const setPlaying = on => { playing = on; $("play").textContent = on ? "pause" : "play"; };
+    const toggle = id => $(id).setAttribute("aria-pressed", String(!pressed(id)));
+    setPlaying(playing);
+    $("play").addEventListener("click", () => setPlaying(!playing));
+    $("seek").addEventListener("input", e => { setPlaying(false); show(e.target.value / 1000 * length); });
+    $("wpm").addEventListener("change", () => { position = 0; build(); });
+    $("turn").addEventListener("click", () => { toggle("turn"); position = 0; build(); });
+    $("round").addEventListener("click", () => { toggle("round"); build(); });
+    $("mono").addEventListener("click", () => { toggle("mono"); document.querySelector(".sheet").classList.toggle("mono"); });
+    $("theme").addEventListener("click", () => document.documentElement.classList.toggle("light"));
+
+    build();
+    requestAnimationFrame(now => { last = now; tick(now); });
+  </script>
+</body>
+</html>

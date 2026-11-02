@@ -238,7 +238,9 @@
   <section id="about-pop" class="popup about-pop" role="dialog" aria-labelledby="about-title" hidden>
     <span class="frame-label" id="about-title">about</span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
-    <pre id="about-card" class="overview about-card"></pre>
+    <div id="about-card" class="card about-card"></div>
+    <!-- the word it ends, if that is a Q code or an abbreviation (QTH, 73): what it means -->
+    <div id="about-term" class="about-term" hidden></div>
     <p class="about-more"><a id="about-full" href="/ref/" target="_blank" rel="noopener">the full page, with the whole tree ↗</a></p>
   </section>
 
@@ -282,6 +284,34 @@
     <pre class="cut-chart" id="cut-chart" aria-label="each digit, and the marks its cut keeps"></pre>
     <p class="cut-note">4 and 6 aren't cut: their letters would be V and B.</p>
     <p><a id="cut-full" class="about-more" href="/ref/#cut" target="_blank" rel="noopener">on the tree, in the reference ↗</a></p>
+  </section>
+
+  <!-- a prosign or an operators' word in the about column, tapped:
+       what it means (js/tx/layer.js openWord) -->
+  <section id="word-pop" class="popup word-pop" role="dialog" aria-labelledby="word-title" hidden>
+    <span class="frame-label" id="word-title"></span>
+    <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+    <p class="word-marks" id="word-marks"></p>
+    <div id="word-means"></div>
+    <p><a id="word-full" class="about-more" href="/ref/" target="_blank" rel="noopener">with the others, in the reference ↗</a></p>
+  </section>
+
+  <!-- "about" in the tray, tapped: what the about column shows, each
+       part its own switch (js/tx/about.js PARTS) -->
+  <section id="about-set-pop" class="popup about-set-pop" role="dialog" aria-labelledby="about-set-title" hidden>
+    <span class="frame-label" id="about-set-title">about</span>
+    <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+    <p>The column under the tree: the letter showing, its marks at the
+    top, and below them what's worth knowing. The tray's box shows or
+    hides the whole column; the (i) stays.</p>
+    <ul class="about-parts">
+      <li><label class="check"><input type="checkbox" id="opt-about-name" checked> name</label> its phonetic name, or the prosign</li>
+      <li><label class="check"><input type="checkbox" id="opt-about-cut" checked> cut</label> the cut number it is, or is sent as</li>
+      <li><label class="check"><input type="checkbox" id="opt-about-heard" checked> ~</label> what it could be misheard as</li>
+    </ul>
+    <p>A short screen lets go of the last of these first; with
+    <b>cut</b> on, the cut comes first. A Q code or abbreviation
+    (QTH, 73) is explained in the (i)'s card, not here.</p>
   </section>
 
   <!-- the timing train, tapped: what it shows -->
@@ -527,6 +557,10 @@
         <span class="flag">
           <label class="check"><input type="checkbox" id="opt-pretty" aria-label="pretty play"></label>
           <button type="button" class="flag-word" data-note="pretty" aria-haspopup="dialog" aria-controls="flag-pop" title="what's pretty?">pretty</button>
+        </span>
+        <span class="flag">
+          <label class="check"><input type="checkbox" id="opt-about" checked aria-label="the about column"></label>
+          <button type="button" id="about-set-info" class="flag-word" aria-haspopup="dialog" aria-controls="about-set-pop" title="what the about column shows">about</button>
         </span>
         <span class="flag">
           <label class="check"><input type="checkbox" id="opt-color" checked aria-label="color"></label>

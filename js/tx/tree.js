@@ -18,7 +18,7 @@ import { createAbout } from "./about.js";
 import { $, el, icon } from "./dom.js";
 
 export function createTreeEdge({
-  state, press, retype, update, settleTape, hiding, redact, cancelKeyer, openHeard, openCut, greet, playing, stopPlayback
+  state, press, retype, update, settleTape, hiding, redact, cancelKeyer, openHeard, openCut, openWord, greet, playing, stopPlayback
 }) {
   /*
    * ============================================================
@@ -59,9 +59,15 @@ export function createTreeEdge({
   const showingDone = () => !structure(state.tokens).path && !state.localCleared && wordsOf(state.tokens).length > 0;
 
   /* whole: playing, the letter this path is on the way to (the tree
-     traces the path, the about column waits for the letter) */
-  function drawLocal(override, whole) {
+     traces the path, the about column waits for the letter); word:
+     the word it's in, { codes, at } (otherwise, with nothing given,
+     the word being written, the letter showing its last) */
+  function drawLocal(override, whole, word) {
     const path = override ?? focusCode();
+    if (override === undefined && path) {
+      const codes = wordsOf(state.tokens).at(-1);
+      word = { codes, at: codes.length - 1 };
+    }
     const box = $("#local");
     box.textContent = "";
     const row = (...parts) => {
@@ -95,7 +101,7 @@ export function createTreeEdge({
       const letters = [box.children[0]?.firstElementChild, box.querySelector(".here"), ...box.querySelectorAll("button")];
       for (const e of letters) if (e && e.textContent.trim() && e.textContent !== "_") redact(e);
     }
-    about.draw(whole ?? path, whole ? path.length : null);
+    about.draw(whole ?? path, whole ? path.length : null, word);
   }
 
   /* a child of what's showing: key that mark onto it (a finished
@@ -116,7 +122,7 @@ export function createTreeEdge({
   }
 
   /* the about column, under the collapsed tree: js/tx/about.js */
-  const about = createAbout({ hiding, redact, openHeard, openCut, greet });
+  const about = createAbout({ hiding, redact, openHeard, openCut, openWord, greet });
 
   /*
    * Expanded: the letters-only vertical tree, plus branches for
@@ -325,7 +331,7 @@ export function createTreeEdge({
     requestAnimationFrame(() => {
       refitQueued = false;
       if (treeOpen) drawTree();   // re-measures the panel only if the station's size changed
-      else about.draw(about.current());   // the column's size may have changed
+      else about.redraw();   // the column's size may have changed
       settleTape();
     });
   }).observe($(".station"));

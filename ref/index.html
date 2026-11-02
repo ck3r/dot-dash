@@ -75,18 +75,19 @@
         </label>
         <label class="check"><input type="checkbox" id="opt-symbols"> symbols</label>
         <label class="check"><input type="checkbox" id="opt-prune"> prune empty</label>
-        <label class="check" title="each character's cost in units: its marks, the gaps inside it, and the letter gap after"><input type="checkbox" id="opt-weights"> weights</label>
       </fieldset>
 
       <pre class="tree tree-h" id="tree-h" aria-label="Morse tree: dot branches left, dash branches right"></pre>
       <pre class="tree tree-v" id="tree-v" aria-label="Morse tree: dot branches up, dash branches down"></pre>
 
-      <!-- the timing bar: the character the tree is on, as it's keyed
-           (the station's scrub-bar preview, js/tx-trace.js) -->
-      <div class="tree-timing" aria-hidden="true"><canvas></canvas></div>
-
       <fieldset class="options options-look">
         <legend class="visually-hidden">How the tree looks</legend>
+        <label class="pick">layout
+          <select id="opt-layout">
+            <option value="horizontal" selected>horizontal</option>
+            <option value="vertical">vertical</option>
+          </select>
+        </label>
         <label class="pick">style
           <select id="opt-style">
             <option value="branches">branches</option>
@@ -101,7 +102,6 @@
           </select>
         </label>
         <label class="check"><input type="checkbox" id="opt-signal" checked> dot/dash colors</label>
-        <label class="check"><input type="checkbox" id="opt-category" checked> character colors</label>
       </fieldset>
     </section>
 
@@ -109,7 +109,7 @@
     <section class="frame selected-frame" id="selected-frame" aria-labelledby="selected-label">
       <h2 class="frame-label" id="selected-label">selected character</h2>
       <p id="selected-none" class="empty">none</p>
-      <pre id="selected-card" class="overview about-card" hidden></pre>
+      <div id="selected-card" class="card" hidden></div>
     </section>
 
     <!-- ───────────── reference ───────────── -->
@@ -117,7 +117,37 @@
       <h2 class="frame-label" id="chart-label">all characters</h2>
   <div class="morse-code">
 
-  <h2>Letters</h2>
+  <!-- cards: every character as its tile, as in the about card (js/main.js);
+       the word says what they are -->
+  <div class="cards-switch">
+    <button type="button" id="cards-info" class="flag-word" aria-haspopup="dialog" aria-controls="cards-pop">cards</button>
+    <label class="check box-only"><input type="checkbox" id="opt-cards" aria-label="characters as cards"></label>
+  </div>
+  <dialog id="cards-pop" class="ref-pop" aria-labelledby="cards-title">
+    <span class="frame-label" id="cards-title">cards</span>
+    <button type="button" class="close" aria-label="close">×</button>
+    <p>Each character as a tile, like the periodic table's:</p>
+    <pre class="cards-sketch">┌───────────┐
+│<span class="g">num</span>   <span class="dash">-----</span>│   what it is, its marks
+│     <b>0</b>     │
+│<span class="g">22</span>      <span class="g">0</span> <span class="dot">.</span>│   weight, dots
+│        <span class="g">5</span> <span class="dash">−</span>│           dashes
+└───────────┘</pre>
+    <p>What it is: char, num, sym or pro, with cut for a letter that
+    stands in for a digit. Its weight: the units it takes to send,
+    its gaps and a letter gap included (PARIS is 50, with a word
+    gap).</p>
+    <p>With stroke on, the letters and numbers are drawn by their
+    marks.</p>
+  </dialog>
+
+  <!-- a group's switch on its heading's line, at the right:
+       stroke letters (js/main.js draws them over the plain ones),
+       cut numbers, prosigns with a bar, Q codes as questions -->
+  <div class="heading-row">
+    <h2>Letters</h2>
+    <label class="check box-after" title="stroke letters: each drawn by the marks that spell it">stroke<input type="checkbox" id="opt-strokes" aria-label="stroke letters"></label>
+  </div>
   <div class="group-row morse-letters">
     <ul class="col-left">
     <li><a href="/ref/?/.-"><span class="code">.-</span><span class="say">Alfa</span><span class="label">A</span></a></li>
@@ -151,21 +181,24 @@
     </ul>
   </div>
 
-  <h2>Numbers</h2>
+  <div class="heading-row">
+    <h2>Numbers</h2>
+    <label class="check box-after" title="cut numbers: the marks a cut drops, and the letter it's sent as">cut<input type="checkbox" id="opt-chart-cut" aria-label="cut numbers"></label>
+  </div>
   <div class="group-row morse-numbers">
     <ul class="col-left">
-    <li><a href="/ref/?/-----"><span class="code">-----</span><span class="say">Zero</span><span class="label">0</span></a></li>
     <li><a href="/ref/?/.----"><span class="code">.----</span><span class="say">Wun</span><span class="label">1</span></a></li>
     <li><a href="/ref/?/..---"><span class="code">..---</span><span class="say">Too</span><span class="label">2</span></a></li>
     <li><a href="/ref/?/...--"><span class="code">...--</span><span class="say">Tree</span><span class="label">3</span></a></li>
     <li><a href="/ref/?/....-"><span class="code">....-</span><span class="say">Fower</span><span class="label">4</span></a></li>
+    <li><a href="/ref/?/....."><span class="code">.....</span><span class="say">Fife</span><span class="label">5</span></a></li>
     </ul>
     <ul class="col-right">
-    <li><a href="/ref/?/....."><span class="label">5</span><span class="say">Fife</span><span class="code">.....</span></a></li>
     <li><a href="/ref/?/-...."><span class="label">6</span><span class="say">Six</span><span class="code">-....</span></a></li>
     <li><a href="/ref/?/--..."><span class="label">7</span><span class="say">Seven</span><span class="code">--...</span></a></li>
     <li><a href="/ref/?/---.."><span class="label">8</span><span class="say">Ait</span><span class="code">---..</span></a></li>
     <li><a href="/ref/?/----."><span class="label">9</span><span class="say">Niner</span><span class="code">----.</span></a></li>
+    <li><a href="/ref/?/-----"><span class="label">0</span><span class="say">Zero</span><span class="code">-----</span></a></li>
     </ul>
   </div>
 
@@ -199,12 +232,15 @@
     Prosigns, Q codes and abbreviations: one to a line, the code at
     the left edge, the term on the page's centre line, the meaning at
     the right edge. A Q code's question (sent with ?) is the line
-    under its answer. js/main.js orders them (A–Z, or as a contact
-    goes: data-az, data-flow) and hides the meanings when condensed.
+    under its answer; js/main.js shows one or the other (the "?"
+    box), and orders them (A–Z, or as a contact goes: data-az,
+    data-flow). All three lists share one grid, as wide as their
+    longest code and meaning, so their centre lines meet.
 
       ...---...            SOS                 distress
       -...-.-               BK     break: back to you
   -->
+  <div class="list-grid">
   <fieldset class="options list-options">
     <legend class="visually-hidden">How the lists read</legend>
     <label class="pick">order
@@ -213,10 +249,12 @@
         <option value="flow">as a contact goes</option>
       </select>
     </label>
-    <label class="check"><input type="checkbox" id="opt-condensed"> condensed</label>
   </fieldset>
 
-  <h2>Prosigns</h2>
+  <div class="heading-row">
+    <h2>Prosigns</h2>
+    <label class="check box-after" title="prosigns with a bar over their letters, the old way, instead of brackets">bar<input type="checkbox" id="opt-bar" aria-label="prosigns as bar notation"></label>
+  </div>
   <ul class="lists" data-list="prosigns">
     <li data-az="0" data-flow="2"><a href="/ref/?/.-.-"><span class="code">.-.-</span><span class="label pro">&lt;AA&gt;</span><span class="means">new line</span></a></li>
     <li data-az="1" data-flow="9"><a href="/ref/?/.-.-."><span class="code">.-.-.</span><span class="label pro">&lt;AR&gt;</span><span class="means">end of message</span></a></li>
@@ -234,8 +272,11 @@
     <li data-az="13" data-flow="12"><a href="/ref/?/...---..."><span class="code">...---...</span><span class="label pro">&lt;SOS&gt;</span><span class="means">distress</span></a></li>
   </ul>
 
-  <h2>Q codes</h2>
-  <p class="cheat-note">Three letters for a whole sentence. Sent with <b>?</b> they ask instead (the line under each).</p>
+  <div class="heading-row">
+    <h2>Q codes</h2>
+    <label class="check box-after" title="Q codes as questions, sent with ?">ask?<input type="checkbox" id="opt-ask" aria-label="Q codes as questions"></label>
+  </div>
+  <p class="cheat-note">Three letters for a whole sentence. Sent with <b>?</b> they ask instead.</p>
   <ul class="lists" data-list="q-codes">
     <li data-az="0" data-flow="0"><a href="/ref/?/_--.-_.-._.-.._"><span class="code">--.- .-. .-..</span><span class="label">QRL</span><span class="means">this frequency is in use</span></a></li>
     <li data-az="0" data-flow="0" data-ask><a href="/ref/?/_--.-_.-._.-.._..--.._"><span class="code">--.- .-. .-.. ..--..</span><span class="label">QRL?</span><span class="means">is this frequency in use?</span></a></li>
@@ -308,9 +349,12 @@
     <li data-az="25" data-flow="13"><a href="/ref/?/_.--_-..-_"><span class="code">.-- -..-</span><span class="label">WX</span><span class="means">weather</span></a></li>
     <li data-az="26" data-flow="18"><a href="/ref/?/_-.--_.-.._"><span class="code">-.-- .-..</span><span class="label">YL</span><span class="means">young lady: any operator</span></a></li>
   </ul>
+  </div>
 
 </div>
     </section>
+
+    <p class="colophon"><a href="/design/">design notes</a>: why the site looks and behaves as it does.</p>
 
   </main>
 
