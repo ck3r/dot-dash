@@ -21,6 +21,9 @@ import * as keyer from "./keyer.js";
 import { createTree, buildModel } from "./tree.js";
 import { renderCard, renderTile } from "./overview.js";
 import { STROKES, CUT_STROKES, createLetter } from "./strokes.js";
+import { timeline } from "./tx-player.js";
+import { say } from "./tx/voice.js";
+import { createTrace } from "./tx-trace.js";
 
 
 const WPM = 20;
@@ -28,6 +31,14 @@ const FARNSWORTH_WPM = 20;
 const DOT_MS = 1200 / WPM;
 
 const $ = selector => document.querySelector(selector);
+
+/* the stroke letters drawn on the chart (lists or cards), each with
+   its code, for the stroke player to play (below); and whether their
+   dots are circles (the player's setting, remembered) */
+const strokeLetters = new WeakMap();   // its svg → { letter, code }
+const STROKE_UNIT = 90;                 // ms a unit, as they're drawn (the card's)
+let strokeRound = false;
+try { strokeRound = localStorage.getItem("dot-dash:stroke-round") === "1"; } catch { }
 
 
 function getPayload() {
@@ -58,6 +69,10 @@ const trees = [
 
 let model = null;
 
+/* the whole tree in its popup (expand, below), and the layout it
+   fitted in there: roomy or compact */
+let expanded = false, fitCompact = "auto";
+
 function currentModel() {
   return buildModel({
     letters: $("#opt-letters").checked,
@@ -73,6 +88,7 @@ function currentModel() {
  * "roomy" always roomy (wide trees scroll); "compact" always.
  */
 function compactMode() {
+  if (expanded) return fitCompact;   // the popup's own fit, kept while it's open (a tap only paints a path)
   const size = $("#opt-size").value;
   return size === "auto" ? "auto" : size === "compact";
 }
@@ -87,11 +103,11 @@ function drawTrees() {
   trees[0].setLayout(branchy ? "branches" : "horizontal");
   trees[1].setLayout(branchy ? "branchesV" : "vertical");
   model = currentModel();
+  $(".tree-frame").dataset.layout = $("#opt-layout").value;   // first: a tree measures its fit while it shows
   trees.forEach(tree => tree.render(model, compactMode()));
   for (const s of document.querySelectorAll(".tree-frame .tree .lbl[data-code]")) {
     s.classList.toggle("selected", s.dataset.code === selected);
   }
-  $(".tree-frame").dataset.layout = $("#opt-layout").value;
 }
 
 /* the wide tree, wider than the frame: scrolled so its root is in
@@ -124,8 +140,64 @@ for (const id of ["#opt-letters", "#opt-symbols", "#opt-prune"]) {
 let resizeTimer = null;
 window.addEventListener("resize", () => {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(drawTrees, 150);
+  resizeTimer = setTimeout(() => (expanded ? fitExpanded() : drawTrees()), 150);
 });
+
+/*
+ * Over the tree, at its corners: replay (what it traced last, again)
+ * and expand (the whole tree over the page, scaled to fit it: no
+ * scrolling, so nothing of it is ever out of sight).
+ */
+$(".tree-replay").addEventListener("click", () => replay());
+
+const TREE_PX = 13;   // the tree's own size (style.css .tree)
+function fitExpanded() {
+  const v = $(".tree-frame").dataset.layout === "vertical";
+  const t = v ? $("#tree-v") : $("#tree-h"), tree = trees[v ? 1 : 0];
+  for (const pre of [$("#tree-h"), $("#tree-v")]) pre.style.fontSize = "";
+  drawTrees();
+  if (!expanded) return;
+  /* the room: the screen, less the popup's margin, border and padding
+     (the popup itself hugs the tree, so it can't be the measure) */
+  const pad = getComputedStyle($(".tree-wrap")), MARGIN = 32 + 2;
+  const w = innerWidth - MARGIN - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight);
+  const h = innerHeight - MARGIN - parseFloat(pad.paddingTop) - parseFloat(pad.paddingBottom);
+  /* roomy or compact, whichever comes out bigger (compact is much
+     narrower: on a tall screen the wide tree reads better that way) */
+  const scaleOf = compact => {
+    tree.render(model, compact);
+    t.style.paddingInline = "";   // the tree alone, not the room it gets to follow in
+    return Math.min(w / t.scrollWidth, h / t.scrollHeight, 3);
+  };
+  const roomy = scaleOf(false), compact = scaleOf(true);
+  fitCompact = compact > roomy;
+  t.style.fontSize = `${Math.floor(TREE_PX * Math.max(roomy, compact) * 2) / 2}px`;
+  tree.render(model, fitCompact);   // (at its new size it fits: no room to follow, no scroll)
+}
+function expandTree(on) {
+  expanded = on;
+  treeFrame.classList.toggle("expanded", on);
+  document.body.classList.toggle("tree-expanded", on);
+  const b = $(".tree-expand");
+  b.setAttribute("aria-pressed", String(on));
+  b.title = on ? "back into the frame" : "the whole tree";
+  b.setAttribute("aria-label", b.title);
+  trees.forEach(tree => tree.setFollow(!on));   // the whole tree shows: nothing to glide after
+  fitExpanded();
+  if (!on) centreTree();
+}
+$(".tree-expand").addEventListener("click", () => expandTree(!expanded));
+addEventListener("keydown", event => {
+  if (event.key === "Escape" && expanded) { event.preventDefault(); expandTree(false); }
+});
+/* a tap on the backdrop (anywhere outside the popup) closes it, and
+   does nothing else on the page under it */
+addEventListener("click", event => {
+  if (!expanded || event.target.closest(".tree-wrap")) return;
+  event.preventDefault();
+  event.stopPropagation();
+  expandTree(false);
+}, { capture: true });
 
 /* the switch on the tree frame keys along, the frame lit while it's closed */
 const logo = $(".tree-frame .switch");
@@ -175,7 +247,8 @@ function renderSelected() {
   $("#selected-card").hidden = !selected;
   $("#selected-label").textContent = selected ? `about ${selected === morse.NAME_CODE ? "dot-da.sh" : morse.DECODE[selected] ?? selected}` : "selected character";
   if (selected) {
-    renderCard($("#selected-card"), selected);
+    /* its name says itself, as on the station (no volume here: full) */
+    renderCard($("#selected-card"), selected, { say: ch => say(ch).catch(() => { }) });
     $("#selected-card").scrollLeft = 0;
   }
 }
@@ -300,9 +373,11 @@ for (const code of document.querySelectorAll(".morse-code .code")) {
   /* drawn the first time they're wanted, then only shown or hidden */
   let drawn = false;
   const drawing = (strokes, code, cls) => {
-    const letter = createLetter(strokes, [...code].map((mark, i) => ({ mark, start: i, end: i + 1 })));
+    const at = STROKE_UNIT, marks = timeline([[code]], { unit: at, letter: 3 * at, word: 7 * at }).marks;
+    const letter = createLetter(strokes, marks, { round: strokeRound });
     letter.at(Infinity);
     if (cls) letter.el.classList.add(cls);
+    strokeLetters.set(letter.el, { letter, code });
     return letter.el;
   };
   /* a number has its cut form too, shown with cut on (CSS):
@@ -324,6 +399,8 @@ for (const code of document.querySelectorAll(".morse-code .code")) {
     try { localStorage.setItem("dot-dash:strokes", box.checked ? "1" : "0"); } catch { }
   };
   box.addEventListener("change", apply);
+  /* circles changed: drawn again, if they're drawn */
+  document.addEventListener("strokes-redraw", () => { if (drawn) draw(); });
   apply();
 }
 
@@ -364,6 +441,75 @@ for (const code of document.querySelectorAll(".morse-code .code")) {
   };
   box.addEventListener("change", () => apply(true));
   apply(false);
+}
+
+/*
+ * The letters, numbers and symbols: A–Z (as the page has them), the
+ * ones English uses most first, the lightest first (the fewest units
+ * to send: E, then I and T …; a tie keeps A–Z), as the tree reads
+ * (its array: a level at a time, left to right, dot before dash), or
+ * in Koch order (the order the Koch method, and LCWO's course, teach
+ * them in: K M U R E S N A P T …; a symbol it never teaches comes
+ * after the ones it does, as A–Z has them),
+ * each group on its own (the most used letter first among the
+ * letters, the most used digit among the numbers …). By weight and
+ * by the tree, the numbers go by what's sent: with cut on, cut (T
+ * for 0 is light, and up at the tree's top).
+ *
+ *   tree:   E T · I A N M · S U R W D K G O · H V F L P J B X C Y Z Q
+ *   Koch:   K M U R E S N A P T L W I J Z F O Y V G Q H B C D X Down the left column, then the right, as A–Z reads;
+ * an item that changes column turns round, its letter on the
+ * outside. The lists from the prosigns on have an order of their own
+ * (#opt-order, below). Remembered.
+ *
+ *   .-    Alfa  A   N  November -.        .     Echo  E   O  Oscar  ---
+ *   -...  Bravo B   O  Oscar    ---  →    -     Tango T   I  India  ..
+ *
+ * The digits and symbols are as they come in ordinary English text
+ * (the digits roughly: years and round numbers keep 1, 0, 2 and 9
+ * up); the letters are the long-known ETAOIN SHRDLU.
+ */
+{
+  const FREQ = {
+    letters: "ETAOINSHRDLCUMWFGYPBVKJXQZ",
+    numbers: "1029534867",
+    symbols: ",.'\"-?():!;/&@=+$_"
+  };
+  /* the Koch method's order, all of it; each group takes its own out */
+  const KOCH = "KMURESNAPTLWI.JZ=FOY,VG5/Q92H38B?47C1D60X";
+  const koch = c => (KOCH.includes(c) ? KOCH.indexOf(c) : KOCH.length);   // (untaught: last, in A–Z)
+  const select = $("#opt-chart-order");
+  const groups = Object.keys(FREQ).map(name => {
+    const row = $(`.morse-${name}`);
+    const left = row.querySelector(".col-left"), right = row.querySelector(".col-right");
+    const items = [...row.querySelectorAll("li")].map(li => ({ li, char: li.querySelector(".label").textContent }));
+    return { name, left, right, items, split: left.children.length };
+  });
+  try {
+    const saved = localStorage.getItem("dot-dash:chart-order");
+    if ([...select.options].some(o => o.value === saved)) select.value = saved;
+  } catch { }
+  const sent = (name, c) => (name === "numbers" && $("#opt-chart-cut").checked ? morse.codeOf(c, { cut: true }) : morse.ENCODE[c]);
+  /* its place in the tree's array: its level, then its path read as binary (. 0, - 1) */
+  const place = code => code.length * 1000 + parseInt(code.replace(/\./g, "0").replace(/-/g, "1"), 2);
+  const apply = () => {
+    const by = select.value;
+    for (const { name, left, right, items, split } of groups) {
+      const rank = { freq: c => FREQ[name].indexOf(c), weight: c => morse.cost(sent(name, c)), tree: c => place(sent(name, c)), koch }[by];
+      const sorted = rank ? [...items].sort((a, b) => rank(a.char) - rank(b.char)) : items;   // (a stable sort: a tie keeps A–Z)
+      sorted.forEach(({ li }, i) => {
+        const outer = i < split;   // left: (cut) code · say · letter; right: letter · say · code (cut)
+        const a = li.querySelector("a");
+        const parts = [".cut-as", ".code", ".say", ".label"].map(q => a.querySelector(q)).filter(Boolean);
+        a.append(...(outer ? parts : parts.reverse()));
+        (outer ? left : right).append(li);
+      });
+    }
+    try { localStorage.setItem("dot-dash:chart-order", by); } catch { }
+  };
+  select.addEventListener("change", apply);
+  $("#opt-chart-cut").addEventListener("change", () => { if (select.value === "weight" || select.value === "tree") apply(); });
+  apply();
 }
 
 /*
@@ -459,8 +605,9 @@ for (const code of document.querySelectorAll(".morse-code .code")) {
         /* with cut on, a number as it's sent cut (4 and 6 have no cut) */
         const cut = g === 1 && $("#opt-chart-cut").checked && morse.codeOf(name, { cut: true }) !== morse.ENCODE[name];
         const code = cut ? morse.codeOf(name, { cut: true }) : link.getAttribute("href").replace("/ref/?/", "");
-        const { el, letter } = renderTile(code, { name, strokes: $("#opt-strokes").checked, cut });
+        const { el, letter } = renderTile(code, { name, strokes: $("#opt-strokes").checked, cut, round: strokeRound });
         letter?.at(Infinity);
+        if (letter) strokeLetters.set(letter.el, { letter, code });
         const a = Object.assign(document.createElement("a"), { href: link.href });
         a.setAttribute("aria-label", `${name} ${code}`);
         a.append(el);
@@ -477,13 +624,186 @@ for (const code of document.querySelectorAll(".morse-code .code")) {
     try { localStorage.setItem("dot-dash:list-cards", box.checked ? "1" : "0"); } catch { }
   };
   box.addEventListener("change", apply);
-  for (const id of ["#opt-strokes", "#opt-order", "#opt-chart-cut"]) $(id).addEventListener("change", draw);
+  /* cards on: stroke on with them (the tiles are made to be drawn) */
+  box.addEventListener("change", () => {
+    const strokes = $("#opt-strokes");
+    if (box.checked && !strokes.checked) {
+      strokes.checked = true;
+      strokes.dispatchEvent(new Event("change"));
+    }
+  });
+  for (const id of ["#opt-strokes", "#opt-order", "#opt-chart-cut", "#opt-chart-order"]) $(id).addEventListener("change", draw);
+  document.addEventListener("strokes-redraw", draw);
   apply();
 
   const pop = $("#cards-pop");
   $("#cards-info").addEventListener("click", () => pop.showModal());
   pop.querySelector(".close").addEventListener("click", () => pop.close());
   pop.addEventListener("click", event => { if (event.target === pop) pop.close(); });   // the backdrop
+}
+
+/*
+ * The stroke player (stroke on): the drawn letters filling as their
+ * marks sound, played as the station's player plays a message: play,
+ * the scrub bar with the signal on it (js/tx-trace.js), repeat (off,
+ * 3 times, on), then the sheet's settings: the speed, and every
+ * letter at once or one after another (consecutive, as one message,
+ * so the gaps between them are real). It rides in the chart's bar,
+ * kept on screen while the letters, numbers and symbols go by; the
+ * dots as circles is a box under stroke's. Switching stroke on plays
+ * it once; otherwise the letters rest finished. Remembered, all but
+ * where it is.
+ *
+ *   [x] cards   ▷ 2.8s ▁█▁███▁▁▁███▁█▁┃▁▁█▁▁▁ ⟲3 │ speed 5 wpm  consecutive
+ */
+{
+  const box = $(".stroke-player");
+  const play = box.querySelector(".play"), seek = box.querySelector(".seek"), repeat = box.querySelector(".repeat");
+  const wpm = box.querySelector(".wpm"), turn = box.querySelector(".turn"), round = $("#opt-circles"), time = box.querySelector(".time");
+  const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const pressed = b => b.getAttribute("aria-pressed") === "true";
+  const press = (b, on) => b.setAttribute("aria-pressed", String(on));
+  const REST = 900;   // ms between rounds, every letter finished
+  const ROUNDS = { off: 1, three: 3, on: Infinity };
+  const NEXT = { off: "three", three: "on", on: "off" };
+  const LABEL = { off: "repeat: off", three: "repeat: 3 times", on: "repeat: on" };
+
+  const css = name => getComputedStyle(document.body).getPropertyValue(name).trim();
+  let unit = 1200 / 8;
+  const trace = createTrace({
+    canvas: box.querySelector(".trace"), pop: box.querySelector(".seek-pop"), popCanvas: box.querySelector(".seek-pop canvas"),
+    thumb: 4, unit: () => unit,
+    colors: () => {
+      const c = { wire: css("--wire"), paper: css("--paper"), brass: css("--brass"), played: css("--paper"), toCome: css("--graphite") };
+      c.markColor = () => c.paper;
+      return c;
+    }
+  });
+
+  let letters = [], length = 0, position = 0, playing = false, round_ = 0, repeatMode = "off";
+  try {
+    const saved = JSON.parse(localStorage.getItem("dot-dash:stroke-player") ?? "{}");
+    if ([...wpm.options].some(o => o.value === saved.wpm)) wpm.value = saved.wpm;
+    press(turn, !!saved.turn);
+    if (ROUNDS[saved.repeat]) repeatMode = saved.repeat;
+  } catch { }
+  round.checked = strokeRound;
+  const remember = () => {
+    try {
+      localStorage.setItem("dot-dash:stroke-player", JSON.stringify({ wpm: wpm.value, turn: pressed(turn), repeat: repeatMode }));
+      localStorage.setItem("dot-dash:stroke-round", strokeRound ? "1" : "0");
+    } catch { }
+  };
+
+  /* the letters showing (lists or cards, the cut form or the full),
+     in the page's order, each with when it starts: all at 0, or in
+     turn as one message */
+  function build() {
+    unit = 1200 / +wpm.value;
+    const group = $(".morse-code").classList.contains("cards") ? ".tile-grid" : ".group-row";
+    letters = [...document.querySelectorAll(`.morse-code ${group} svg.stroked`)]
+      .filter(el => el.getClientRects().length && strokeLetters.has(el))
+      .map(el => strokeLetters.get(el));
+    const t = { unit, letter: 3 * unit, word: 7 * unit };
+    if (pressed(turn) && letters.length) {
+      const line = timeline([letters.map(l => l.code)], t);
+      line.letters.forEach((l, i) => { letters[i].start = line.marks[l.first].start; });
+      length = line.duration;
+      trace.line(line);
+    } else {
+      for (const l of letters) l.start = 0;
+      length = Math.max(0, ...letters.map(l => timeline([[l.code]], t).duration));
+      trace.line({ marks: [], letters: [], duration: length });
+    }
+  }
+
+  /* every letter at this moment (its own clock: its marks were laid
+     out at the card's unit, so the time is scaled to this speed) */
+  function show(ms) {
+    position = ms;
+    /* (at the end, every letter all the way: a line after its last mark too) */
+    for (const { letter, start } of letters) letter.at(ms >= length ? Infinity : (ms - start) * STROKE_UNIT / unit);
+    seek.value = length ? Math.round(Math.min(1, ms / length) * 1000) : 1000;
+    time.textContent = `${(Math.min(ms, length) / 1000).toFixed(1)}s`;
+    trace.at(ms);
+  }
+
+  const setPlaying = on => {
+    playing = on;
+    play.classList.toggle("on", on);
+    play.setAttribute("aria-label", on ? "pause" : "play");
+  };
+  let last = 0, frame = 0;
+  function tick(now) {
+    if (!playing) return;
+    let next = position + (now - last);
+    last = now;
+    if (next > length) {
+      /* a round done: again after a rest, or finished */
+      if (round_ + 1 >= ROUNDS[repeatMode]) { show(length); setPlaying(false); return; }
+      if (next < length + REST) { show(length); frame = requestAnimationFrame(tick); return; }
+      round_++;
+      next = 0;
+    }
+    show(next);
+    frame = requestAnimationFrame(tick);
+  }
+  function start(from = position) {
+    cancelAnimationFrame(frame);
+    if (from >= length) { from = 0; round_ = 0; }
+    show(from);
+    setPlaying(true);
+    last = performance.now();
+    frame = requestAnimationFrame(tick);
+  }
+  function stop() { cancelAnimationFrame(frame); setPlaying(false); }
+
+  /* the letters changed (drawn again, reordered, cards): at rest,
+     finished; or, if it was playing, on from where it was */
+  function rest() {
+    const was = playing;
+    stop();
+    build();
+    if (was) start(Math.min(position, length));
+    else show(length);
+  }
+
+  play.addEventListener("click", () => (playing ? stop() : start()));
+  seek.addEventListener("input", () => { stop(); show(seek.value / 1000 * length); });
+  seek.addEventListener("pointerdown", () => trace.zoom(true));
+  for (const type of ["pointerup", "pointercancel"]) addEventListener(type, () => trace.zoom(false));
+  const setRepeat = mode => {
+    repeatMode = mode;
+    repeat.dataset.repeat = mode;
+    press(repeat, mode !== "off");
+    repeat.setAttribute("aria-label", LABEL[mode]);
+    repeat.title = LABEL[mode];
+  };
+  setRepeat(repeatMode);
+  repeat.addEventListener("click", () => { setRepeat(NEXT[repeatMode]); remember(); });
+  wpm.addEventListener("change", () => { remember(); rest(); });
+  turn.addEventListener("click", () => { press(turn, !pressed(turn)); remember(); rest(); });
+  round.addEventListener("change", () => {
+    strokeRound = round.checked;
+    remember();
+    document.dispatchEvent(new Event("strokes-redraw"));
+    rest();
+  });
+
+  /* stroke on: the player shows, and plays once; off, it goes */
+  const strokes = $("#opt-strokes");
+  const shown = () => {
+    box.hidden = !strokes.checked;
+    round.disabled = !strokes.checked;   // circles: nothing to round with stroke off (struck through, tx.css's way)
+    if (!strokes.checked) return stop();
+    rest();
+  };
+  strokes.addEventListener("change", () => {
+    shown();
+    if (strokes.checked && !still()) { round_ = 0; start(0); }
+  });
+  for (const id of ["#opt-cards", "#opt-chart-cut", "#opt-chart-order"]) $(id).addEventListener("change", () => { if (strokes.checked) rest(); });
+  shown();
 }
 
 
@@ -497,6 +817,11 @@ function show(next) {
   drawTrees();   /* the message may need branches the options hide */
   renderSelected();
 
+  replay();
+}
+
+/* what's shown, traced (again): the character, or the message */
+function replay() {
   if (selected) trace(selected);
   else keyer.play(words);
 }

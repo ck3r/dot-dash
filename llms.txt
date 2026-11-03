@@ -8,7 +8,7 @@ Use it when someone wants a message in Morse they can hear, see or share: a link
 
 A message link is `https://dot-da.sh/?/` followed by the message, in any of three forms:
 
-- Plain text, spaces as `+`: `https://dot-da.sh/?/hi+k` (a real `+` is `%2B`). Case doesn't matter; Morse has none.
+- Plain text, spaces as `+`: `https://dot-da.sh/?/hi+k` (a real `+` is `%2B`). `%20` and `_` are read as spaces too (a real `_` is `%5F`); write `+`. Case doesn't matter; Morse has none.
 - Morse, letters wrapped and separated by `_`, words by `/`: `https://dot-da.sh/?/_...._.._/_-.-_` (HI K). This is the canonical form; the wrapping `_` keeps chat apps from trimming a final `.` or `-`.
 - Morse, letters separated by `/`, words by `//`: `https://dot-da.sh/?/..../..//-.-`
 

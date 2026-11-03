@@ -17,7 +17,7 @@
  *                            (no faster than maxWpm, if given)
  */
 import { createKeyer, timing, MODES } from "../tx-keyer.js";
-import { $, el } from "./dom.js";
+import { $, el, toast } from "./dom.js";
 
 export function timingNow(maxWpm = Infinity) {
   const wpm = Number($("#opt-wpm").value), fwpm = Number($("#opt-fwpm").value);
@@ -316,6 +316,83 @@ export function createKeys({
     const act = actFor(event);
     if (act) keyUp(padKey(act));
   });
+
+  /*
+   * The mouse as the key ("mouse", a box beside ctrl's): its buttons
+   * key wherever the pointer is, for a paddle made from a mouse, or
+   * the mouse itself. On, the next click on the message locks the
+   * pointer to the station (hidden, it can't wander onto anything);
+   * Esc gives it back (the browser's own way out, which it says
+   * itself), and the next click on the message takes it again.
+   *
+   *   left    dit    (straight key: the key)
+   *   right   dah    (straight key: the key too)
+   *
+   * Typing, or the box off: clicks are clicks.
+   *
+   * Where the browser won't hand the pointer over (a page inside
+   * another, as in an app's preview), the buttons key while it's over
+   * the message instead, the pointer still showing; Esc, again, ends it.
+   */
+  const mouseKeys = () => $("#opt-mouse").checked;
+  const locked = () => document.pointerLockElement === document.body;
+  let over = false;    // keying over the message (no lock to be had)
+  let taken = false;   // the click that took the pointer: it does nothing else
+  const field = $("#tape").closest(".field");
+  const keying = event => locked() || (over && field.contains(event.target));
+  field.addEventListener("pointerdown", event => {
+    if (locked() || over || !mouseKeys() || state.mode === "type" || event.pointerType !== "mouse") return;
+    event.preventDefault();
+    event.stopPropagation();
+    taken = true;
+    document.body.requestPointerLock?.()?.catch?.(() => { });   // refused: pointerlockerror says so (below)
+  }, { capture: true });
+  field.addEventListener("click", event => {
+    if (!taken && !over) return;
+    taken = false;
+    event.preventDefault();
+    event.stopPropagation();
+  }, { capture: true });
+  const mouseAct = event => (event.button === 0 ? "." : event.button === 2 ? (state.keyMode === "straight" ? "." : "-") : null);
+  document.addEventListener("mousedown", event => {
+    if (!keying(event)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const act = mouseAct(event);
+    if (act) keyDown(padKey(act));
+  }, { capture: true });
+  document.addEventListener("mouseup", event => {
+    if (!locked() && !over) return;   // (let go anywhere: still the key coming up)
+    const act = mouseAct(event);
+    if (act) keyUp(padKey(act));
+  }, { capture: true });
+  document.addEventListener("contextmenu", event => { if (keying(event)) event.preventDefault(); }, { capture: true });
+  const released = () => {
+    for (const act of [".", "-"]) keyUp(padKey(act));
+    if (mouseKeys()) toast("the mouse is yours: click the message to key with it");
+  };
+  document.addEventListener("pointerlockchange", () => (locked() ? toast("the mouse keys: Esc to let it go") : released()));
+  document.addEventListener("pointerlockerror", () => {
+    if (!taken && !mouseKeys()) return;
+    over = true;
+    toast("the mouse keys over the message: Esc to let it go");
+  });
+  /* (first in line: this Esc lets the mouse go, and does nothing else) */
+  window.addEventListener("keydown", event => {
+    if (event.key !== "Escape" || !over) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    over = false;
+    released();
+  }, { capture: true });
+  /* the box off, or typing: let it go */
+  const letMouseGo = () => {
+    if (mouseKeys() && state.mode !== "type") return;
+    if (locked()) document.exitPointerLock();
+    over = false;
+  };
+  $("#opt-mouse").addEventListener("change", letMouseGo);
+  new MutationObserver(letMouseGo).observe(document.body, { attributes: true, attributeFilter: ["data-mode"] });
 
   /* let go of everything if the page loses focus mid-press */
   function releaseAll() {

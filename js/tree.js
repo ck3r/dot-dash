@@ -503,6 +503,10 @@ export function vertical(model) {
     }
   }
 
+  /* it starts at the ●, as the across one does, before the root's "──"
+
+       ●──┤      */
+  put(g, pos.get(""), 0, "●", part("root", ""));
   return g;
 }
 
@@ -706,6 +710,7 @@ export function createTree(element, initialLayout, { legend: showLegend = true, 
    * tall ones (vertical) must fit most of the screen height.
    */
   function render(model, compact = "auto") {
+    element.style.paddingInline = "";   // (measured without the room below)
     if (compact === "auto") {
       draw(model, false);
       const tooWide = element.scrollWidth > element.clientWidth + 1;
@@ -713,6 +718,16 @@ export function createTree(element, initialLayout, { legend: showLegend = true, 
       if (tooWide || tooTall) draw(model, true);
     } else {
       draw(model, compact);
+    }
+    /* following, a tree wider than its box gets half a box of room
+       at either end, so even the outermost branch can come to the
+       middle (without it the scroll stops at the tree's edge)
+
+         ┌─────────────┐              ┌─────────────┐
+         │ ─5          │     →        │      ─5     │
+         └─────────────┘              └─────────────┘   */
+    if (follow && element.scrollWidth > element.clientWidth + 1) {
+      element.style.paddingInline = `${Math.round(element.clientWidth / 2)}px`;
     }
   }
 
@@ -731,15 +746,39 @@ export function createTree(element, initialLayout, { legend: showLegend = true, 
          ←DOT───DASH→
                ●
      */
+    /* (a tree narrower than its legend, every set off: the legend can't
+       start left of the edge, so the tree moves right under it instead,
+       and its ● still sits under the legend's middle.)
+       Across, the ● is the drawing's middle column, whatever's shown:
+       a blank column or two on the short side (the legend is lopsided
+       too, ←DOT a letter shorter than DASH→), so a page that centres
+       the drawing centres the ● and it never shifts as sets come and go
+
+         ←DOT───DASH→          ·←DOT───DASH→        (· a blank column)
+              ●         →            ●
+            .*│*-                  .*│*-                               */
+    let indent = "";
     if (showLegend) {
       const [dot, mid, dash] = LEGEND[layout];
-      const pad = !VERTICAL.has(layout)
-        ? " ".repeat(Math.max(0, g.root - dot.length - Math.floor(mid.length / 2)))
-        : "";
-      element.append(pad);
+      const across = !VERTICAL.has(layout);
+      const off = across ? g.root - dot.length - Math.floor(mid.length / 2) : 0;
+      let lead = Math.max(0, off), shift = Math.max(0, -off), trail = 0;
+      if (across) {
+        const width = Math.max(lead + dot.length + mid.length + dash.length, shift + Math.max(0, ...g.map(row => lastFilled(row) + 1)));
+        const left = g.root + shift, right = width - 1 - left;
+        lead += Math.max(0, right - left);
+        shift += Math.max(0, right - left);
+        /* the legend line carries the balance on the right, out to the
+           whole width: as wide on the ●'s right as on its left */
+        const half = Math.max(left, right);
+        trail = Math.max(0, 2 * half + 1 - (lead + dot.length + mid.length + dash.length));
+      }
+      indent = " ".repeat(shift);
+      element.append(" ".repeat(lead));
       element.append(span(dot, "legend dot"));
       element.append(mid);
       element.append(span(dash, "legend dash"));
+      element.append(" ".repeat(trail));
       element.append("\n\n");
     }
 
@@ -747,6 +786,7 @@ export function createTree(element, initialLayout, { legend: showLegend = true, 
     for (const row of g) {
       let x = 0;
       const end = lastFilled(row);
+      element.append(indent);
 
       while (x <= end) {
         const cell = row[x];
@@ -867,7 +907,10 @@ export function createTree(element, initialLayout, { legend: showLegend = true, 
       case "beat":   land(null); show(event.path); break;
       case "letter": land(event.path); break;
       case "word":   show(""); break;   /* keep the last letter marked */
-      case "end":    element.classList.remove("live"); land(event.path); break;
+      /* done: the way to where it ended stays lit, the rest stays
+         greyed (all of it coming back up at once was a flash for
+         nothing); the next trace starts from there */
+      case "end":    show(event.path ?? currentPath, false); land(event.path); break;
     }
   }
 
@@ -875,7 +918,10 @@ export function createTree(element, initialLayout, { legend: showLegend = true, 
     layout = name;
   }
 
-  return { render, handle, setLayout, flash, element };
+  /* following on or off (the page's whole-tree popup: it all shows, nothing to follow) */
+  const setFollow = on => { follow = on; };
+
+  return { render, handle, setLayout, flash, setFollow, element };
 }
 
 

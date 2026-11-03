@@ -175,6 +175,22 @@ export function createLetter(strokes, marks, { round = false } = {}) {
   const radius = ROUND * weight / 2;
 
   for (const [d] of strokes) shape("path", { d }, scaffold);
+  /* the thin letter inked as the pen goes: paper over the scaffold,
+     uncovered along each stroke in step with the marks (pen, below).
+     A mask does the uncovering, a band along the stroke in the
+     letter's own units (the hairline keeps one width on screen, and
+     a dash pattern on it would too, so it can't be the measure); a
+     mask a stroke, so a band never shows a stroke it crosses */
+  const ink = shape("g", { class: "ink" });
+  el.insertBefore(ink, grey);   // over the scaffold, under the marks
+  const inkDefs = shape("defs", {}, el);
+  const inked = strokes.map(([d]) => {
+    const id = `ink-${++wipes}`;
+    const mask = shape("mask", { id, maskUnits: "userSpaceOnUse", x: -14, y: -14, width: 128, height: 128 }, inkDefs);
+    const band = shape("path", { d, fill: "none", stroke: "white", "stroke-width": 6, "stroke-dasharray": "0 9999" }, mask);
+    shape("path", { d, mask: `url(#${id})` }, ink);
+    return { band, length: band.getTotalLength() };
+  });
 
   /* the dash pattern is the fill: one dash as long as the mark has
      got to, slid along to where the mark starts */
@@ -207,17 +223,53 @@ export function createLetter(strokes, marks, { round = false } = {}) {
     return { mark: marks[i], show: done => path.setAttribute("stroke-dasharray", `${(sub.to - sub.from) * done} 9999`) };
   });
 
+  /*
+   * The pen: how far along the whole letter (its strokes end to end)
+   * it has got at each moment. A mark sounding: everything up to it
+   * lit at once, as it starts, then inked along with it. In a gap it
+   * waits (the line between marks isn't timed: its length has nothing
+   * to do with the gap's). The line after the last mark (A's bar)
+   * lights as the letter ends.
+   *
+   *   A   ·          down the left to the dot, lit; the dot inks
+   *       (gap)      waits
+   *       ─          on to the dash, lit; the dash inks
+   *       end        the bar, lit
+   */
+  const before = [];   // where each stroke starts, along the letter
+  let total = 0;
+  for (const { length } of inked) { before.push(total); total += length; }
+  const strokeOf = strokes.flatMap(([, ...middles], k) => middles.map(() => k));   // each mark's stroke
+  const along = substrokes(strokes, marks.map(m => m.mark).join("")).map((sub, i) => ({
+    ...marks[i],
+    from: before[strokeOf[i]] + Math.max(0, sub.from),
+    to: before[strokeOf[i]] + Math.min(sub.length, sub.to)
+  }));
+
   /* when the last mark ends, not the moment after: the letter lands on
      the end of its sound. Scrubbed back, it's unfinished again */
   const end = marks[marks.length - 1].end;
+  const pen = ms => {
+    if (ms >= end) return total;
+    const m = along.findLast(m => ms >= m.start);
+    if (!m) return 0;
+    return m.from + (m.to - m.from) * Math.min(1, (ms - m.start) / (m.end - m.start));
+  };
 
+  /* played through to its end (not just drawn finished, as it's made
+     or redrawn): a "keyed" event, bubbling, for the page to mark it */
+  let was = null;
   return {
     el,
     at(ms) {
       for (const { mark, show } of parts) {
         show(Math.min(1, Math.max(0, (ms - mark.start) / (mark.end - mark.start))));
       }
+      const p = pen(ms);
+      inked.forEach(({ band, length }, k) => band.setAttribute("stroke-dasharray", `${Math.min(length, Math.max(0, p - before[k]))} 9999`));
       el.classList.toggle("keyed", ms >= end);
+      if (was !== null && was < end && ms >= end) el.dispatchEvent(new Event("keyed", { bubbles: true }));
+      was = ms;
     },
   };
 }

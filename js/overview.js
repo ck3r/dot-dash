@@ -37,8 +37,8 @@
  *
  * The little tree, the glyph and the timelines play once as the
  * card opens (and the misheard one again for each reading): the
- * parent, the edge down as the last mark sounds, the character as it
- * lands, then its children. A tap on a timeline plays it again; on
+ * tree from the root, a step down as each mark sounds, as the
+ * station's column goes. A tap on a timeline plays it again; on
  * the tile, the whole card. Every character mentioned links to its
  * own card (a[data-code]: the page decides what a tap does; both
  * show that character's card).
@@ -57,27 +57,31 @@ export { PHONETIC, PROSIGNS_BY_CODE, splits };   // (they used to live here)
 
 
 /* the site's own marks (morse.js): empty, but not nothing */
-const OWN = "this site's name, dot-da.sh, keying itself (À / Å in some alphabets)";
+const OWN = "this site's name, *dot-da.sh*, keying itself (À / Å in some alphabets)";
 
 /* English letter frequency, most common first (from the project notes) */
 const FREQUENCY = "ETAOINSHRDLCUMWFGYPBVKJXQZ";
 
-/* a few things worth knowing, beside the card */
+/* a few things worth knowing, beside the card; *the key words* lit
+   (the note is grey, they're paper: what to take away at a glance) */
 const TIDBITS = {
-  E: "the shortest of all: one dot",
-  T: "the shortest dash: one",
-  K: "alone, it means over: go ahead",
-  R: "alone, it means received",
-  S: "the dots of SOS",
-  O: "the dashes of SOS",
-  C: "CQ: calling any station",
-  Q: "starts every Q code: QTH, QSL, QRZ …",
-  V: "VVV: a test, before sending",
-  5: "all dots",
-  0: "all dashes",
-  "?": "after a Q code, it asks: QTH? is where are you?",
-  "/": "in a call sign: /P portable, /M mobile"
+  E: "the *shortest* of all: one dot",
+  T: "the *shortest dash*: one",
+  K: "alone, it means *over*: go ahead",
+  R: "alone, it means *received*",
+  S: "the dots of *SOS*",
+  O: "the dashes of *SOS*",
+  C: "*CQ*: calling any station",
+  Q: "starts every *Q code*: QTH, QSL, QRZ …",
+  V: "*VVV*: a test, before sending",
+  5: "*all dots*",
+  0: "*all dashes*",
+  "?": "after a Q code, it *asks*: QTH? is where are you?",
+  "/": "in a call sign: */P* portable, */M* mobile"
 };
+
+/* a note's line: its *key words* as <b>, the rest as it is */
+const lit = text => text.split(/\*([^*]+)\*/).map((part, i) => (i % 2 ? make("b", "", part) : part)).filter(p => p !== "");
 
 const UNIT = 90;    // ms a unit, as the card plays (about 13 wpm)
 
@@ -220,6 +224,19 @@ function played(code) {
 
 const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+/* a tile's letter played through to its end (strokes.js "keyed"): its
+   border lights paper a moment, as the letter itself is lit */
+document.addEventListener("keyed", event => {
+  const tile = event.target.closest?.(".card-tile");
+  if (!tile || still()) return;
+  tile.classList.remove("landed");
+  void tile.offsetWidth;   // (from the start again, if it's still going)
+  tile.classList.add("landed");
+});
+document.addEventListener("animationend", event => {
+  if (event.animationName === "tile-landed") event.target.classList.remove("landed");
+});
+
 /* the CSS animations in a part, from the start again */
 function replay(part) {
   for (const a of part.getAnimations({ subtree: true })) { a.cancel(); a.play(); }
@@ -261,12 +278,13 @@ async function copy(text, part, flash) {
  *   │22       0 .  │
  *   └─────────5 −──┘
  *
- *   renderTile(code, { name, strokes, cut })   → { el, letter }
+ *   renderTile(code, { name, strokes, cut, round })   → { el, letter }
  *     name      what to call it (<AR> for .-.-. in the prosigns)
  *     strokes   draw the glyph, if it has strokes (letter: to play it)
  *     cut       a number as cut (code: its cut code; drawn cut)
+ *     round     its dots drawn as circles (strokes.js)
  */
-export function renderTile(code, { name = DECODE[code] ?? null, strokes = true, cut = false } = {}) {
+export function renderTile(code, { name = DECODE[code] ?? null, strokes = true, cut = false, round = false } = {}) {
   const kind = kindOf(name);
   const tile = make("div", "card-tile");
   const types = make("span", "tile-type");
@@ -282,7 +300,7 @@ export function renderTile(code, { name = DECODE[code] ?? null, strokes = true, 
   let letter = null;
   const drawn = (cut ? CUT_STROKES : STROKES)[name];
   if (strokes && drawn) {
-    letter = createLetter(drawn, played(code));
+    letter = createLetter(drawn, played(code), { round });
     glyph.append(make("span", "char", name), letter.el);   // the character too, unseen, to read and find
   } else if (kind === "pro") {
     /* <AR>: brackets and letters apart, so the reference's "bar" can
@@ -336,31 +354,45 @@ export function renderCard(element, code, { say: speak, openCut, openHeard, flas
   const parent = code.slice(0, -1);
   const twin = parent + (code.endsWith(".") ? "-" : ".");
   const short = c => treeChar(c) ?? (c === code && name ? "◆" : "_");
-  /* it plays as the marks do: the parent, the edge down while the
-     last mark sounds, it as it lands, then its children
+  /* it plays as the marks do, as the station's column does: from the
+     root, a step down the tree as each mark starts, to rest on it
 
-       _        at once
-       |        the last mark's start
-      [0]       the end
-      / \       a unit on
-     _   _      two  */
+                       E                 A
+                       |                 |
+       [●]    .       [E]      -        [A]
+       / \    →       / \      →        / \
+      E   T          I   A             R   W   */
   const marksAt = played(code);
   const end = marksAt.at(-1).end;
   const tree = make("span", "card-tree");
-  const line = (at, ...parts) => {
-    const e = make("span", "tree-line");
-    e.style.setProperty("--t", `${at}ms`);
-    e.append(...parts);
-    tree.append(e);
-  };
+  /* tapped (not on a character: that's its card), it walks down again */
+  tree.title = "walk it again";
+  tree.addEventListener("click", event => { if (!event.target.closest("a")) walkTree(); });
   const has = c => !!(DECODE[c] ?? treeChar(c));
   const kids = [code + ".", code + "-"];
-  line(0, code.length > 1 ? ref(parent, { label: short(parent) }) : make("span", "root", "●"));
-  line(marksAt.at(-1).start, make("span", markOf(code), "|"));
-  line(end, make("b", "here char", name ?? "_"));
-  line(end + UNIT, make("span", "dot", "/"), " ", make("span", "dash", "\\"));
-  line(end + 2 * UNIT, ref(kids[0], { label: short(kids[0]), cls: has(kids[0]) ? "dot" : "" }), "   ",
-    ref(kids[1], { label: short(kids[1]), cls: has(kids[1]) ? "dash" : "" }));
+  function drawTree(at) {
+    const up = at.slice(0, -1);
+    const line = (...parts) => {
+      const e = make("span", "tree-line");
+      e.append(...parts);
+      return e;
+    };
+    const below = [at + ".", at + "-"];
+    tree.replaceChildren(
+      line(!at ? " " : up ? ref(up, { label: short(up) }) : make("span", "root", "●")),
+      line(at ? make("span", markOf(at), "|") : " "),
+      line(!at ? make("b", "here root", "●") : at === code ? make("b", "here char", name ?? "_") : make("b", "here", short(at))),
+      line(make("span", "dot", "/"), " ", make("span", "dash", "\\")),
+      line(ref(below[0], { label: short(below[0]), cls: has(below[0]) ? "dot" : "" }), "   ",
+        ref(below[1], { label: short(below[1]), cls: has(below[1]) ? "dash" : "" })));
+  }
+  let steps = [];
+  function walkTree() {
+    steps.forEach(clearTimeout);
+    if (still()) return drawTree(code);
+    drawTree("");
+    steps = marksAt.map(({ start }, k) => setTimeout(() => drawTree(code.slice(0, k + 1)), start));
+  }
 
   const place = make("dl", "card-place");
   const fact = (label, value, na = false) => {
@@ -393,7 +425,7 @@ export function renderCard(element, code, { say: speak, openCut, openHeard, flas
   const { el: tile, letter } = renderTile(code);
   tile.classList.add("card-tap");
   tile.title = "play the card again";
-  tile.addEventListener("click", () => { replay(element); drawGlyph(); });
+  tile.addEventListener("click", () => { replay(element); drawGlyph(); walkTree(); });
 
   /* beside it, anything more to say */
   const note = make("div", "card-note");
@@ -405,14 +437,14 @@ export function renderCard(element, code, { say: speak, openCut, openHeard, flas
   if (prosign) {
     const [abbr, parts, meaning] = prosign;
     say(make("b", "", `<${abbr}>`), ` ${meaning}`);
-    say("a prosign: ", ...letterRefs(parts), ", run together, no gap");
-    if (SHARED[code]) say(`the same marks as ${name}: with prosigns on, they read <${abbr}>`);
+    say("a prosign: ", ...letterRefs(parts), ", run together, ", make("b", "", "no gap"));
+    if (SHARED[code]) say(...lit(`the same marks as *${name}*: with prosigns on, they read *<${abbr}>*`));
   }
-  if (isName) say(OWN);
+  if (isName) say(...lit(OWN));
   else if (!name) say("nothing lives here");
   const rank = FREQUENCY.indexOf(name);
-  if (rank >= 0) say(`the ${ordinal(rank + 1)} most common letter in English`);
-  if (TIDBITS[name]) say(TIDBITS[name]);
+  if (rank >= 0) say(...lit(`the *${ordinal(rank + 1)}* most common letter in English`));
+  if (TIDBITS[name]) say(...lit(TIDBITS[name]));
   const tileRow = make("div", "card-tile-row");
   tileRow.append(tile, note);
   row("r-marks", marks, tileRow);
@@ -505,5 +537,6 @@ export function renderCard(element, code, { say: speak, openCut, openHeard, flas
     frame = requestAnimationFrame(tick);
   }
   drawGlyph();
-  element._stop = () => cancelAnimationFrame(frame);
+  walkTree();
+  element._stop = () => { cancelAnimationFrame(frame); steps.forEach(clearTimeout); };
 }

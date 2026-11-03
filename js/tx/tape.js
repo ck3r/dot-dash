@@ -43,11 +43,23 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) 
      letter being keyed, a trailing slash and the caret. Each word
      knows its place (key: which line), to stay shown if tapped. The
      reading: the tray's now, or the one a sent message went with */
+  /* the plain text's own layout (collapsed, typing: tx.css): after a
+     word ending in <AA> (new line) the next starts a line; after one
+     ending in <BT> (new paragraph), a line set in. The prosign stays,
+     at the end of what it closes:
+
+       THE POLLS SAY <BT>
+         DEMOCRATS WIN <AA>
+       WATCHED RACES                                           */
+  const BREAK = { "<AA>": "br", "<BT>": "para" };
+
   function line(words, { path = "", slash = false, caret = false, key = "", reading = READING } = {}) {
     const box = el("span", "line");
     const read = namesFor(words, reading);
+    const space = brk => el("span", brk ? `slash ${brk}` : "slash", "/");
+    let brk = null;   // the break after the word before
     words.forEach((word, w) => {
-      if (w) box.append(el("span", "slash", "/"));
+      if (w) box.append(space(brk));
       const wEl = el("span", "w");
       wEl.dataset.word = `${key}:${w}`;
       if (shownWords.has(wEl.dataset.word)) wEl.classList.add("shown");
@@ -56,6 +68,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) 
       word.forEach((code, i) => wEl.append(letter(code, names[i])));
       if (keying) wEl.append(letter(path, names.at(-1), true));
       box.append(wEl);
+      brk = BREAK[names.at(-1)] ?? null;
     });
     if (path && !words.length) {
       const wEl = el("span", "w");
@@ -64,7 +77,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) 
       wEl.append(letter(path, namesOf([path], reading)[0], true));
       box.append(wEl);
     }
-    if (slash) box.append(el("span", "slash", "/"));
+    if (slash) box.append(space(brk));
     if (caret) {
       /* the caret rides on the last letter, so it can never wrap onto
          a line of its own; after a word break it stands alone */
@@ -143,8 +156,61 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) 
       li.append(x);
     }
     tape.append(li);
+    $("#tape-eye").replaceChildren(eyeButton());
     steadyCaret();
     settleTape();
+  }
+
+  /*
+   * Back in the history, the line being written (and its eye) is out
+   * of view below: one eye floats at the bottom left of the tape for
+   * the whole history, as a message's × stays at the top right.
+   *
+   *   │ DEMOCRATS WIN        × │
+   *   │ ABOUT THE HOUSE        │
+   *   │👁 WATCHED RACES     ↵ │
+   *
+   * Either eye, tapped: the tape stays where you are, held by the
+   * bottom of the view. What's at the bottom stays there as the rows
+   * above it close or open: a message from the history by its last
+   * line, the line being written by its caret.
+   *
+   *   │ ...                │        │ ...                │
+   *   │ .-- .. -.          │  hold  │ WIN                │
+   *   │  W  I  N           │   →    │ ...                │
+   *   │──── bottom ────────│        │──── bottom ────────│
+   */
+  function bottomPin() {
+    const tape = $("#tape");
+    const bottom = tape.getBoundingClientRect().bottom;
+    const e = [...tape.querySelectorAll(".entry")].findLast(e => e.getBoundingClientRect().top < bottom);
+    if (!e) return null;
+    const at = e.classList.contains("current") ? e.querySelector(".caret") ?? e : e;
+    const edge = at === e && e.classList.contains("current") ? "top" : "bottom";
+    return { i: e.dataset.i ?? "now", edge, dy: bottom - at.getBoundingClientRect()[edge] };
+  }
+  function pinBack(pin) {
+    if (!pin) return;
+    const tape = $("#tape");
+    const e = pin.i === "now" ? tape.querySelector(".current") : tape.querySelector(`.entry[data-i="${pin.i}"]`);
+    const at = pin.i === "now" ? e?.querySelector(".caret") ?? e : e;
+    if (!at) return;
+    tape.scrollTop += at.getBoundingClientRect()[pin.edge] - (tape.getBoundingClientRect().bottom - pin.dy);
+    fadeTape();
+    floatEye();
+  }
+
+  /* up only while the line's own eye is out of view */
+  function floatEye() {
+    const tape = $("#tape"), box = $("#tape-eye");
+    const own = tape.querySelector(".current .marker .eye");
+    if (!own) { box.hidden = true; return; }
+    const t = tape.getBoundingClientRect(), r = own.getBoundingClientRect();
+    box.hidden = r.top >= t.top - 1 && r.bottom <= t.bottom + 1;
+    if (box.hidden) return;
+    const pad = parseFloat(getComputedStyle(tape).paddingLeft) || 0;
+    box.style.left = (tape.offsetLeft + pad) + "px";
+    box.style.top = (tape.offsetTop + tape.clientHeight - box.offsetHeight - 8) + "px";
   }
 
   /*
@@ -199,15 +265,16 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) 
   const EYE_FLAT = `<svg class="ico eye-ico" viewBox="0 0 24 16" aria-hidden="true"><path d="M1.5 8.5H22.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 10.5 5 13.3M12 10.5v3.1M17.5 10.5 19 13.3" stroke="currentColor" stroke-width="1.4"/></svg>`;
 
   /*
-   * The eye changing: the line being written goes over from the caret
-   * back, one letter at a time, so you can follow it (tx.css, "The
-   * eye"). Each letter wears the old look until its turn, and the
-   * rest of the tape (the history) changes when it's done:
+   * The eye changing between shown and bars: the line being written
+   * goes over from the caret back, one letter at a time, so you can
+   * follow it (tx.css, "The eye"). Each letter wears the old look
+   * until its turn, and the rest of the tape (the history) changes
+   * when it's done. Nothing moves, only the bars come and go:
    *
-   *   shown → bars       each code (typing) or letter (keying) a bar
-   *   bars → collapsed   the bars go; typing, the letters close up
-   *   collapsed → shown  typing, it unzips: ███ / SOS, then each
-   *                      letter opens into its code (... --- ...)
+   *   shown ⇄ bars       each code (typing) or letter (keying) a bar
+   *
+   * Collapsing and opening up again happen at once: the rows move
+   * as they close and open, and letter by letter that jerked.
    *
    * Quick: 60 ms a letter, 0.6 s at most. A redraw (a key) ends it.
    */
@@ -221,56 +288,40 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) 
     tape.classList.toggle("collapse-m", typing && look === "collapsed");
   }
 
-  const LOOK = {
-    type: { shown: [], bars: ["bar-m"], collapsed: ["flat-m"] },
-    key: { shown: [], bars: ["bar-p"], collapsed: ["flat-p"] }
-  };
+  const BAR = { type: "bar-m", key: "bar-p" };
   let eyeTimer = null;
   function eyeChange(from, to) {
     clearInterval(eyeTimer);
+    if (from === "collapsed" || to === "collapsed") return;
     const entry = $("#tape .current");
     const line = entry?.querySelector(".line:not(.empty-line)");
     if (!line) return;
-    const look = LOOK[state.mode === "type" ? "type" : "key"];
-    const old = state.mode === "type" && from === "collapsed" && to === "shown" ? ["flat-m", "bar-m"] : look[from];
-    const neu = look[to];
+    const bar = BAR[state.mode === "type" ? "type" : "key"];
     const letters = [...line.querySelectorAll(".c")];
-    const all = ["bar-m", "bar-p", "flat-m", "flat-p"];
-    /* a word space closes up with the word after it */
-    const spaceBefore = c => (!c.previousElementSibling ? c.closest(".w")?.previousElementSibling : null);
-    const wear = (c, cls) => {
-      c.classList.remove(...all);
-      c.classList.add(...cls);
-      spaceBefore(c)?.classList.toggle("flat", cls.includes("flat-m"));
-    };
-    for (const c of letters) wear(c, old);
+    const wear = (c, look) => c.classList.toggle(bar, look === "bars");
+    for (const c of letters) wear(c, from);
     entry.classList.add("anim");
     tapeLook(from);   // the rest of the tape follows once the line has gone over
-    entry.classList.toggle("close-up", state.mode === "type" && (from === "collapsed" || to === "collapsed"));
     const step = Math.min(60, 600 / Math.max(1, letters.length));
     let i = letters.length;
     eyeTimer = setInterval(() => {
       if (!line.isConnected || i <= 0) {
         clearInterval(eyeTimer);
         if (line.isConnected) {
-          for (const c of letters) c.classList.remove(...all);
-          for (const s of line.querySelectorAll(".slash")) s.classList.remove("flat");
-          entry.classList.remove("anim", "close-up");
+          for (const c of letters) c.classList.remove(bar);
+          entry.classList.remove("anim");
           tapeLook(to);
-          settleTape();
         }
         return;
       }
-      wear(letters[--i], neu);
+      wear(letters[--i], to);
     }, step);
   }
 
   const EYE_HOLD = 450;   // ms: a hold, not a tap
   let eyeHeld = false;
 
-  function markerColumn() {
-    const col = el("span", "marker two");
-    const active = el("span", "m-active", ">");
+  function eyeButton() {
     const what = state.mode === "type" ? "Morse" : "letters";
     /*
      * A tap goes between shown and bars; holding it collapses (the
@@ -291,7 +342,9 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) 
       state.hidden = next !== "shown";
       state.collapsed = next === "collapsed";
       try { localStorage.setItem("dot-dash:tx-hide", JSON.stringify(state.collapsed ? "collapsed" : state.hidden)); } catch { }
+      const pin = bottomPin();
       update();
+      pinBack(pin);
       eyeChange(now, next);
       toast(`${what} ${{ shown: "shown", bars: "hidden", collapsed: "collapsed" }[next]}`);
     };
@@ -319,6 +372,13 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) 
       if (eyeHeld) { eyeHeld = false; return; }   // the release after a hold isn't also a tap
       go(tap);
     });
+    return eye;
+  }
+
+  function markerColumn() {
+    const col = el("span", "marker two");
+    const active = el("span", "m-active", ">");
+    const eye = eyeButton();
     /* keying: > on the Morse row; typing: > on the letters row */
     if (state.mode === "type") col.append(eye, active);
     else col.append(active, eye);
@@ -375,6 +435,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) 
       if (bottom > tape.scrollTop + tape.clientHeight) tape.scrollTop = bottom - tape.clientHeight;
     }
     fadeTape();
+    floatEye();
   }
 
   /*
@@ -413,7 +474,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) 
     tape.classList.toggle("more-above", !!above);
   }
 
-  $("#tape").addEventListener("scroll", fadeTape, { passive: true });
+  $("#tape").addEventListener("scroll", () => { fadeTape(); floatEye(); }, { passive: true });
 
   /*
    * Quick scroll: a phone's scrollbar only shows where you are. On a

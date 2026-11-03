@@ -127,13 +127,14 @@ function dropWord() {
  *
  *   HH  ........ (or more)  error             erases the word before it
  *   AR  .-.-.               end of message    return (↵)
- *   BT  -...-               new paragraph     return
  *   SK  ...-.-              end of contact    return
  *   BK  -...-.-             break, over to you  return
  *   CL  -.-..-..            closing down      return
  *
- * Left alone: AA (new line) is also Ä, KA and AS are ! … and &
- * openers, K and KN are letters. Each one says what it did, quietly.
+ * Left alone: BT (new paragraph) and AA (new line) are the message's
+ * own layout, kept on the line (the plain text breaks there, tx/
+ * tape.js; a page arriving brings its paragraphs as them, morse.js
+ * breaks); KA and AS are ! … and & openers, K and KN are letters. Each one says what it did, quietly.
  *
  *   H E / W R O L D / . . . . . . . .  ˽     (letter space: it closes)
  *   H E /                                  WROLD and HH gone
@@ -141,7 +142,7 @@ function dropWord() {
  *   H I / . - . - .  ˽                       HI goes up into the history
  */
 const HH = 8;
-const RETURNS = { ".-.-.": "AR", "-...-": "BT", "...-.-": "SK", "-...-.-": "BK", "-.-..-..": "CL" };
+const RETURNS = { ".-.-.": "AR","...-.-": "SK", "-...-.-": "BK", "-.-..-..": "CL" };
 const prosignsAct = () => $("#opt-prosigns").checked;
 
 /* the last letter on the line: its code, and where it starts */

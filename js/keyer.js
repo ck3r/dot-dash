@@ -50,6 +50,7 @@
  */
 
 import { nodeAt, DECODE, NAME_CODE } from "./morse.js";
+import { logoSVG } from "./logo.js";
 
 
 const IDLE_TITLE = "dot-da.sh";
@@ -72,48 +73,15 @@ const NAME_TITLES = ["dot", "dot-", "dot-da", "dot-da.", "dot-da.sh"];
  * FAVICONS
  * ============================================================
  *
- * Embedded as data URLs so the browser doesn't fetch a file
- * every time the switch changes.
+ * The logo (js/logo.js), and its key: at rest a paper switch on a
+ * bakelite disc, the lever up; a mark shuts it and flips the
+ * colours, as the extension's toolbar icon does. site/switch.svg is
+ * the open one, for the page as it loads. Data URLs, so the browser
+ * doesn't fetch a file every time the switch changes.
  */
 
-const FAVICON_OPEN = `
-<svg xmlns="http://www.w3.org/2000/svg" width="71" height="79" viewBox="0 0 71 79" fill="none">
-  <circle cx="13.6603" cy="52.8063" r="7" transform="rotate(-60 13.6603 52.8063)" stroke="#000" stroke-width="6"/>
-  <rect x="16.0214" y="47.2164" width="56" height="7" rx="3.5" transform="rotate(-30 16.0214 47.2164)" fill="#000" stroke="#000"/>
-</svg>`;
-
-const FAVICON_CLOSED = `
-<svg xmlns="http://www.w3.org/2000/svg" width="71" height="79" viewBox="0 0 71 79" fill="none">
-  <defs>
-    <filter id="bloom" x="-400%" y="-400%" width="800%" height="800%" color-interpolation-filters="sRGB">
-      <feGaussianBlur stdDeviation="7"/>
-    </filter>
-    <filter id="halo" x="-300%" y="-300%" width="600%" height="600%" color-interpolation-filters="sRGB">
-      <feGaussianBlur stdDeviation="2.5"/>
-    </filter>
-    <radialGradient id="led" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse"
-      gradientTransform="translate(13.66 52.81) rotate(90) scale(7)">
-      <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="0.18" stop-color="#fff9c4"/>
-      <stop offset="0.42" stop-color="#ffe45c"/>
-      <stop offset="0.70" stop-color="#ffbf00"/>
-      <stop offset="1" stop-color="#e88900"/>
-    </radialGradient>
-    <radialGradient id="reflection" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse"
-      gradientTransform="translate(13.66 52.81) rotate(90) scale(13)">
-      <stop offset="0" stop-color="#ffbf00" stop-opacity="0.45"/>
-      <stop offset="0.45" stop-color="#ff9d00" stop-opacity="0.18"/>
-      <stop offset="1" stop-color="#ff9d00" stop-opacity="0"/>
-    </radialGradient>
-  </defs>
-  <circle cx="13.6603" cy="52.8063" r="13" fill="#ff9d00" opacity="0.75" filter="url(#bloom)"/>
-  <circle cx="13.6603" cy="52.8063" r="13" fill="url(#reflection)"/>
-  <circle cx="13.6603" cy="52.8063" r="9" fill="#ffbf00" opacity="0.9" filter="url(#halo)"/>
-  <circle cx="13.6603" cy="52.8063" r="8" fill="#000"/>
-  <circle cx="13.6603" cy="52.8063" r="6" fill="url(#led)"/>
-  <circle cx="11.4" cy="50.4" r="1.6" fill="#ffffff"/>
-  <rect x="16.0214" y="47.2164" width="56" height="7" rx="3.5" fill="#000"/>
-</svg>`;
+const FAVICON_OPEN = logoSVG();
+const FAVICON_CLOSED = logoSVG({ closed: true });
 
 const faviconURLs = {
   open:   "data:image/svg+xml," + encodeURIComponent(FAVICON_OPEN),

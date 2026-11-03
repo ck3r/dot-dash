@@ -218,6 +218,8 @@
       <ol id="tape" class="tape"></ol>
       <!-- quick scroll: a thumb to drag through a long tape (tx/tape.js) -->
       <button type="button" id="tape-thumb" class="tape-thumb" tabindex="-1" aria-hidden="true" hidden></button>
+      <!-- back in the history: the eye, floating at the bottom left (tx/tape.js) -->
+      <span id="tape-eye" class="marker tape-eye" hidden></span>
 
       <!-- the counts; return (↵) sits on the rule above them, at the
            right: it feeds the tape, the line going up into the history -->
@@ -586,6 +588,10 @@
         <span class="flag">
           <label class="check"><input type="checkbox" id="opt-ctrl" aria-label="Ctrl keys as paddles"></label>
           <button type="button" class="flag-word" data-note="ctrl" aria-haspopup="dialog" aria-controls="flag-pop" title="what's ctrl?">ctrl</button>
+        </span>
+        <span class="flag">
+          <label class="check"><input type="checkbox" id="opt-mouse" aria-label="the mouse as the key"></label>
+          <button type="button" class="flag-word" data-note="mouse" aria-haspopup="dialog" aria-controls="flag-pop" title="what's mouse?">mouse</button>
         </span>
         <span class="flag">
           <label class="check"><input type="checkbox" id="opt-suggest" checked aria-label="suggestions"></label>

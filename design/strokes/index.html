@@ -53,6 +53,7 @@
     .stroked path { fill: none; }
     .stroked .scaffold path { stroke: var(--graphite); stroke-width: 1.5; transition: stroke 150ms; }
     .stroked.keyed .scaffold path { stroke: var(--paper); }
+    .stroked .ink path { fill: none; stroke: var(--paper); stroke-width: 1.5; }   /* the thin letter, inked as the pen goes */
     @media (prefers-reduced-motion: reduce) { .stroked .scaffold path { transition: none; } }
     .stroked .grey path { stroke: var(--wire); }
     .stroked .fill .dot { stroke: var(--dot); }

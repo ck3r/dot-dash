@@ -17,7 +17,7 @@
  * first time one is saved.
  */
 
-import { encode, parse, readLink, format, pretty, namesFor, READING } from "./morse.js";
+import { encode, breaks, parse, readLink, format, pretty, namesFor, READING } from "./morse.js";
 
 
 /* ---------- in ---------- */
@@ -36,7 +36,7 @@ export function readPaste(raw) {
   const n = s.replace(DOTS, ".").replace(DASHES, "-")
     .replace(/\s*\|\s*/g, " / ")      // "|" between words
     .replace(/[ \t]{3,}/g, " / ");     // a wide gap (3+ spaces) between words
-  if (!/^[._-]/.test(n)) return { words: encode(s), morse: false };
+  if (!/^[._-]/.test(n)) return { words: encode(breaks(s)), morse: false };   // its paragraphs as <BT>, lines as <AA>
 
   /* parse() reads every spacing: "a b / c", "_a_b_/_c_", "a/b//c" */
   return { words: clean(parse(n)), morse: true };

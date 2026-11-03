@@ -766,9 +766,12 @@ body.tree-open .tree-edge {
   mask-image: linear-gradient(to bottom, transparent 0, #000 var(--peek, 26px));
 }
 
+/* every message's marker column as wide as the current line's
+   (> and the eye): the history lines up with it, and the floating
+   eye sits in the gutter, clear of the text */
 .entry .marker {
   flex: none;
-  width: 1.2ch;
+  width: var(--icon);
   color: var(--brass);
 }
 
@@ -814,6 +817,21 @@ body[data-mode="type"] .entry.current .empty-line {
   stroke: none;
 }
 
+/* back in the history: the one eye, floating at the tape's bottom
+   left (tx/tape.js), on a disc of the tape's colour like the × */
+.tape-eye {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  width: var(--icon);
+  height: calc(1.05rem * 1.2);
+  border-radius: 50%;
+  background: var(--bakelite);
+  box-shadow: 0 0 0 0.3rem var(--bakelite);
+  clip-path: inset(-0.3rem 0 -0.3rem -0.3rem);   /* not out to the right, over a bar's start */
+}
+.tape-eye[hidden] { display: none; }
+
 /* held long enough to collapse: brass until it's let go */
 .tx .marker .eye.armed { color: var(--brass); }
 
@@ -824,10 +842,11 @@ body[data-mode="type"] .entry.current .empty-line {
 /*
  * The eye: the row you're not entering, hidden as bars, or collapsed.
  * Each look is set on the whole tape (.hide-m, .collapse-p …), and
- * also as a class on a single letter (.bar-m, .flat-p …): while the
- * eye changes, the line being written (.entry.anim) goes over from
- * the caret back, a letter at a time, each wearing the old look until
- * its turn (tx/tape.js). The tape's own classes stand aside for it.
+ * bars also as a class on a single letter (.bar-m, .bar-p): while the
+ * eye goes between shown and bars, the line being written (.entry.anim)
+ * goes over from the caret back, a letter at a time, each wearing the
+ * old look until its turn (tx/tape.js). The tape's own classes stand
+ * aside for it. Collapsing (and opening up) is at once.
  *
  *   bars:       a bar per letter, running on across the gap to the
  *               next letter of the same word: one bar per word, even
@@ -889,28 +908,22 @@ body[data-mode="type"] .entry.current .empty-line {
   .tape.hide-m .entry:not(.anim) .line .w:not(.shown):has(.m:hover) .c::after { background: var(--brass); }
 }
 
-.tape.collapse-p .entry:not(.anim) .line .p,
-.line .c.flat-p .p { display: none; }
-.tape.collapse-m .entry:not(.anim) .line .m,
-.line .c.flat-m .m { width: 0; overflow: hidden; visibility: hidden; white-space: nowrap; }
-.tape.collapse-m .entry:not(.anim) .line .p,
-.line .c.flat-m .p { white-space: normal; }        /* no leading spaces (they set it under its code) */
+.tape.collapse-p .entry:not(.anim) .line .p { display: none; }
+.tape.collapse-m .entry:not(.anim) .line .m { width: 0; overflow: hidden; visibility: hidden; white-space: nowrap; }
+.tape.collapse-m .entry:not(.anim) .line .p { white-space: normal; }        /* no leading spaces (they set it under its code) */
 .tape.collapse-m .entry:not(.anim) .line .w { column-gap: 0; }
-.tape.collapse-m .entry:not(.anim) .line .slash,
-.line .slash.flat { margin: 0; color: transparent; }   /* a space's width */
+/* a space's width, carried by the word before it: a line that wraps
+   at a space starts flush, never a space in
 
-/* letters closed up, with a bar over each: the first frame back from
-   collapsed to shown, typing (███ / SOS, then each opens) */
-.line .c.flat-m.bar-m::after { left: 0.05ch; right: 0.05ch; }
+     THE POLLS SAY DEMOCRATS          THE POLLS SAY DEMOCRATS
+      ABOUT THE HOUSE         not     ABOUT THE HOUSE            */
+.tape.collapse-m .entry:not(.anim) .line .slash { width: 0; margin: 0; overflow: hidden; color: transparent; }
+.tape.collapse-m .entry:not(.anim) .line .w:has(+ .slash) { margin-right: 1ch; }
 
-/* collapsing or uncollapsing (typing), the spacing changes letter by
-   letter: closed-up letters touch, the others keep the word's 1.4ch.
-   It's a margin after a letter, never before, so a letter starting a
-   wrapped line stays put (between shown and bars nothing changes, and
-   the word's gap is left alone) */
-.entry.anim.close-up .line .w { column-gap: 0; }
-.entry.anim.close-up .line .c:not(:last-child):not(.flat-m),
-.entry.anim.close-up .line .c.flat-m:not(:last-child):has(+ .c:not(.flat-m)) { margin-right: 1.4ch; }
+/* the prosigns' layout in the plain text (tx/tape.js line): <AA> a
+   new line, <BT> a new paragraph, set in */
+.tape.collapse-m .entry:not(.anim) .line .slash:is(.br, .para) { flex-basis: 100%; height: 0; margin-bottom: -0.6rem; }
+.tape.collapse-m .entry:not(.anim) .line .slash.para + * { margin-left: 2ch; }
 
 body[data-mode="type"] .entry.current .line:not(.empty-line) .caret {
   margin-top: calc(1.05rem * 1.2);
@@ -1904,7 +1917,7 @@ body.reading .caret { visibility: hidden; }
     align-self: end;
     flex-direction: row;
     justify-content: space-between;
-    gap: 0.2rem;
+    gap: 0;                  /* (spread by space-between: nine words just fit a 320px phone) */
     padding-left: 0;
     padding-right: 0.6rem;   /* clear of the tray's scrollbar, which phones draw over the edge */
     border-left: 0;

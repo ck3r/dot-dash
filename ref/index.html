@@ -77,8 +77,20 @@
         <label class="check"><input type="checkbox" id="opt-prune"> prune empty</label>
       </fieldset>
 
-      <pre class="tree tree-h" id="tree-h" aria-label="Morse tree: dot branches left, dash branches right"></pre>
-      <pre class="tree tree-v" id="tree-v" aria-label="Morse tree: dot branches up, dash branches down"></pre>
+      <!-- the canvas: the tree, with replay at its top left and expand
+           at its top right, staying put over it (main.js) -->
+      <div class="tree-wrap">
+        <div class="tree-tools">
+          <button type="button" class="tree-replay" title="play it again" aria-label="play it again">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.6-3.7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12.6 1.6v3.3H9.3" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+          </button>
+          <button type="button" class="tree-expand" title="the whole tree" aria-label="the whole tree" aria-pressed="false">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path class="out" d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" fill="none" stroke="currentColor" stroke-width="1.6"/><path class="in" d="M6 2v4H2M14 6h-4V2M10 14v-4h4M2 10h4v4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+          </button>
+        </div>
+        <pre class="tree tree-h" id="tree-h" aria-label="Morse tree: dot branches left, dash branches right"></pre>
+        <pre class="tree tree-v" id="tree-v" aria-label="Morse tree: dot branches up, dash branches down"></pre>
+      </div>
 
       <fieldset class="options options-look">
         <legend class="visually-hidden">How the tree looks</legend>
@@ -101,7 +113,7 @@
             <option value="compact">compact</option>
           </select>
         </label>
-        <label class="check"><input type="checkbox" id="opt-signal" checked> dot/dash colors</label>
+        <label class="check"><input type="checkbox" id="opt-signal" checked aria-label="dot and dash colours"> colors</label>
       </fieldset>
     </section>
 
@@ -117,11 +129,49 @@
       <h2 class="frame-label" id="chart-label">all characters</h2>
   <div class="morse-code">
 
-  <!-- cards: every character as its tile, as in the about card (js/main.js);
-       the word says what they are -->
-  <div class="cards-switch">
-    <button type="button" id="cards-info" class="flag-word" aria-haspopup="dialog" aria-controls="cards-pop">cards</button>
-    <label class="check box-only"><input type="checkbox" id="opt-cards" aria-label="characters as cards"></label>
+  <!-- the letters, numbers and symbols, in a part of their own, so the
+       bar on top stays in reach while they go by (it lets go at the
+       prosigns: sticky inside this part) -->
+  <div class="chart-chars">
+
+  <!-- the bar: cards (every character as its tile, as in the about
+       card; the word says what they are), and with stroke on, the
+       player: the letters drawn as they're keyed, played as the
+       station's player plays a message (js/main.js)
+
+         [x] cards    ▷ 2.8s ━━━━━━━━┃━━━━━━━ ⟲3 │ speed 5 wpm  consecutive   -->
+  <div class="chart-bar">
+    <div class="cards-switch">
+      <label class="check box-only"><input type="checkbox" id="opt-cards" aria-label="characters as cards"></label>
+      <button type="button" id="cards-info" class="flag-word" aria-haspopup="dialog" aria-controls="cards-pop">cards</button>
+    </div>
+    <div class="stroke-player" hidden>
+      <div class="stroke-play">
+        <button type="button" class="play" aria-label="play" title="play / pause">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path class="i-play" d="M7 4.5 19 12 7 19.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path class="i-pause" d="M6.5 5h3.5v14H6.5zM14 5h3.5v14H14z" fill="currentColor"/></svg>
+        </button>
+        <span class="time">0.0s</span>
+        <span class="seek-wrap">
+          <canvas class="trace" aria-hidden="true"></canvas>
+          <input type="range" class="seek" min="0" max="1000" step="1" value="1000" aria-label="position">
+        </span>
+        <div class="seek-pop" hidden aria-hidden="true"><canvas></canvas></div>
+        <button type="button" class="repeat" aria-pressed="false" aria-label="repeat: off" title="repeat: off">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12a7 7 0 1 1-2.05-4.95M19.5 4v4.5H15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="stroke-settings">
+        <label class="pick">speed
+          <select class="wpm">
+            <option value="5">5 wpm</option>
+            <option value="8" selected>8 wpm</option>
+            <option value="15">15 wpm</option>
+            <option value="25">25 wpm</option>
+          </select>
+        </label>
+        <button type="button" class="turn" aria-pressed="false">consecutive</button>
+      </div>
+    </div>
   </div>
   <dialog id="cards-pop" class="ref-pop" aria-labelledby="cards-title">
     <span class="frame-label" id="cards-title">cards</span>
@@ -141,12 +191,33 @@
     marks.</p>
   </dialog>
 
+  <!-- the letters, numbers and symbols A–Z, the ones English uses
+       most first, the quickest to send first, as the tree reads, or
+       in the order the Koch method teaches them,
+       each group on its own (js/main.js); the lists from the prosigns
+       on keep their own order -->
+  <fieldset class="options chart-options">
+    <legend class="visually-hidden">How the characters are ordered</legend>
+    <label class="pick">order
+      <select id="opt-chart-order">
+        <option value="az">A–Z</option>
+        <option value="freq">most used first</option>
+        <option value="weight">lightest first</option>
+        <option value="tree">as the tree reads</option>
+        <option value="koch">Koch order</option>
+      </select>
+    </label>
+  </fieldset>
+
   <!-- a group's switch on its heading's line, at the right:
        stroke letters (js/main.js draws them over the plain ones),
        cut numbers, prosigns with a bar, Q codes as questions -->
   <div class="heading-row">
     <h2>Letters</h2>
-    <label class="check box-after" title="stroke letters: each drawn by the marks that spell it">stroke<input type="checkbox" id="opt-strokes" aria-label="stroke letters"></label>
+    <span class="switches">
+      <label class="check box-after" title="stroke letters: each drawn by the marks that spell it">stroke<input type="checkbox" id="opt-strokes" aria-label="stroke letters"></label>
+      <label class="check box-after" title="the stroke letters' dots as circles">circles<input type="checkbox" id="opt-circles" aria-label="dots as circles"></label>
+    </span>
   </div>
   <div class="group-row morse-letters">
     <ul class="col-left">
@@ -227,6 +298,8 @@
     <li><a href="/ref/?/.--.-."><span class="label">@</span><span class="code">.--.-.</span></a></li>
     </ul>
   </div>
+
+  </div><!-- /chart-chars -->
 
   <!--
     Prosigns, Q codes and abbreviations: one to a line, the code at

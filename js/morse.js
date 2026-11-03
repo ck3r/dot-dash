@@ -229,17 +229,23 @@ export function parse(raw) {
  *   ?/_...._._/_.--_        Morse
  *   ?/hello+world           HELLO WORLD
  *   ?/hello%20world         HELLO WORLD
+ *   ?/hello_world           HELLO WORLD
+ *
+ * The "_" too, in text only: the Morse form wraps its letters in
+ * "_", so someone writing text by hand may reach for it. "+" stays
+ * the one we write and tell (it's what forms and programs make); a
+ * real "_" in text is %5F. In Morse "_" is still the gap between
+ * letters, so the Morse is read before it's touched.
  */
 
 export function readLink(raw) {
-  let s = raw.replace(/\+/g, " ");
-  try {
-    s = decodeURIComponent(s);
-  } catch {
-    /* malformed %-escape: use as-is */
-  }
+  const unescape = s => {
+    try { return decodeURIComponent(s); }
+    catch { return s; }              // malformed %-escape: use as-is
+  };
+  const s = unescape(raw.replace(/\+/g, " "));
   if (/^[.\-_/\s]*$/.test(s)) return parse(s);
-  return encode(s);
+  return encode(unescape(raw.replace(/[+_]/g, " ")));
 }
 
 
@@ -295,15 +301,28 @@ export function morseFrom(text) {
  * Otherwise a link's address is dropped (noise, letter by letter),
  * curly quotes and long dashes go straight, accents come off
  * (é → E); anything else Morse doesn't have is dropped quietly by
- * encode, never sent as a stray "?". The station's arrival door and
- * the browser extension both read text this way.
+ * encode, never sent as a stray "?". Its layout goes as the air
+ * sends it (breaks, below). The station's arrival door and the
+ * browser extension both read text this way.
  */
 
 export function wordsFrom(text) {
-  return morseFrom(text) ?? encode(text
+  return morseFrom(text) ?? encode(breaks(text
     .replace(/\bhttps?:\/\/\S+/gi, " ")
     .replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, "-")
-    .normalize("NFD").replace(/\p{Mn}/gu, ""));        // the accents NFD split off
+    .normalize("NFD").replace(/\p{Mn}/gu, "")));        // the accents NFD split off
+}
+
+/*
+ * A page's layout, as prosigns: a blank line between paragraphs is
+ * <BT>, a line break within one <AA>. None at the very start or end.
+ *
+ *   The polls say⏎⏎Democrats win⏎big   →   The polls say <BT> Democrats win <AA> big
+ */
+export function breaks(text) {
+  return text.replace(/\r\n?/g, "\n").trim()
+    .replace(/\s*\n\s*\n\s*/g, " <BT> ")
+    .replace(/\s*\n\s*/g, " <AA> ");
 }
 
 

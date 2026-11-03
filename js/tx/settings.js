@@ -535,6 +535,15 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
     apply();
   }
 
+  /* the mouse as the key (tx/keys.js): remembered, off by default */
+  {
+    const box = $("#opt-mouse");
+    try { box.checked = localStorage.getItem("dot-dash:tx-mouse-key") === "1"; } catch { }
+    box.addEventListener("change", () => {
+      try { localStorage.setItem("dot-dash:tx-mouse-key", box.checked ? "1" : "0"); } catch { }
+    });
+  }
+
   /* ctrl keys (the VBand adapter's paddles): remembered, off by default */
   {
     const box = $("#opt-ctrl");

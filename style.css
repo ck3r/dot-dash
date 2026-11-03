@@ -322,6 +322,17 @@ button {
 .check.box-only::before { content: "[ ]"; }
 .check.box-only:has(input:checked)::before { content: "[x]"; }
 
+/* in /ref's option rows, the words grey like the menus' ("numbers",
+   "layout"), the box paper when it's on: what's chosen is what's lit */
+.options .check { color: var(--graphite); }
+
+/* a switch that does nothing now (circles, with stroke off): struck
+   through, its box wire, out of reach */
+.check:has(input:disabled),
+.morse-code .heading-row .check:has(input:disabled) { color: var(--wire); text-decoration: line-through; cursor: default; }
+.check:has(input:disabled)::before,
+.check:has(input:disabled)::after { color: var(--wire); }
+
 .check:has(input:focus-visible) {
   outline: 1px dashed var(--brass);
   outline-offset: 3px;
@@ -420,6 +431,88 @@ button {
 .tree-frame:not([data-layout="vertical"]) .tree-v,
 .tree-frame[data-layout="vertical"] .tree-h { display: none; }
 
+/* the canvas: as wide as the tree (the frame at most), with replay
+   at its top left and expand at its top right. They ride on a row
+   of no height that sticks to the top of the screen while the tree
+   goes past, so they're there over a tall tree too
+
+     ┌────────────────────────────┐
+     │ ↻                        ⤢ │
+     │          ●                 │
+     │     E─────┴─────T          │   */
+.tree-wrap {
+  position: relative;
+  width: fit-content;
+  min-width: min(100%, 22rem);   /* a tree of nothing (every set off) is no wider than its legend: room for both corners clear of it */
+  max-width: 100%;
+  margin: 1.75rem auto 0;
+}
+.tree-wrap > .tree { margin: 0 auto; }
+.tree-tools {
+  position: sticky;
+  top: 0.4rem;
+  z-index: 2;
+  height: 0;
+}
+.tree-tools button {
+  position: absolute;
+  top: 0;
+  display: flex;
+  padding: 0.2rem;
+  border: 0;
+  border-radius: 50%;
+  background: var(--bakelite);
+  color: var(--graphite);
+  line-height: 0;
+}
+.tree-tools button::after { content: ""; position: absolute; inset: -0.4rem; }   /* roomy to tap */
+.tree-tools .tree-replay { left: 0; }
+.tree-tools .tree-expand { right: 0; }
+.tree-tools svg { width: 0.9rem; height: 0.9rem; }
+.tree-tools button:disabled { color: var(--wire); cursor: default; }
+.tree-expand .in, .tree-expand[aria-pressed="true"] .out { display: none; }
+.tree-expand[aria-pressed="true"] .in { display: inline; }
+@media (hover: hover) {
+  .tree-tools button:not(:disabled):hover { background: var(--bakelite); color: var(--brass); }
+}
+.tree-tools button:focus-visible { outline: 1px dashed var(--brass); outline-offset: 2px; }
+
+/* expanded: the whole tree in a popup filling the screen, framed as
+   /ref's other notes are (.ref-pop), scaled to fit (main.js sets the
+   size), never a scroll; Escape, a tap outside or ⤢ again puts it back */
+.tree-frame.expanded .tree-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  width: auto;
+  max-width: none;
+  margin: 1rem;
+  padding: 2.4rem 1rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--graphite);
+  background: var(--bakelite);
+  /* the backdrop: the page hidden, not dimmed (the trace keys the
+     switch and fills the card under it: a page changing behind a
+     popup is a distraction, or a worry) */
+  box-shadow: 0 0 0 100vmax var(--bakelite);
+}
+.tree-frame.expanded .tree-wrap::before {   /* its label on the edge, as .frame-label */
+  content: "tree";
+  position: absolute;
+  top: -0.75em;
+  left: 0.8rem;
+  padding: 0 0.6ch;
+  background: var(--bakelite);
+  color: var(--graphite);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.tree-frame.expanded .tree-tools { position: absolute; top: 0.6rem; left: 0.6rem; right: 0.6rem; }
+.tree-frame.expanded .tree { overflow: hidden; max-width: 100%; max-height: 100%; }
+body.tree-expanded { overflow: hidden; }
+
 
 /* ============================================================
  * SELECTED CHARACTER (its card: overview.js renderCard)
@@ -466,10 +559,7 @@ button {
 /* the little tree: parent, the edge down, it, its two children */
 .card-tree { font-size: 1.1rem; line-height: 1.2; white-space: pre; }
 .card-tree .tree-line { display: block; }
-/* it plays with the card: each line comes up when its moment comes (--t) */
-.card-tree .tree-line { animation: card-lit 0.12s linear var(--t) both; }
-@keyframes card-lit { from { opacity: 0.2; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .card-tree .tree-line { animation: none; } }
+.card-tree { cursor: pointer; }   /* a tap walks it again (overview.js) */
 .card .here { background: var(--paper); color: var(--bakelite); padding: 0 0.15em; }
 
 /* its place in the whole tree */
@@ -509,6 +599,9 @@ button {
   line-height: 1.25;
   color: var(--graphite);
 }
+/* its letter just played through (overview.js): the border lit paper, fading back */
+.card-tile.landed { animation: tile-landed 0.7s ease-out; }
+@keyframes tile-landed { from { border-color: var(--paper); } }
 .tile-type { grid-area: type; display: flex; flex-direction: column; }
 .tile-type .also::before { content: "+ "; }
 .card-tile .tile-code { grid-area: code; justify-self: end; white-space: nowrap; }
@@ -527,7 +620,8 @@ button {
 
 /* beside the card (or under it, without the room): a prosign, another
    reading, a tidbit */
-.card-note { flex: 1 1 9rem; min-width: 0; font-size: 0.9rem; line-height: 1.4; color: var(--paper); }
+.card-note { flex: 1 1 9rem; min-width: 0; font-size: 0.9rem; line-height: 1.4; color: var(--graphite); }
+.card-note b { color: var(--paper); font-weight: 400; }   /* the key words, lit; the rest grey */
 .card-note:empty { display: none; }
 .card-note p + p { margin-top: 0.5rem; }
 
@@ -662,13 +756,33 @@ button {
   margin: 0 auto;
 }
 
-/* cards: its word (what they are: a popup) over its box, centred */
-.cards-switch {
+/*
+ * The chart's bar, on top of the letters, numbers and symbols, and
+ * kept on screen while they go by (sticky inside .chart-chars, so it
+ * lets go at the prosigns): cards, then with stroke on the player.
+ * On a phone the player takes a line of its own.
+ *
+ *   [x] cards   ▷ 2.8s ━━━━━━┃━━━━━━━ ⟲3 │ speed 5 wpm  consecutive
+ */
+.chart-bar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.1rem;
+  gap: 0.4rem 2ch;
+  padding: 0.5rem 0;
   margin-bottom: 0.4rem;
+  background: var(--bakelite);
+}
+
+/* cards: its box, then its word (what they are: a popup) */
+.cards-switch {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 1ch;
   font-size: 0.9rem;
 }
 .flag-word {
@@ -680,6 +794,85 @@ button {
   text-underline-offset: 0.25em;
 }
 :where(body:not(.tx)) .flag-word:hover { background: transparent; color: var(--brass); }
+
+/* the chart's order (A–Z, most used first …), under the bar */
+.chart-options { justify-content: center; margin-bottom: 0.6rem; }
+
+/*
+ * The stroke player (stroke on, js/main.js), as the station's player
+ * (tx/tx.css, "The player"): play, the scrub bar with the signal
+ * drawn under a brass playhead, repeat with its 3 / ∞; the sheet's
+ * settings on a row under it, words that are grey off, paper on.
+ */
+.stroke-player {
+  flex: 1 1 22rem;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem 1.5ch;
+  font-size: 0.85rem;
+}
+/* stroke off: its room kept, so switching stroke on moves nothing (the
+   stroke box under the pointer least of all) */
+.stroke-player[hidden] { display: flex; visibility: hidden; }
+.stroke-play { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.6ch; }
+/* the readout: one width, so the scrub bar never changes length */
+.stroke-player .time { flex: none; width: 5ch; font-size: 0.75rem; color: var(--graphite); font-variant-numeric: tabular-nums; }
+.stroke-player button {
+  flex: none;
+  border: 0;
+  padding: 0.15rem 0.25rem;
+  background: transparent;
+  color: var(--graphite);
+  line-height: 0;
+}
+.stroke-player .ico { width: 1.2rem; height: 1.2rem; }
+.stroke-player .play { color: var(--paper); }
+.stroke-player .play .i-pause, .stroke-player .play.on .i-play { display: none; }
+.stroke-player .play.on .i-pause { display: inline; }
+.stroke-player .repeat { position: relative; color: var(--wire); }
+.stroke-player .repeat[aria-pressed="true"] { color: var(--paper); }
+.stroke-player .repeat::after { position: absolute; right: 0; top: -0.3em; font-size: 0.7rem; font-weight: 700; line-height: 1; color: var(--brass); }
+.stroke-player .repeat[data-repeat="three"]::after { content: "3"; }
+.stroke-player .repeat[data-repeat="on"]::after { content: "∞"; }
+.stroke-player .seek-wrap { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; }
+.stroke-player .trace { position: absolute; left: 0; right: 0; top: 50%; width: 100%; height: 14px; transform: translateY(-50%); pointer-events: none; }
+.stroke-player .seek {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 1.4rem;
+  margin: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  touch-action: none;
+}
+.stroke-player .seek::-webkit-slider-runnable-track { height: 1px; background: transparent; }
+.stroke-player .seek::-moz-range-track { height: 1px; background: transparent; }
+.stroke-player .seek::-webkit-slider-thumb { -webkit-appearance: none; width: 4px; height: 18px; margin-top: -8.5px; border: 0; border-radius: 2px; background: var(--brass); }
+.stroke-player .seek::-moz-range-thumb { width: 4px; height: 18px; border: 0; border-radius: 2px; background: var(--brass); }
+.stroke-player .seek-pop { position: absolute; z-index: 8; bottom: calc(100% + 6px); width: 9.5rem; height: 3.4rem; padding: 0.25rem; border: 1px solid var(--graphite); background: var(--bakelite); pointer-events: none; }
+.stroke-player .seek-pop canvas { display: block; width: 100%; height: 100%; }
+/* past a rule, as the mock-up has it:  ⟲ │ speed 5 wpm  consecutive */
+.stroke-settings { flex: none; display: flex; align-items: baseline; gap: 0.4rem 1.5ch; padding-left: 1.5ch; border-left: 1px solid var(--wire); color: var(--graphite); }
+.stroke-settings button { line-height: inherit; padding: 0; }
+/* a phone: two lines, the settings beside cards, the player under
+   them, all its width for the scrub bar
+
+     [x] cards        speed 5 wpm  consecutive
+     ▷ 2.8s ━━━━━━━━━━━━━┃━━━━━━━━━━━━━━━ ⟲3          */
+@media (max-width: 600px) {
+  .stroke-player, .stroke-player[hidden] { display: contents; }
+  .stroke-play { order: 2; flex-basis: 100%; }
+  .stroke-settings { order: 1; margin-left: auto; padding-left: 0; border-left: 0; }
+}
+.stroke-settings button[aria-pressed="true"] { color: var(--paper); }
+@media (hover: hover) {
+  :where(body:not(.tx)) .stroke-player button:hover { background: transparent; color: var(--brass); }
+}
+.stroke-player button:focus-visible { outline: 1px dashed var(--brass); outline-offset: 2px; }
 
 /* each character as its tile (js/main.js), where the lists were */
 .tile-grid { display: none; }
@@ -740,8 +933,8 @@ button {
 .signal .cards-sketch .dash { color: var(--dash); }
 
 /* short codes stay close to their characters; prosigns have long names */
-.morse-code > h2,
-.morse-code > .heading-row,
+:is(.morse-code, .chart-chars) > h2,
+:is(.morse-code, .chart-chars) > .heading-row,
 .morse-code .group-row {
   max-width: 400px;
   margin-inline: auto;
@@ -773,6 +966,10 @@ button {
 .morse-code > .heading-row:first-child { margin-top: 0; }
 .morse-code .heading-row h2 { margin: 0; }
 .morse-code .heading-row .check { font-size: 0.85rem; color: var(--graphite); }   /* the heading is the one in white */
+/* more than one switch: one over the other, their boxes in a column
+     Letters ··················· stroke [x]
+                                circles [ ]                           */
+.morse-code .heading-row .switches { display: flex; flex-direction: column; align-items: flex-end; }
 
 .morse-code ul {
   list-style: none;
@@ -860,13 +1057,18 @@ button {
 .stroked path { fill: none; }
 .stroked .scaffold path { stroke: var(--graphite); stroke-width: 1px; vector-effect: non-scaling-stroke; }
 .stroked.keyed .scaffold path { stroke: var(--paper); }
+.stroked .ink path { fill: none; stroke: var(--paper); stroke-width: 1px; vector-effect: non-scaling-stroke; }   /* the thin letter, inked as the pen goes */
 .stroked .grey path { stroke: var(--wire); }
 .stroked .fill .dot { stroke: var(--dot); }
 .stroked .fill .dash { stroke: var(--dash); }
-body:not(.signal) :is(.morse-code, .card) .stroked .fill :is(path, circle) { stroke: var(--paper); }   /* dot/dash colours off (only /ref has the switch) */
+/* circles (the stroke player's setting): a disc, filled, never ringed */
+.stroked .grey circle { fill: var(--wire); stroke: none; }
+.stroked .fill circle.dot { fill: var(--dot); stroke: none; }
+body:not(.signal) :is(.morse-code, .card) .stroked .fill path { stroke: var(--paper); }   /* dot/dash colours off (only /ref has the switch) */
+body:not(.signal) :is(.morse-code, .card) .stroked .fill circle { fill: var(--paper); }
 
 @media (hover: hover) {
-  .morse-code li a:hover .stroked .scaffold path { stroke: var(--brass); }
+  .morse-code li a:hover .stroked :is(.scaffold, .ink) path { stroke: var(--brass); }
 }
 
 /* the narrowest phones: tighter, so both wings and their names fit */
