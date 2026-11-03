@@ -1,7 +1,8 @@
 /*
  * The popup layer: the privacy (i), the misheard ~, cut numbers, the
  * about card, the timing train's note, the notes on the tray's
- * checkboxes, an output's list (long-press);
+ * checkboxes, an output's list (long-press), the profile (its own
+ * module opens it: js/tx/profile.js);
  * a tap outside a popup, which only closes it; and Escape, which
  * closes whatever is on top.
  *
@@ -14,7 +15,8 @@
 import { DECODE, ENCODE, CUT, NAME_CODE, format } from "../morse.js";
 import { PROSIGNS_BY_CODE, TERMS, isQ } from "../characters.js";
 import { aboutHref, termOf } from "./about.js";
-import { $, el, nearest } from "./dom.js";
+import { $, el, nearest, flash } from "./dom.js";
+import { say } from "./voice.js";
 import { timingNow } from "./keys.js";
 
 /* what each checkbox does, a tap on its word ("suggest" has its own
@@ -30,7 +32,7 @@ const FLAG_NOTES = {
 
 export function createLayer({
   state, about, update, clearCurrent, putKeysAway, isChord, openHold, menu, openShare, hideBubble,
-  cancelLamp, closeLamp, stopPlayback, isPlayerActive, setPlayerActive, playerBusy
+  cancelLamp, closeLamp, stopPlayback, isPlayerActive, setPlayerActive, playerBusy, openProfile
 }) {
   /* the privacy (i): a small popup with the details */
   function openPrivacy(open) {
@@ -281,7 +283,12 @@ export function createLayer({
     if (!code) { pop.hidden = true; return; }
     let renderCard;
     try { ({ renderCard } = await (card ??= import("../overview.js"))); } catch { card = null; return; }
-    renderCard($("#about-card"), code);
+    /* its parts do what the column's do; cut and ~ open their
+       popups over it (closing them comes back here) */
+    renderCard($("#about-card"), code, {
+      say: (ch, part) => say(ch, Number($("#opt-vol").value) / 100).catch(() => flash(part, "can't say it here")),
+      openCut, openHeard: () => openHeard(true), flash
+    });
     /* the word it ends, if that's one of the operators' (QTH, 73): what
        it means, under the card (the column keeps to the letter) */
     const term = termOf(about.word());
@@ -370,20 +377,22 @@ export function createLayer({
     window.addEventListener("pointerdown", event => {
       stopEating();              // a new tap: whatever the last one left behind goes
       const privacy = $("#privacy-pop"), heard = $("#heard-pop"), hold = $("#hold-pop"), about = $("#about-pop"), train = $("#train-pop"), suggest = $("#suggest-pop"), flag = $("#flag-pop"), cut = $("#cut-pop"), report = $("#report-pop");
-      const word = $("#word-pop"), aboutSet = $("#about-set-pop");
+      const word = $("#word-pop"), aboutSet = $("#about-set-pop"), profile = $("#profile-pop");
       let closed = false;
       const farns = $("#farns-pop");
       if (!report.hidden) { if (!report.contains(event.target)) { $("#report-cancel").click(); closed = true; } }
       else if (!farns.hidden) { if (!farns.contains(event.target)) { $("#farns-ok").click(); closed = true; } }
+      /* ~ and cut can open over the about card: they go first */
+      else if (!heard.hidden) { if (!heard.contains(event.target)) { openHeard(false); closed = true; } }
+      else if (!cut.hidden) { if (!cut.contains(event.target)) { openCut(null); closed = true; } }
       else if (!about.hidden) { if (!about.contains(event.target)) { openAbout(null); closed = true; } }
       else if (!hold.hidden) { if (!hold.contains(event.target)) { openHold(false); closed = true; } }
-      else if (!heard.hidden) { if (!heard.contains(event.target)) { openHeard(false); closed = true; } }
       else if (!train.hidden) { if (!train.contains(event.target)) { openTrain(false); closed = true; } }
       else if (!suggest.hidden) { if (!suggest.contains(event.target)) { openSuggest(false); closed = true; } }
       else if (!flag.hidden) { if (!flag.contains(event.target)) { openFlag(null); closed = true; } }
-      else if (!cut.hidden) { if (!cut.contains(event.target)) { openCut(null); closed = true; } }
       else if (!word.hidden) { if (!word.contains(event.target)) { openWord(null); closed = true; } }
       else if (!aboutSet.hidden) { if (!aboutSet.contains(event.target)) { openAboutSet(false); closed = true; } }
+      else if (!profile.hidden) { if (!profile.contains(event.target)) { openProfile(false); closed = true; } }
       else if (list) { if (!list.contains(event.target)) { closeList(); closed = true; } }
       else if (!privacy.hidden && !privacy.contains(event.target)) { openPrivacy(false); closed = true; }
       else if (privacy.hidden && !menu.hidden && !menu.contains(event.target)) { openShare(false); closed = true; }
@@ -424,6 +433,7 @@ export function createLayer({
     else if (open("#cut-pop")) openCut(null);
     else if (open("#word-pop")) openWord(null);
     else if (open("#about-set-pop")) openAboutSet(false);
+    else if (open("#profile-pop")) openProfile(false);
     else if (list) closeList();
     else if (open("#hold-pop")) openHold(false);
     else if (open("#about-pop")) openAbout(null);

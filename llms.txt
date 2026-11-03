@@ -1,0 +1,40 @@
+# dot-da.sh
+
+> A Morse code station on the web: key, type, play and share Morse. Free, no account, nothing stored on a server. Every message is a link, and the link is the message: the Morse is in the address, so a link opens the station with it on the line, ready to play.
+
+Use it when someone wants a message in Morse they can hear, see or share: a link to send, an animated .gif, a .wav sound clip, or the Morse itself. Standard International Morse (ITU), with prosigns.
+
+## Links
+
+A message link is `https://dot-da.sh/?/` followed by the message, in any of three forms:
+
+- Plain text, spaces as `+`: `https://dot-da.sh/?/hi+k` (a real `+` is `%2B`). Case doesn't matter; Morse has none.
+- Morse, letters wrapped and separated by `_`, words by `/`: `https://dot-da.sh/?/_...._.._/_-.-_` (HI K). This is the canonical form; the wrapping `_` keeps chat apps from trimming a final `.` or `-`.
+- Morse, letters separated by `/`, words by `//`: `https://dot-da.sh/?/..../..//-.-`
+
+The link opens the station with the message on the line; the recipient presses play to hear it. Shared in a chat, the link's preview shows the Morse, the text and an animated card.
+
+Longer text (a paragraph, an article) can go after a `#` instead, which never reaches a server and has no length limit: `https://dot-da.sh/#text=the+quick+brown+fox`. The station keeps about a thousand words.
+
+## Files, made from the address
+
+The same message forms work after `/og/`. Each answer is made from the address alone and cached; any page may fetch them (CORS open).
+
+- `https://dot-da.sh/og/_...._.._/_-.-_.gif`: an animated card, 1200×630, the Morse keying itself. Takes the Morse forms only; get its address from the .json if you start from text. Long messages end in "…" after about 11 words.
+- `https://dot-da.sh/og/hi+k.wav`: the message as sound, a 600 Hz tone at 20 words per minute. `?wpm=5` to `40` and `?hz=300` to `1000` change the speed and pitch. Up to 60 seconds; longer messages stop at the last whole word that fits.
+- `https://dot-da.sh/og/hi+k.json`: the parts, as JSON: `text` (HI K), `morse` (`.... .. / -.-`), `link`, `gif`, `wav`, `units` (the length in Morse units) and `seconds` at 20 wpm.
+
+To answer "what is X in Morse": fetch the .json and give the `morse`, with the `link` so they can hear it.
+
+## Pages
+
+- [The station](https://dot-da.sh/): key with one button, two paddles or a keyboard; type text and see its Morse; play, share, save.
+- [The reference](https://dot-da.sh/ref/): every character, the Morse tree, prosigns, Q codes.
+- [Design notes](https://dot-da.sh/design/): why it looks and behaves as it does.
+- [Bookmarklet](https://dot-da.sh/bookmarklet/): send a selection from any page to the station.
+
+## Privacy
+
+Nothing is kept: no accounts, no tracking, no message stored on a server. A message lives in its link. The station keeps its history on the visitor's own device.
+
+Made by ck3r.

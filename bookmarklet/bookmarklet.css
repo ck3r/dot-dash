@@ -1,0 +1,27 @@
+/* ============================================================
+ * THE BOOKMARKLET PAGE
+ * ============================================================
+ *
+ * The design notes' page, borrowed (design.css), and one thing of
+ * its own: the link to drag, drawn like a button so it reads as
+ * something to pick up, not to follow. It fills on hover as every
+ * link on these pages does (style.css).
+ */
+
+.notes .keep a {
+  display: inline-block;
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--paper);
+  text-decoration: none;
+  cursor: grab;
+}
+
+.notes .keep a:active {
+  cursor: grabbing;
+}
+
+/* the source wraps rather than scroll: long lines, nothing drawn */
+.notes #source {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

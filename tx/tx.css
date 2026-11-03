@@ -156,11 +156,30 @@ body.tx {
   gap: 1.2ch;
 }
 
-/* profiles, soon: a ring, outline only, greyed like paste and share */
+/* the profile: a ring, greyed like paste and share; with a
+   callsign, the ring holds its first character instead of the
+   outline of a head (js/tx/profile.js) */
 .profile {
   margin-right: -0.35rem;   /* its ring, not its tap room, at the edge */
   color: var(--graphite);
 }
+
+.profile .initial {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon);
+  height: var(--icon);
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.profile.signed .ico { display: none; }
+.profile.signed .initial { display: inline-flex; }
+.profile[aria-expanded="true"] { color: var(--paper); }
 
 .share-toggle {
   border: 0;
@@ -2441,6 +2460,147 @@ body:has(#train:not([hidden])) .pad {
 .popup .fast {
   color: var(--dot);
 }
+
+/* the profile: the callsign, then the counts in two columns of
+   word and number, the letters on rows of their own
+
+     letters   310    words    52
+     most      E T A I N           */
+/* taller than a short phone: the contents scroll inside, the label
+   and the × stay on the frame */
+.profile-body {
+  max-height: calc(100dvh - 4rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.profile-call {
+  display: flex;
+  align-items: center;
+  gap: 1ch;
+  color: var(--graphite);
+}
+
+.profile-call input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.2rem 0.4rem;
+  border: 0;
+  border-bottom: 1px solid var(--wire);
+  background: transparent;
+  color: var(--paper);
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.profile-call input::placeholder {
+  color: var(--wire);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.profile-call input:focus-visible {
+  outline: none;
+  border-bottom-color: var(--brass);
+}
+
+.profile-pop .profile-note {
+  margin-top: 0.4rem;
+  color: var(--graphite);
+  font-size: var(--fs-xs);
+}
+
+.profile-pop .profile-since {
+  margin-top: 0.9rem;
+  color: var(--graphite);
+}
+
+.profile-stats {
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr;
+  gap: 0.15rem 1ch;
+  margin-top: 0.35rem;
+}
+
+.profile-stats dt { color: var(--graphite); }
+.profile-stats dd { margin: 0; font-variant-numeric: tabular-nums; }
+.profile-stats dd.wide { grid-column: 2 / -1; letter-spacing: 0.1em; }
+
+/* wear: the keys as chips (the shown one in paper), and the key
+   drawn below, worn in brass (js/tx/wear.js) */
+.profile-wear { margin-top: 0.9rem; }
+.profile-wear .profile-since { margin-top: 0; }
+
+.wear-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.wear-keys:empty { display: none; }
+
+.wear-keys [aria-checked="true"] {
+  border-color: var(--paper);
+  color: var(--paper);
+}
+
+/* the key drawn beside its count, in a box of its own whatever the
+   key's shape (a tall dit, a wide side key) */
+.wear-show {
+  display: flex;
+  align-items: center;
+  gap: 1ch;
+  margin-top: 0.5rem;
+}
+
+.wear-show .profile-note { margin-top: 0; }
+
+.wear-canvas {
+  display: block;
+  flex: none;
+}
+
+.wear-canvas[hidden] { display: none; }
+
+/* copy practice: the Koch characters so far, the newest in paper
+   (the one being learned), between − and + */
+.profile-practice {
+  margin-top: 0.9rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--wire);
+}
+
+.profile-practice .profile-since { margin-top: 0; }
+
+.koch-row {
+  display: flex;
+  align-items: center;
+  gap: 1ch;
+  margin-top: 0.4rem;
+}
+
+.koch-row .quiet { align-self: center; }
+
+.koch-set {
+  flex: 1;
+  color: var(--graphite);
+  letter-spacing: 0.15em;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+.koch-set .new { color: var(--paper); }
+
+.popup .koch-go {
+  margin-top: 0.6rem;
+  background: transparent;
+}
+
+.koch-row .quiet:disabled { opacity: 0.5; cursor: default; }
 
 .popup .actions {
   display: flex;

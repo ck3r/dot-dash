@@ -17,6 +17,9 @@
  *   share.js     share, paste, saves, the wait lamp
  *   layer.js     popups, outside taps, Escape
  *   tab.js       the browser tab keying: its title and icon
+ *   stats.js     your keying, counted from the event log
+ *   wear.js      where your finger lands on each key
+ *   profile.js   the ring: a callsign, those counts, the wear
  *
  * What stays here: the note on arrival, keying into the message
  * (press, send), update, the input slot, and startup. A part made
@@ -24,11 +27,11 @@
  * (stopPlayback: () => stopPlayback()), so the order above holds.
  */
 
-import { parse, readLink, format, DECODE, NAME_CODE, READING } from "../morse.js";
+import { parse, readLink, wordsFrom, format, DECODE, NAME_CODE, READING } from "../morse.js";
 import { spokenWords } from "./voice.js";
 import { createSound } from "../tx-sound.js";
 import { PROSIGNS_BY_CODE } from "../characters.js";
-import { $, toast, flash } from "./dom.js";
+import { $, toast } from "./dom.js";
 import { createState, structure, wordsOf, tokensOf, tookFor, morseOf, recOfEntry, typedOf, plainText } from "./state.js";
 import { createTape } from "./tape.js";
 import { createUndo } from "./undo.js";
@@ -41,6 +44,9 @@ import { createPlayback } from "./player.js";
 import { createShare } from "./share.js";
 import { createLayer } from "./layer.js";
 import { createTab } from "./tab.js";
+import { createStats } from "./stats.js";
+import { createProfile } from "./profile.js";
+import { createWear } from "./wear.js";
 
 /* the message, the tape, the modes, the event log: js/tx/state.js */
 const state = createState();
@@ -375,10 +381,37 @@ function setMode(next, focus = true) {
   update();
 }
 
-/* profiles: not yet (a moment's "soon" over it) */
-$("#profile").addEventListener("click", () => {
-  flash($("#profile"), "soon");
-});
+/* the profile: a callsign and your keying, on this device
+   (js/tx/profile.js); the counts listen to the event log from here
+   on (js/tx/stats.js) */
+const stats = createStats({ state });
+const wear = createWear();
+const { openProfile } = createProfile({ stats, wear, practise: words => practise(words) });
+
+/*
+ * Copy practice (the profile's ▷ start): groups on the line, the
+ * letters hidden, played. What was on the line goes onto the tape
+ * first, as when a link arrives. The eye shuts without saving that
+ * as your setting (a reload brings yours back); a tap shows the
+ * letters.
+ */
+function practise(words) {
+  if (player.playing || state.playKey !== null) stopPlayback();
+  const line = state.entry();
+  if (line) state.addToHistory(line);
+  if (state.mode !== "key") setMode("key", false);
+  state.tokens = tokensOf(words);
+  state.took = state.tokens.map(() => null);
+  setTyped(plainText(words) ?? "");
+  state.localCleared = false;
+  state.hidden = true;
+  state.collapsed = false;
+  undo.forget();
+  update();
+  settleTape();
+  togglePlay();
+  toast("listen, write them down, then the eye shows them");
+}
 
 /* one switch: a press anywhere flips it; the side that comes on
    flashes brass (with the keys away, they come back, flipped) */
@@ -465,7 +498,7 @@ const speedNote = () => {
 
 /* the player row: js/tx/player.js */
 const {
-  player, trace, playerControls, stopPlayback, messageKey, shareable, tapeRedrawn, isPlayerActive, setPlayerActive
+  player, trace, playerControls, togglePlay, stopPlayback, messageKey, shareable, tapeRedrawn, isPlayerActive, setPlayerActive
 } = createPlayback({
   state, sound, keyer, tree, trainView, tab, timingNow: playTiming, speedNote, choice, cancelTaps, setSignal,
   wantsLamp, lampOk, askLamp, openLamp, closeLamp,
@@ -481,7 +514,7 @@ const { menu, openShare, hideBubble } = createShare({
 /* popups, outside taps, Escape: js/tx/layer.js */
 const { openPrivacy, openHeard, openCut, openWord } = createLayer({
   state, about, update, clearCurrent, putKeysAway, isChord, openHold, menu, openShare, hideBubble,
-  cancelLamp, closeLamp, stopPlayback, isPlayerActive, setPlayerActive,
+  cancelLamp, closeLamp, stopPlayback, isPlayerActive, setPlayerActive, openProfile,
   /* something to cancel: playing, or paused part-way (not at the start or the end) */
   playerBusy: () => player.playing || (state.playKey !== null && player.position > 0 && player.position < player.duration)
 });
@@ -492,6 +525,39 @@ const { openPrivacy, openHeard, openCut, openWord } = createLayer({
  * START
  * ============================================================
  */
+
+/* text from elsewhere, to put into Morse (an arrival door only:
+   nobody shares these, the station tidies them away):
+
+     /?text=…&title=…    the share sheet (manifest's share_target);
+                         its text, or the title if there's none (a
+                         bare url= alone brings nothing: an address
+                         isn't a message)
+     /#text=…            the browser extension; in the hash, so a
+                         page's words never reach a server, and a
+                         long selection isn't cut by a URL limit
+
+   null when nothing arrived this way. */
+const arriving = (() => {
+  const hash = new URLSearchParams(location.hash.slice(1));
+  if (hash.has("text")) {
+    window.history.replaceState(null, "", location.pathname + location.search);
+    return hash.get("text");
+  }
+  if (location.search.startsWith("?/")) return null;
+  const q = new URLSearchParams(location.search);
+  return ["text", "title", "url"].some(k => q.has(k)) ? q.get("text") || q.get("title") || "" : null;
+})();
+
+/* a whole article is more than one line can hold in good time (each
+   letter is a few elements on the tape): about a thousand words
+   arrive, cut at a word, and a toast says so */
+const ARRIVE_MAX = 6000;
+const cutToFit = words => {
+  let n = 0, i = 0;
+  while (i < words.length && (n += words[i].length + 1) <= ARRIVE_MAX) i++;
+  return i < words.length ? words.slice(0, i) : words;
+};
 
 /* settings after "#" in a link: for this visit (js/tx/settings.js);
    read, they leave the address */
@@ -504,13 +570,19 @@ setKeyMode($("#opt-key").value);
    tidied back to / so a later edit doesn't leave a stale link.
    Whatever was on the line unsent (kept from last time) goes onto
    the tape first, unless it's the same message; with no link, it
-   comes back to the line. */
+   comes back to the line. Text arriving (above) is the same, once
+   it's Morse. */
 {
   const q = location.search;
   const kept = state.savedLine();
-  if (q.startsWith("?/")) {
+  if (q.startsWith("?/") || arriving !== null) {
     let words = [];
-    try { words = readLink(q.slice(2)); } catch { }
+    try { words = arriving !== null ? wordsFrom(arriving) : readLink(q.slice(2)); } catch { }
+    if (arriving !== null) {
+      const all = words.length;
+      words = cutToFit(words);
+      if (words.length < all) toast(`the first ${words.length.toLocaleString("en")} of ${all.toLocaleString("en")} words`, { ms: 5000 });
+    }
     if (words.length && kept && morseOf(kept) !== format(words)) state.addToHistory(kept);
     if (words.length) {
       state.tokens = tokensOf(words);

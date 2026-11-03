@@ -7,6 +7,7 @@
   "scope": "/",
   "display": "standalone",
   "launch_handler": { "client_mode": "navigate-existing" },
+  "share_target": { "action": "/", "method": "GET", "params": { "title": "title", "text": "text", "url": "url" } },
   "background_color": "#1c1916",
   "theme_color": "#1c1916",
   "icons": [

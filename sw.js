@@ -26,13 +26,13 @@ const VERSION = "dot-dash-10";
 
 /* fetched on install, so the first offline open works too */
 const CORE = [
-  "/", "/ref/", "/design/",
-  "/style.css", "/tx/tx.css", "/design/design.css", "/switch.svg", "/manifest.webmanifest",
+  "/", "/ref/", "/design/", "/bookmarklet/",
+  "/style.css", "/tx/tx.css", "/design/design.css", "/bookmarklet/bookmarklet.css", "/bookmarklet/bookmarklet.js", "/switch.svg", "/manifest.webmanifest",
   "/icons/icon-192.png", "/icons/icon-512.png",
   "/js/main.js", "/js/morse.js", "/js/tree.js", "/js/overview.js", "/js/keyer.js",
   "/js/tx-keyer.js", "/js/tx-sound.js", "/js/tx-player.js", "/js/tx-share.js", "/js/tx-files.js", "/js/tx-outputs.js", "/js/tx-trace.js",
   "/js/tx/main.js", "/js/tx/dom.js", "/js/tx/state.js", "/js/tx/keyboard.js", "/js/tx/about.js",
-  "/js/tx/player.js", "/js/tx/share.js", "/js/tx/settings.js", "/js/tx/tree.js", "/js/tx/layer.js", "/js/tx/tape.js", "/js/tx/keys.js", "/js/tx/typing.js", "/js/tx/suggest.js", "/js/tx/undo.js", "/js/tx/media.js", "/js/tx/tab.js",
+  "/js/tx/player.js", "/js/tx/share.js", "/js/tx/settings.js", "/js/tx/tree.js", "/js/tx/layer.js", "/js/tx/tape.js", "/js/tx/keys.js", "/js/tx/typing.js", "/js/tx/suggest.js", "/js/tx/undo.js", "/js/tx/media.js", "/js/tx/tab.js", "/js/tx/stats.js", "/js/tx/profile.js", "/js/tx/practice.js", "/js/tx/wear.js",
   "/js/characters.js", "/js/voice-times.js", "/js/tx/voice.js", "/js/strokes.js", "/js/stair.js"
 ];
 

@@ -246,9 +246,13 @@ function fork(both, dotOnly, dashOnly, hasDot, hasDash) {
  * 6 columns apart. Compact: marks move onto the branch row,
  * 4 apart.
  *
+ *                  ●                       ●
  *                .E│T-                    E│T
  *          ┌───────┴───────┐       ┌─────.┴-─────┐
  *        .I│A-           .N│M-    I│A           N│M
+ *
+ * The start, ●, sits over the root's │ (a row of its own), as in
+ * the branches, so every tree starts from the same dot.
  */
 
 const pairUnit = model => code =>
@@ -299,6 +303,14 @@ function classic(model, compact) {
     }
   }
 
+  return startOver(g, pos.get(""));
+}
+
+/* a row on top, the ● in it at column x (the legend centres on it) */
+function startOver(g, x) {
+  g.unshift(Array(g[0].length).fill(null));
+  put(g, 0, x, "●", part("root", ""));
+  g.root = x;
   return g;
 }
 
@@ -314,6 +326,7 @@ export const horizontal = model => classic(model, false);
  * under the marks that lead to them, so code and letter read
  * as one column:
  *
+ *                    ●
  *            ┌───────.┴-───────┐
  *       ┌───.┴-───┐  E T  ┌───.┴-───┐
  *     ┌.┴-┐ I A ┌.┴-┐   ┌.┴-┐ N M ┌.┴-┐
@@ -435,7 +448,7 @@ export function horizontalCompact(model) {
     put(g, c.r, c.x - minX, c.ch, c.owner);
   }
   g.overlaps = overlaps;   // should always be 0 (checked in tests)
-  return g;
+  return startOver(g, -minX);
 }
 
 
@@ -515,6 +528,7 @@ function branchLayout(model, pitch) {
   const g = grid(size, 2 * model.depth + 1);
 
   put(g, 0, pos.get(""), "●", part("root", ""));
+  g.root = pos.get("");
 
   for (const [parent, px] of pos) {
     const dot = parent + ".";
@@ -671,14 +685,14 @@ const COMPACT = {
 const VERTICAL = new Set(["vertical", "branchesV"]);
 
 const LEGEND = {
-  horizontal: ["←DOT", "──", "DASH→"],
+  horizontal: ["←DOT", "───", "DASH→"],   // the middle one over the ●
   vertical:   ["↑DOT", " ", "↓DASH"],
-  branches:   ["←··· DOT", "  ", "DASH ━━━→"],
+  branches:   ["←··· DOT", "   ", "DASH ━━━→"],
   branchesV:  ["↑· DOT", "  ", "↓━ DASH"]
 };
 
 
-export function createTree(element, initialLayout, { legend: showLegend = true } = {}) {
+export function createTree(element, initialLayout, { legend: showLegend = true, follow = false } = {}) {
   let layout = initialLayout;
   let spans = [];
   let lit = [];
@@ -705,19 +719,22 @@ export function createTree(element, initialLayout, { legend: showLegend = true }
   function draw(model, compact) {
     const g = (compact ? COMPACT : LAYOUTS)[layout](model);
     element.dataset.compact = compact && COMPACT[layout] !== LAYOUTS[layout] ? "yes" : "no";
-    const width = g[0].length;
 
     element.textContent = "";
     spans = [];
     lit = [];
     landed = [];
 
-    /* legend line (unless the page draws its own) */
+    /* legend line (unless the page draws its own): across, its middle
+       over the ● (the root's never in the middle of a lopsided tree)
+
+         ←DOT───DASH→
+               ●
+     */
     if (showLegend) {
       const [dot, mid, dash] = LEGEND[layout];
-      const legend = dot + mid + dash;
       const pad = !VERTICAL.has(layout)
-        ? " ".repeat(Math.max(0, Math.floor((width - legend.length) / 2)))
+        ? " ".repeat(Math.max(0, g.root - dot.length - Math.floor(mid.length / 2)))
         : "";
       element.append(pad);
       element.append(span(dot, "legend dot"));
@@ -761,15 +778,16 @@ export function createTree(element, initialLayout, { legend: showLegend = true }
       element.append("\n");
     }
 
-    /* a redraw mid-message picks up where it was */
-    show(currentPath);
+    /* a redraw mid-message picks up where it was (where it's
+       scrolled is the page's to say: it may centre it) */
+    show(currentPath, false);
     land(currentLanded);
   }
 
   /*
    * Light up everything on the path to `path`.
    */
-  function show(path) {
+  function show(path, moving = true) {
     currentPath = path;
     for (const s of lit) s.classList.remove("on");
     lit = spans.filter(s => isOn(s.dataset.kind, s.dataset.code, path));
@@ -782,6 +800,31 @@ export function createTree(element, initialLayout, { legend: showLegend = true }
       }
     }
     revealHidden();
+    if (follow && moving) followNode(path);
+  }
+
+  /*
+   * Follow: a tree wider (or taller) than its box keeps the node
+   * being traced in the middle of it, gliding along as it goes; the
+   * root to begin with. One that fits stays put.
+   *
+   *   ┌──────────────┐                ┌──────────────┐
+   *   │    ●         │ ─ .-. ─────►   │      R       │
+   *   └──────────────┘                └──────────────┘
+   */
+  function followNode(path) {
+    const wide = element.scrollWidth > element.clientWidth + 1;
+    const tall = element.scrollHeight > element.clientHeight + 1;
+    if (!wide && !tall) return;
+    const node = spans.find(s => s.dataset.code === path && s.dataset.kind === (path ? "lbl" : "root"))
+      ?? spans.find(s => s.dataset.code === path);
+    if (!node) return;
+    const box = element.getBoundingClientRect(), at = node.getBoundingClientRect();
+    const to = {};
+    if (wide) to.left = element.scrollLeft + at.left + at.width / 2 - box.left - element.clientWidth / 2;
+    if (tall) to.top = element.scrollTop + at.top + at.height / 2 - box.top - element.clientHeight / 2;
+    const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    element.scrollTo({ ...to, behavior: still ? "auto" : "smooth" });
   }
 
   /*

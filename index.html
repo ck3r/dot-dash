@@ -90,11 +90,11 @@
   <header class="tx-top">
     <a href="/" class="home" aria-label="dot-da.sh home">dot-da.sh</a>
 
-    <!-- what to do with the message; at the far right, profiles (soon) -->
+    <!-- what to do with the message; at the far right, the profile -->
     <div class="top-right">
       <button type="button" id="paste" class="share-toggle" title="paste into the message (or long-press the message)">paste</button>
       <button type="button" id="share-toggle" class="share-toggle" aria-expanded="false" aria-controls="share">share</button>
-      <button type="button" id="profile" class="profile" title="profiles: coming soon" aria-label="profile (coming soon)"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg></button>
+      <button type="button" id="profile" class="profile" title="profile" aria-label="profile" aria-expanded="false" aria-controls="profile-pop"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg><span class="initial" aria-hidden="true"></span></button>
     </div>
   </header>
 
@@ -402,6 +402,51 @@
     <p>Your history stays on this device until you clear it, here
     or at the top of the history.</p>
     <button type="button" id="privacy-clear" class="quiet popup-clear">clear history</button>
+  </section>
+
+  <!-- the profile (the ring, top right): a callsign and your keying,
+       on this device only (js/tx/profile.js, js/tx/stats.js) -->
+  <section id="profile-pop" class="popup profile-pop" role="dialog" aria-labelledby="profile-title" hidden>
+    <span class="frame-label" id="profile-title">profile</span>
+    <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+    <div class="profile-body">
+    <label class="profile-call"><span>callsign</span>
+      <input type="text" id="profile-call" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" placeholder="none yet"></label>
+    <p class="profile-note">Kept on this device, never sent: no account.</p>
+    <p class="profile-since" id="profile-since"></p>
+    <dl class="profile-stats">
+      <dt>letters</dt><dd id="stat-letters"></dd>
+      <dt>words</dt><dd id="stat-words"></dd>
+      <dt>lines</dt><dd id="stat-lines"></dd>
+      <dt>fixes</dt><dd id="stat-fixes"></dd>
+      <dt>keying</dt><dd id="stat-time"></dd>
+      <dt>speed</dt><dd id="stat-speed"></dd>
+      <dt>most</dt><dd id="stat-most" class="wide"></dd>
+      <dt>slowest</dt><dd id="stat-slowest" class="wide"></dd>
+    </dl>
+    <div class="profile-wear">
+      <p class="profile-since">wear</p>
+      <p class="wear-keys" id="wear-keys" role="radiogroup" aria-label="which key's wear"></p>
+      <div class="wear-show">
+        <canvas id="wear-canvas" class="wear-canvas" aria-hidden="true"></canvas>
+        <p class="profile-note" id="wear-note"></p>
+      </div>
+    </div>
+    <p class="profile-note" id="profile-empty">Key something: letters, words and fixes count from any key; speed and the slowest letters need a timed one (straight, bug, a paddle).</p>
+    <button type="button" id="profile-clear" class="quiet popup-clear">clear stats</button>
+
+    <div class="profile-practice">
+      <p class="profile-since">copy practice, Koch order</p>
+      <p class="koch-row">
+        <button type="button" id="koch-less" class="quiet" aria-label="one character fewer">−</button>
+        <span id="koch-set" class="koch-set" aria-live="polite"></span>
+        <button type="button" id="koch-more" class="quiet" aria-label="one character more">+</button>
+      </p>
+      <p class="profile-note">Five groups of five on the line, played, the letters hidden: write down
+        what you hear, then show them with the eye. Copying 90%? Add a character.</p>
+      <button type="button" id="practice-go" class="quiet koch-go">▷ start</button>
+    </div>
+    </div>
   </section>
 
 

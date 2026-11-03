@@ -52,8 +52,8 @@ function getPayload() {
  */
 
 const trees = [
-  createTree($("#tree-h"), "horizontal"),
-  createTree($("#tree-v"), "vertical")
+  createTree($("#tree-h"), "horizontal", { follow: true }),   // wider than the frame: the trace keeps in view
+  createTree($("#tree-v"), "vertical", { follow: true })
 ];
 
 let model = null;

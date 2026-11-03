@@ -174,17 +174,26 @@ const monoText = str => [...str].map(mono).join("");
  */
 const WORD_SPACE = "˽˽";
 
+/*
+ * Title frames stop with the 13th character: past it the title
+ * rests (lastTitle, below), so later frames were never shown, and
+ * each holding the whole text so far made a long message (an
+ * article brought in to practise on) cost seconds before the
+ * station was ready. The paths go on to the end, one per beat, for
+ * whatever follows them.
+ */
 function getTitleFrames(words) {
   const frames = [];
   const paths = [];
   let decoded = "";
+  let chars = 0;          // characters done
 
   const single = words.length === 1 && words[0].length === 1;
   let signal = "";
 
   const frame = path => {
     const at = nodeAt(path) ?? "�";
-    frames.push(single ? `${mono(at)} ${signal}` : monoText(decoded + at));
+    if (chars < TAB_CHARS) frames.push(single ? `${mono(at)} ${signal}` : monoText(decoded + at));
     paths.push(path);
   };
 
@@ -206,10 +215,12 @@ function getTitleFrames(words) {
         }
       }
 
+      if (++chars > TAB_CHARS) continue;
       decoded += DECODE[code] ?? "�";
     }
-    decoded += WORD_SPACE;
+    if (chars <= TAB_CHARS) decoded += WORD_SPACE;
   }
+  if (chars > TAB_CHARS) return { frames, paths };   // capped: no final title
 
   decoded = decoded.slice(0, -WORD_SPACE.length);
   decoded = single ? `${mono(decoded)} ${signal}` : monoText(decoded);

@@ -35,10 +35,18 @@
  *    M      1/8  ███ ███   ███ ███ ███    each way it could be misheard,
  *    O       ˅     M           O          in turn (no cut: no cut row)
  *
- * The glyph and the timelines play once as the card opens (and the
- * misheard one again for each reading). Every character mentioned
- * links to its own card (a[data-code]: the page decides what a tap
- * does; both show that character's card).
+ * The little tree, the glyph and the timelines play once as the
+ * card opens (and the misheard one again for each reading): the
+ * parent, the edge down as the last mark sounds, the character as it
+ * lands, then its children. A tap on a timeline plays it again; on
+ * the tile, the whole card. Every character mentioned links to its
+ * own card (a[data-code]: the page decides what a tap does; both
+ * show that character's card).
+ *
+ * The parts of the column do what they do in the station's column:
+ * the marks copy, so does how it sounds (di-di-dit); and, where the
+ * page has them (renderCard's options), the name says itself, cut
+ * and ~ open what they are.
  */
 
 import { DECODE, TREE, cost, CUT, SHARED, NAME_CODE } from "./morse.js";
@@ -193,6 +201,9 @@ function timeline(parts, { join = 3, labels = [], gone = new Set() } = {}) {
   });
   tl.style.setProperty("--n", t);
   tl.append(marks, under);
+  /* tapped (not on a letter: that's its card): it plays again */
+  tl.title = "play it again";
+  tl.addEventListener("click", event => { if (!event.target.closest("a")) replay(tl); });
   return tl;
 }
 
@@ -208,6 +219,36 @@ function played(code) {
 }
 
 const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* the CSS animations in a part, from the start again */
+function replay(part) {
+  for (const a of part.getAnimations({ subtree: true })) { a.cancel(); a.play(); }
+}
+
+/* the reading dial's ˄ ˅, drawn (the typed ones sit high in their line) */
+function chevron(d) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 12 6");
+  svg.setAttribute("aria-hidden", "true");
+  svg.innerHTML = `<path d="${d}" fill="none" stroke="currentColor" stroke-width="1.6"/>`;
+  return svg;
+}
+
+/* a part of the card that does something when tapped */
+function tap(cls, what, act, text) {
+  const b = make("button", `${cls} card-tap`.trim(), text);
+  b.type = "button";
+  b.title = what;
+  b.setAttribute("aria-label", what);
+  b.addEventListener("click", act);
+  return b;
+}
+
+/* copied, with a word over it (the page's flash, if it has one) */
+async function copy(text, part, flash) {
+  try { await navigator.clipboard.writeText(text); flash?.(part, "copied"); }
+  catch { flash?.(part, "can't copy"); }
+}
 
 
 /*
@@ -243,8 +284,14 @@ export function renderTile(code, { name = DECODE[code] ?? null, strokes = true, 
   if (strokes && drawn) {
     letter = createLetter(drawn, played(code));
     glyph.append(make("span", "char", name), letter.el);   // the character too, unseen, to read and find
+  } else if (kind === "pro") {
+    /* <AR>: brackets and letters apart, so the reference's "bar" can
+       drop the brackets and put the bar over the letters, as its list does */
+    const char = make("span", "char pro");
+    char.append(make("span", "br", "<"), make("span", "pro-letters", name.slice(1, -1)), make("span", "br", ">"));
+    glyph.append(char);
   } else {
-    glyph.append(make("span", `char${kind === "pro" ? " pro" : ""}${name ? "" : " na"}`, name ?? "_"));
+    glyph.append(make("span", `char${name ? "" : " na"}`, name ?? "_"));
   }
   const marks = marksText(code);
   marks.classList.add("tile-code");
@@ -258,7 +305,15 @@ export function renderTile(code, { name = DECODE[code] ?? null, strokes = true, 
  * THE CARD
  * ============================================================
  */
-export function renderCard(element, code) {
+/*
+ *   renderCard(element, code, { say, openCut, openHeard, flash })
+ *     say(ch, part)    the name, spoken (a tap on it)
+ *     openCut(code)    what cut numbers are (a tap on cut)
+ *     openHeard()      why marks get misheard (a tap on ~)
+ *     flash(part, w)   a moment's word over a part ("copied")
+ *   Each one left out: that part stays as it is.
+ */
+export function renderCard(element, code, { say: speak, openCut, openHeard, flash } = {}) {
   element._stop?.();
   element.textContent = "";
   element.classList.add("card");
@@ -281,13 +336,31 @@ export function renderCard(element, code) {
   const parent = code.slice(0, -1);
   const twin = parent + (code.endsWith(".") ? "-" : ".");
   const short = c => treeChar(c) ?? (c === code && name ? "◆" : "_");
+  /* it plays as the marks do: the parent, the edge down while the
+     last mark sounds, it as it lands, then its children
+
+       _        at once
+       |        the last mark's start
+      [0]       the end
+      / \       a unit on
+     _   _      two  */
+  const marksAt = played(code);
+  const end = marksAt.at(-1).end;
   const tree = make("span", "card-tree");
-  const line = (...parts) => { const e = make("span", "tree-line"); e.append(...parts); tree.append(e); };
-  line(code.length > 1 ? ref(parent, { label: short(parent) }) : make("span", "root", "●"));
-  line(make("span", markOf(code), "|"));
-  line(make("b", "here char", name ?? "_"));
-  line(make("span", "dot", "/"), " ", make("span", "dash", "\\"));
-  line(ref(code + ".", { label: short(code + ".") }), "   ", ref(code + "-", { label: short(code + "-") }));
+  const line = (at, ...parts) => {
+    const e = make("span", "tree-line");
+    e.style.setProperty("--t", `${at}ms`);
+    e.append(...parts);
+    tree.append(e);
+  };
+  const has = c => !!(DECODE[c] ?? treeChar(c));
+  const kids = [code + ".", code + "-"];
+  line(0, code.length > 1 ? ref(parent, { label: short(parent) }) : make("span", "root", "●"));
+  line(marksAt.at(-1).start, make("span", markOf(code), "|"));
+  line(end, make("b", "here char", name ?? "_"));
+  line(end + UNIT, make("span", "dot", "/"), " ", make("span", "dash", "\\"));
+  line(end + 2 * UNIT, ref(kids[0], { label: short(kids[0]), cls: has(kids[0]) ? "dot" : "" }), "   ",
+    ref(kids[1], { label: short(kids[1]), cls: has(kids[1]) ? "dash" : "" }));
 
   const place = make("dl", "card-place");
   const fact = (label, value, na = false) => {
@@ -296,7 +369,6 @@ export function renderCard(element, code) {
     dd.append(...[value].flat());
     place.append(dd);
   };
-  const has = c => !!(DECODE[c] ?? treeChar(c));
   const path = [make("span", "root", "●")];
   for (let k = 1; k <= code.length; k++) {
     const step = make("span", "step", "→ ");   // a step breaks before its arrow, never after
@@ -307,7 +379,6 @@ export function renderCard(element, code) {
   fact("depth", String(code.length));
   fact("parent", code.length > 1 ? ref(parent) : make("span", "na", "● (the start)"), code.length > 1 && !has(parent));
   fact("twin", ref(twin, { cls: has(twin) ? markOf(twin) : "" }), !has(twin));
-  const kids = [code + ".", code + "-"];
   fact("children", [ref(kids[0], { cls: has(kids[0]) ? "dot" : "" }), " ", ref(kids[1], { cls: has(kids[1]) ? "dash" : "" })], !kids.some(has));
   const rev = reverseOf(code), inv = inverseOf(code);
   fact("reverse", [ref(rev), "  (", marksText(rev), ")"], !has(rev));
@@ -315,10 +386,14 @@ export function renderCard(element, code) {
   row("r-tree", tree, place);
 
   /* ---- the marks, and the card: what it is, what it costs ---- */
-  const marks = make("span", "card-marks");
+  const marks = tap("card-marks", `copy ${code}`, () => copy(code, marks, flash));
   for (const m of code) marks.append(make("i", m === "." ? "dot" : "dash"));
 
+  /* the tile, tapped: the whole card plays again */
   const { el: tile, letter } = renderTile(code);
+  tile.classList.add("card-tap");
+  tile.title = "play the card again";
+  tile.addEventListener("click", () => { replay(element); drawGlyph(); });
 
   /* beside it, anything more to say */
   const note = make("div", "card-note");
@@ -345,13 +420,19 @@ export function renderCard(element, code) {
   /* ---- its name, and how it sounds ---- */
   const said = isName ? "dot-da.sh" : name && spokenOf(name);
   let nameEl = null;
-  if (said) {
+  if (said && speak && !isName) {
+    nameEl = tap("card-name", `say ${said}`, () => speak(name, nameEl));
+    layStair(nameEl, syllablesOf(name, said), STRESS[name]);
+  } else if (said) {
     nameEl = make("span", "card-name");
     layStair(nameEl, isName ? ["dot", "-da", ".sh"] : syllablesOf(name, said), STRESS[name]);
   } else if (sign || name) {
     nameEl = make("span", "card-sign", sign ?? name);
   }
-  const sound = [make("p", "card-sounds", spoken(code))];
+  const sounds = make("p", "card-sounds");
+  const sounded = tap("", `copy ${spoken(code)}`, () => copy(spoken(code), sounded, flash), spoken(code));
+  sounds.append(sounded);
+  const sound = [sounds];
   if (name?.startsWith("<") && prosign) {
     const letters = prosign[1].split(" ").map(l => Object.keys(DECODE).find(k => DECODE[k] === l));
     sound.push(timeline(letters, { join: 1, labels: letters.map(c => ref(c)) }));
@@ -364,7 +445,8 @@ export function renderCard(element, code) {
   const cutFor = CUT[code] && CUT[code] !== name ? CUT[code] : null;     // a letter, standing for a digit
   const digit = cutFor ?? (CUT_OF[name] ? name : null);
   if (digit) {   /* none: no row at all */
-    row("r-label", make("span", "card-label", "cut"), null);
+    const what = "what are cut numbers?";
+    row("r-label", openCut ? tap("card-label", what, () => openCut(code), "cut") : make("span", "card-label", "cut"), null);
     const full = Object.keys(DECODE).find(k => DECODE[k] === digit);
     const short = CUT_OF[digit];
     const early = Number(digit) >= 1 && Number(digit) <= 5;   // 1–5 keep their start, 6–0 their end
@@ -372,28 +454,31 @@ export function renderCard(element, code) {
     const gone = new Set(Array.from({ length: dropped }, (_, k) => early ? short.length + k : k));
     const parts = early ? [full.slice(0, short.length), full.slice(short.length)] : [full.slice(0, dropped), full.slice(dropped)];
     const labels = early ? [ref(short)] : [null, ref(short)];
-    row("r-cut", ref(cutFor ? full : short, { cls: "card-big" }),
+    const big = cutFor ? full : short;
+    row("r-cut", openCut ? tap("card-big", what, () => openCut(code), DECODE[big]) : ref(big, { cls: "card-big" }),
       timeline(parts, { join: 1, labels, gone }));
   }
 
   /* ---- ~: what the same marks could be heard as, each in turn ---- */
   const alt = name ? splits(code) : [];
-  row("r-label", make("span", `card-label${alt.length ? "" : " na"}`, "~"), null);
+  const why = "why could it be misheard?";
+  row("r-label", alt.length && openHeard ? tap("card-label", why, () => openHeard(), "~") : make("span", `card-label${alt.length ? "" : " na"}`, "~"), null);
   if (alt.length) {
-    const left = make("span", "card-stack");
+    const left = openHeard ? tap("card-stack", why, () => openHeard()) : make("span", "card-stack");
     const right = make("div", "card-heard");
     const held = make("span", "heard-line");
     const turn = make("span", "card-turn");
-    const up = make("button", "", "˄"), down = make("button", "", "˅"), count = make("span", "", "");
+    const up = make("button"), down = make("button"), count = make("span", "", "");
     up.type = down.type = "button";
+    up.append(chevron("M1 5 6 1l5 4")); down.append(chevron("M1 1l5 4 5-4"));
     up.title = "the reading before"; down.title = "the next reading";
     turn.append(up, count, down);
-    if (alt.length < 2) turn.classList.add("one");
+    if (alt.length < 2) { turn.classList.add("one"); up.disabled = down.disabled = true; }   // greyed: nowhere to turn
     right.append(turn, held);   // first, so it stays put whatever the reading's length
     let at = 0;
     const show = () => {
       const parts = alt[at];
-      left.replaceChildren(...parts.map(c => ref(c, { cls: "card-big" })));
+      left.replaceChildren(...parts.map(c => openHeard ? make("span", "card-big", DECODE[c]) : ref(c, { cls: "card-big" })));
       held.replaceChildren(timeline(parts, { labels: parts.map(c => ref(c)) }));
       count.textContent = `${at + 1}/${alt.length}`;
     };
@@ -405,17 +490,20 @@ export function renderCard(element, code) {
     row("r-heard", null, make("p", "na", name ? "can't be misheard: no shorter pieces add up to it" : "—"));
   }
 
-  /* the glyph draws itself as the marks go by, once */
-  if (letter) {
+  /* the glyph draws itself as the marks go by, once (again with the card) */
+  let frame = 0;
+  function drawGlyph() {
+    if (!letter) return;
+    cancelAnimationFrame(frame);
     if (still()) { letter.at(Infinity); return; }
-    let frame = 0;
     const t0 = performance.now();
     const tick = now => {
       letter.at(now - t0);
-      if (now - t0 < played(code).at(-1).end + UNIT) frame = requestAnimationFrame(tick);
+      if (now - t0 < end + UNIT) frame = requestAnimationFrame(tick);
     };
     letter.at(0);
     frame = requestAnimationFrame(tick);
-    element._stop = () => cancelAnimationFrame(frame);
   }
+  drawGlyph();
+  element._stop = () => cancelAnimationFrame(frame);
 }

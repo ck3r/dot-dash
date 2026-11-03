@@ -269,6 +269,45 @@ export function looksLikeMorse(str) {
 
 
 /*
+ * Morse as people write it on a page (a puzzle, a post, a tattoo),
+ * read as words; null if it's anything else (then it's text to
+ * encode). Dits and dahs come in many shapes; words are kept apart
+ * by a slash, a bar, or a wider space.
+ *
+ *   ·  •  ∙  ⋅        a dit           ...  .-.
+ *   −  –  —  ‒  _     a dah           −·−  →  -.-
+ *   /  |  2+ spaces   between words   ".... ..  -.-"  →  HI K
+ */
+
+export function morseFrom(text) {
+  let s = text.trim()
+    .replace(/[·•∙⋅]/g, ".")
+    .replace(/[−–—‒_]/g, "-");
+  if (!/^[.\-/|\s]+$/.test(s) || !/[.\-]/.test(s)) return null;
+  if (!/[/|]/.test(s)) s = s.replace(/[ \t]{2,}|\n+/g, "/");
+  return s.split(/\s*[/|]+\s*/).map(w => w.split(/\s+/).filter(Boolean)).filter(w => w.length);
+}
+
+
+/*
+ * Text from elsewhere (a page, the share sheet) as words to send:
+ * Morse already reads as Morse (above), not its dots as full stops.
+ * Otherwise a link's address is dropped (noise, letter by letter),
+ * curly quotes and long dashes go straight, accents come off
+ * (é → E); anything else Morse doesn't have is dropped quietly by
+ * encode, never sent as a stray "?". The station's arrival door and
+ * the browser extension both read text this way.
+ */
+
+export function wordsFrom(text) {
+  return morseFrom(text) ?? encode(text
+    .replace(/\bhttps?:\/\/\S+/gi, " ")
+    .replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, "-")
+    .normalize("NFD").replace(/\p{Mn}/gu, ""));        // the accents NFD split off
+}
+
+
+/*
  * ============================================================
  * COST
  * ============================================================

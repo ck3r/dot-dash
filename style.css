@@ -466,6 +466,10 @@ button {
 /* the little tree: parent, the edge down, it, its two children */
 .card-tree { font-size: 1.1rem; line-height: 1.2; white-space: pre; }
 .card-tree .tree-line { display: block; }
+/* it plays with the card: each line comes up when its moment comes (--t) */
+.card-tree .tree-line { animation: card-lit 0.12s linear var(--t) both; }
+@keyframes card-lit { from { opacity: 0.2; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .card-tree .tree-line { animation: none; } }
 .card .here { background: var(--paper); color: var(--bakelite); padding: 0 0.15em; }
 
 /* its place in the whole tree */
@@ -584,25 +588,69 @@ button {
 
 /* the misheard readings, one at a time: ˄ 1/8 ˅ */
 /* the turn between the columns: it stays put, however long the reading,
-   and the timeline starts where the others do */
+   and the timeline starts where the others do. Centred in the room
+   between the letters (one wide, 1.3rem, centred in the 4.5rem
+   column) and the timeline (past the 1rem gap):
+
+     │   M   ˄   ███ ███ │
+     │   O  1/8          │
+     │       ˅           │
+         ├───┼───┤  equal  */
 .card-heard { position: relative; }
-.card-turn { position: absolute; right: calc(100% + 0.2rem); top: -0.35rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.2rem; font-size: 0.7rem; color: var(--graphite); line-height: 1; }
+.card-turn {
+  position: absolute;
+  left: calc((1rem + 4.5rem / 2 - 1.3rem * 0.3) / -2);
+  top: -0.2rem;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  color: var(--graphite);
+  line-height: 1;
+}
 .card-turn span { display: block; min-width: 4ch; text-align: center; }
-.card-turn.one { visibility: hidden; }
+/* the chevrons drawn, not typed: ˄ and ˅ sit high in their line, so
+   the count between them sat low */
 .card-turn button {
+  display: block;
   border: 0;
-  padding: 0 0.3rem;
+  padding: 0.1rem 0.3rem;
   background: transparent;
   color: var(--paper);
-  font-size: 0.95rem;
-  line-height: 1.1;
+  line-height: 0;
 }
+.card-turn svg { display: block; width: 0.7rem; height: 0.4rem; }
+/* one reading: nowhere to turn, greyed */
+.card-turn button:disabled { color: var(--wire); cursor: default; }
+
+/* the parts that do something, tapped: plain, as they were, brass to the pointer */
+.card .card-tap { cursor: pointer; }
+.card button.card-tap {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.card button.card-name { color: var(--graphite); font-size: 1.3rem; width: 100%; }
+.card button.card-label { color: var(--graphite); font-size: 0.95rem; }
+.card button.card-big { font-size: 1.3rem; font-weight: 700; line-height: 1.15; }
+.card-sounds button.card-tap { font-weight: 700; }
+.card .tl { cursor: pointer; }
 @media (hover: hover) {
   .card a:hover { background: transparent; }   /* not the page's paper block: brass, in place */
   .card a:hover, .card a:hover * { color: var(--brass); }
-  .card .card-turn button:hover { background: transparent; color: var(--brass); }
+  .card .card-turn button:not(:disabled):hover { background: transparent; color: var(--brass); }
+  .card button.card-tap:hover, .card button.card-tap:hover * { background: transparent; color: var(--brass); }
+  .card .card-marks.card-tap:hover i { background: var(--brass); }
+  .card .card-tile.card-tap:hover { border-color: var(--brass); }
 }
-.card a:focus-visible, .card-turn button:focus-visible { outline: 1px dashed var(--brass); outline-offset: 2px; }
+.card a:focus-visible, .card-turn button:focus-visible, .card button.card-tap:focus-visible { outline: 1px dashed var(--brass); outline-offset: 2px; }
 
 
 /* ============================================================
@@ -1004,6 +1052,9 @@ body:not(.signal) :is(.morse-code, .card) .stroked .fill :is(path, circle) { str
  */
 .morse-code.bar .label.pro .br { visibility: hidden; }
 .morse-code.bar .label.pro .pro-letters { text-decoration: overline; text-decoration-thickness: 0.08em; }
+/* the cards too: the brackets gone (a tile has room to centre the letters) */
+.morse-code.bar .tile-glyph .br { display: none; }
+.morse-code.bar .tile-glyph .pro-letters { text-decoration: overline; text-decoration-thickness: 0.08em; }
 
 /* an answer's "?" slot (js/main.js): its room kept, so QRL and QRL?
    centre the same and the letters don't move */

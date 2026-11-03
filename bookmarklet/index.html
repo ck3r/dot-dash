@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#1c1916">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <title>bookmarklet · dot-da.sh</title>
+  <meta name="description" content="Send what you've selected on any page to the dot-da.sh station, as Morse. A bookmark: nothing to install.">
+
+  <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
+
+  <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/design/design.css">
+  <link rel="stylesheet" href="/bookmarklet/bookmarklet.css">
+
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://dot-da.sh/bookmarklet/">
+  <meta property="og:title" content="bookmarklet · dot-da.sh">
+  <meta property="og:description" content="Send what you've selected on any page to the station, as Morse.">
+  <meta property="og:image" content="https://dot-da.sh/preview.png">
+</head>
+
+<body class="notes">
+  <header class="top">
+    <a href="/" class="home">dot-da.sh</a>
+  </header>
+
+  <main>
+    <h1>a bookmarklet</h1>
+    <p class="lead">Select some text on any page, tap a bookmark, and it's on the station's line as Morse. A bookmark that runs a few lines instead of opening a page: nothing to install, and nothing runs until you tap it.</p>
+
+    <section class="frame" id="keep" aria-labelledby="l-keep">
+      <h2 class="frame-label" id="l-keep">keep it</h2>
+      <p class="keep"><a id="keep-link" href="/bookmarklet/" draggable="true">→ dot-da.sh</a></p>
+      <p>On a computer, drag that to your bookmarks bar. (Show the bar with Ctrl+Shift+B, or ⌘+Shift+B on a Mac.)</p>
+      <p>On a phone, or anywhere dragging doesn't work: <button type="button" id="copy">copy it</button>, bookmark any page, then edit the bookmark and paste over its address. To use it on a phone, type the bookmark's name in the address bar and pick it from the list.</p>
+    </section>
+
+    <section class="frame" id="use" aria-labelledby="l-use">
+      <h2 class="frame-label" id="l-use">use it</h2>
+      <ul>
+        <li>Select some text, then tap the bookmark: the station opens in a new tab with it on the line.</li>
+        <li>Nothing selected, and it asks what to send.</li>
+        <li>Select Morse (<code>-- --- .-. ... .</code>) and it arrives as text.</li>
+        <li>The text rides after the <code>#</code> in the address, which a browser never sends to a server: it goes from the page to the station in your browser, and nowhere else.</li>
+      </ul>
+    </section>
+
+    <section class="frame" id="lite" aria-labelledby="l-lite">
+      <h2 class="frame-label" id="l-lite">lite</h2>
+      <p>It sends, and that's all. Playing on the page, a card by the selection, copying as Morse and keyboard shortcuts need the browser extension, which can stay ready in the background. A bookmarklet can only run when it's tapped.</p>
+      <p>A few sites don't let bookmarklets run at all; that's their security settings, nothing to fix here. On those, copy the text and paste it at the station.</p>
+    </section>
+
+    <section class="frame" id="what" aria-labelledby="l-what">
+      <h2 class="frame-label" id="l-what">what it runs</h2>
+      <p>All of it, word for word:</p>
+      <pre id="source"></pre>
+    </section>
+
+    <footer>
+      <p><a href="/">the station</a> · <a href="/ref/">the reference</a> · made by ck3r</p>
+    </footer>
+  </main>
+
+  <script type="module" src="/bookmarklet/bookmarklet.js"></script>
+</body>
+</html>
