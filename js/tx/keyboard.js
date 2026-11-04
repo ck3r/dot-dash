@@ -10,7 +10,7 @@
  *
  *   createKeyboard({ typeKey }) → { openHold, redrawKeys }
  */
-import { DECODE, ENCODE, codeOf } from "../morse.js";
+import { DECODE, ENCODE, READING, codeOf } from "../morse.js";
 import { $, el, nearest } from "./dom.js";
 
 export function createKeyboard({ typeKey }) {
@@ -95,6 +95,19 @@ export function createKeyboard({ typeKey }) {
 
   const isLetter = ch => /^[A-Z]$/.test(ch);
 
+  /*
+   * Four codes read two ways (morse.js SHARED): .-.-. is + or <AR>.
+   * The tray's prosigns setting picks which, and whatever is typed
+   * reads that way, so the other key would type something it isn't:
+   * greyed, and it types nothing.
+   *
+   *   prosigns on    123: + = ( &  grey     <AR> <BT> <KN> <AS> type
+   *   prosigns off   123: + = ( &  type     <AR> <BT> <KN> <AS> grey
+   *
+   * (Cut needs none: a typed digit stays a digit, morse.js.)
+   */
+  const off = (k, where) => k in PRO_NAME && (where === "pro") !== READING.pro;
+
   /* each letter's descendants that aren't letters (digits, symbols), in tree order */
   const EXTRAS = {};
   for (const [code, ch] of Object.entries(DECODE)) {
@@ -156,6 +169,7 @@ export function createKeyboard({ typeKey }) {
           b.append(codeMarks(k), el("b", "", name));
           b.title = layout === "q" ? `${k}: ${Q_MEANS[k]}` : name;
           b.setAttribute("aria-label", b.title);
+          if (layout === "pro" && off(k, "pro")) greyKey(b, `${name}: prosigns are off, it reads as ${k}`);
         } else {
           /* Morse first: the code above the character */
           b.append(codeMarks(k), el("b", "", k));
@@ -163,6 +177,7 @@ export function createKeyboard({ typeKey }) {
             b.classList.add("more");
             b.setAttribute("aria-label", `${k} (hold for ${EXTRAS[k].join(" ")})`);
           }
+          if (off(k, "sym")) greyKey(b, `${k}: prosigns are on, it reads as ${PRO_NAME[k]}`);
         }
         rowEl.append(b);
       }
@@ -180,6 +195,12 @@ export function createKeyboard({ typeKey }) {
       }
       kbd.append(rowEl);
     }
+  }
+
+  function greyKey(b, why) {
+    b.classList.add("off");
+    b.setAttribute("aria-disabled", "true");
+    b.title = why;
   }
 
   function openHold(open) {
@@ -219,6 +240,7 @@ export function createKeyboard({ typeKey }) {
       : [held.k, ...EXTRAS[held.k]].map(ch => {
           const item = el("span", "item");
           item.dataset.ch = ch;
+          item.classList.toggle("off", off(ch, "sym"));   // + and the rest, under R, B, Y, L
           item.append(codeMarks(ch), el("b", "", ch));
           fan.append(item);
           return item;
@@ -230,10 +252,11 @@ export function createKeyboard({ typeKey }) {
     fan.style.top = (key.top - fan.offsetHeight - 6) + "px";
     held.fan = fan;
     held.items = items;
-    choose(held.k === "layout" ? items.find(i => i.dataset.ch === "pro") : items[1]);   // the first digit / symbol (or the prosigns), ready to go
+    choose(held.k === "layout" ? items.find(i => i.dataset.ch === "pro") : items.slice(1).find(i => !i.classList.contains("off")));   // the first digit / symbol that types (or the prosigns), ready to go
   }
 
   function choose(item) {
+    if (item?.classList.contains("off")) item = null;   // greyed: letting go there types nothing
     for (const i of held.items) i.classList.toggle("on", i === item);
     held.choice = item?.dataset.ch ?? null;
   }
@@ -251,6 +274,11 @@ export function createKeyboard({ typeKey }) {
   const AIM_LIFT = 3;   // px
 
   function keyAt(event) {
+    const b = nearestKey(event);
+    return b?.classList.contains("off") ? null : b;   // greyed: a press there does nothing
+  }
+
+  function nearestKey(event) {
     const direct = event.target.closest("button[data-k]");
     if (event.pointerType !== "touch") return direct;
     if (event.target.closest(".kbd-info")) return null;
@@ -265,14 +293,27 @@ export function createKeyboard({ typeKey }) {
     return best;
   }
 
+  /*
+   * Two thumbs: a second key goes down before the first comes up.
+   * One key is held at a time, so the first one goes (typed, as if
+   * let go) and the second is held; each finger's lift is matched to
+   * its own key, so a late lift can't let go of the wrong one, and no
+   * key is left pressed (or ⌫ left repeating).
+   *
+   *   finger 1  ──[ H ]──────────┐ up (ignored: H already went)
+   *   finger 2         ──[ I ]────────┐ up: I
+   *                      ↑ H types here
+   */
   $("#kbd").addEventListener("pointerdown", event => {
-    const b = keyAt(event);
+    let b = keyAt(event);
     if (!b) return;
     event.preventDefault();
-    b.setPointerCapture?.(event.pointerId);
+    if (held) release(null, true);
+    if (!b.isConnected) b = keyAt(event);   // the first was 123: the layout changed under the second
+    if (!b) return;
+    try { b.setPointerCapture(event.pointerId); } catch { }   // (a pointer already gone: its lift comes anyway)
     b.classList.add("pressed");
-    closeFan();
-    held = { b, k: b.dataset.k, timer: null, fan: null, items: [], choice: null };
+    held = { b, k: b.dataset.k, id: event.pointerId, timer: null, fan: null, items: [], choice: null };
     if (held.k === "back") {
       /* held, a word at a time (half a second, then every half second) */
       held.timer = setInterval(() => typeKey("back-word"), 500);
@@ -282,13 +323,14 @@ export function createKeyboard({ typeKey }) {
   });
 
   $("#kbd").addEventListener("pointermove", event => {
-    if (!held?.fan) return;
+    if (!held?.fan || event.pointerId !== held.id) return;
     /* the item under the finger, or nearest it (dom.js) */
     choose(nearest(held.items, event.clientX, event.clientY));
   });
 
+  /* event: the finger that let go (null: let go for it, a second key came down) */
   function release(event, commit) {
-    if (!held) return;
+    if (!held || (event && event.pointerId !== held.id)) return;
     clearTimeout(held.timer);
     clearInterval(held.timer);
     held.b.classList.remove("pressed");

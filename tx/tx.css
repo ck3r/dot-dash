@@ -754,9 +754,14 @@ body.tree-open .tree-edge {
   color: var(--brass);
 }
 
-/* on touch screens a long-press means paste, not select */
+/* on touch screens a long-press means paste, not select; and nowhere
+   else at the station does a held finger start the phone's own
+   selection (a word, or the ↵ glyph, highlighted with handles that
+   swallow the next taps): the station is all controls. Only a real
+   text box (the callsign) selects. The JS backs this up (main.js) */
 @media (pointer: coarse) {
-  .tape { -webkit-user-select: none; user-select: none; }
+  body.tx { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  .tx :is(input[type="text"], textarea) { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 }
 
 /* history above: the top edge fades out */
@@ -1015,9 +1020,12 @@ body[data-mode="type"] .entry.current .line .caret.tail {
   top: calc(1.05rem * 1.2);
 }
 
-/* playing: the caret holds still; keys put away: no caret at all */
-body.playing .caret,
-.entry.anim .caret { animation: none; }   /* (and while the eye goes over: lit, not blinking) */
+/* playing (or paused part-way: tx/player.js): no caret, the lit
+   letter is where you are, and it's back once playback is over or
+   stopped; keys put away: no caret at all. It keeps its room, so
+   nothing on the line moves */
+.entry.anim .caret { animation: none; }   /* (while the eye goes over: lit, not blinking) */
+body.playback .caret,
 body.reading .caret { visibility: hidden; }
 
 /* the empty line: the caret waits in front of the hint */
@@ -2250,6 +2258,18 @@ body:has(#train:not([hidden])) .pad {
   font-size: var(--fs-s);
 }
 
+/* a key that would type something other than it says (+ with
+   prosigns on, <AR> with them off: tx/keyboard.js): grey, idle,
+   and its code grey too, even with the signal's colours on */
+.kbd button.off,
+.fan .item.off {
+  color: var(--wire);
+  border-style: dashed;
+  cursor: default;
+}
+.kbd button.off small span,
+.fan .item.off small span { color: var(--wire) !important; }
+
 /*
  * Codes fit their key: each key measures its own width (a size
  * container) and a code of --len marks takes at most that, so
@@ -3262,7 +3282,7 @@ a.switch { text-decoration: none; }
   :root .tx #tree .lbl:not(.blank):hover { color: var(--brass); cursor: pointer; }
   /* the keys */
   :root .tx #pad .key:hover,
-  :root .tx #kbd button[data-k]:hover { border-color: var(--brass); }
+  :root .tx #kbd button[data-k]:not(.off):hover { border-color: var(--brass); }
   /* settings: the list (text, underline, chevron) and the [ ] */
   :root .tx .switches label:has(select:not(:disabled)):hover select { color: var(--brass); border-bottom-color: var(--brass); }
   :root .tx .switches label:has(select:not(:disabled)):hover::after { border-color: var(--brass); }

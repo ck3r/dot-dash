@@ -22,7 +22,8 @@
  *             Made from a burst of noise through filters (the
  *             strike) plus a short ring (the wooden body).
  *
- *   voice     the recordings (js/tx/voice.js). Playback says each
+ *   voice     the recordings (js/tx/voice.js): phonetic (ALFA BRAVO)
+ *   letters   or the plain names (A B). Playback says each
  *             letter (say) instead of sounding its marks; keying keeps
  *             the tone, your hand needs it, and letters are said as
  *             they land (speak).
@@ -38,7 +39,7 @@
  * a buffer instead of the speakers.
  */
 
-import { loadVoice, wordPlace, SAY_GAP } from "./tx/voice.js";
+import { loadVoice, wordPlace, setVoice, SAY_GAP } from "./tx/voice.js";
 
 const RISE = 0.0015;        // setTargetAtTime constant: ~5 ms to full
 const TONE_LEVEL = 0.5;     // headroom under the master volume
@@ -54,8 +55,8 @@ export function createSound(options = {}) {
   let volume = 0.6;
   let enabled = true;
   let toneOn = false;
-  let speaks = false;          // voice is chosen
-  let recording = null;        // the voice, decoded
+  let speaks = false;          // a voice is chosen
+  let recording = null;        // { name, buffer }: the voice, decoded
   const saying = new Set();    // what's sounding, or scheduled to
 
   /* volume slider 0..1 → gain, on a curve that sounds even */
@@ -186,16 +187,22 @@ export function createSound(options = {}) {
 
   /* ---------- the voice ---------- */
 
-  const voiceReady = () => loadVoice().then(buffer => { recording = buffer; });
+  /* the voice chosen, which may differ from the one decoded */
+  const VOICE_OF = { voice: "phonetic", letters: "letters" };
+  let voiceName = "phonetic";
+
+  const voiceReady = (name = voiceName) => loadVoice(name).then(buffer => {
+    if (name === voiceName) recording = { name, buffer };
+  });
 
   /* a word, `delay` s from now, less the first `skip` s (a seek landed
      part-way through it); how long it runs, 0 if it can't */
   function say(word, delay = 0, skip = 0) {
-    if (!enabled || !recording || !unlock()) return 0;
-    const { offset, length } = wordPlace(word);
+    if (!enabled || recording?.name !== voiceName || !unlock()) return 0;
+    const { offset, length } = wordPlace(word, voiceName);
     if (skip >= length) return 0;
     const src = ctx.createBufferSource();
-    src.buffer = recording;
+    src.buffer = recording.buffer;
     src.connect(master);
     src.onended = () => saying.delete(src);
     saying.add(src);
@@ -214,7 +221,12 @@ export function createSound(options = {}) {
 
   function setKind(next) {
     const was = speaks;
-    speaks = next === "voice";
+    speaks = next in VOICE_OF;
+    if (speaks && VOICE_OF[next] !== voiceName) {
+      hush();
+      voiceName = VOICE_OF[next];
+      setVoice(voiceName);          // a tap on a name, a spoken .wav: the same voice
+    }
     if (speaks) voiceReady().catch(() => { });      // said again, and reported, at play
     else if (was) hush();
     const sounding = next === "sounder" ? "sounder" : "tone";
@@ -251,6 +263,6 @@ export function createSound(options = {}) {
     get context() { return ctx; },
     get enabled() { return enabled; },
     get speaks() { return speaks; },
-    get voiceLoaded() { return !!recording; }
+    get voiceLoaded() { return recording?.name === voiceName; }
   };
 }

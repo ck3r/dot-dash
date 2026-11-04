@@ -187,9 +187,17 @@ export function createKeys({
    * Backspace, held (the pad's ⌫, or the computer's): after half a second the
    * rest of the last word goes, then a word more every half second,
    * as a held key repeats.
+   *
+   * The letter space, held (the pad's ˽, or the space bar): after the
+   * same half second it grows into a word space, once. A tap is a
+   * letter, a lean is a word, so a thumb on the bar does both:
+   *
+   *   space ▔▔╲___            ˽     (tapped)
+   *   space ▔▔╲_______╱▔▔     ˽ → / at half a second
    */
   const WORD_BACK = 500;   // ms
   let wordBack = null;
+  let wordOn = null;
 
   function keyDown(button) {
     if (!button || button.classList.contains("pressed")) return;
@@ -213,12 +221,14 @@ export function createKeys({
     state.localCleared = act === "letter" || act === "word";   // a space you pressed: start fresh
     press(act);
     if (act === "undo") wordBack = setInterval(() => press("word-back"), WORD_BACK);
+    if (act === "letter") wordOn = setTimeout(() => press("word"), WORD_BACK);
   }
 
   function keyUp(button) {
     if (!button || !button.classList.contains("pressed")) return;
     button.classList.remove("pressed");
     clearInterval(wordBack);
+    clearTimeout(wordOn);
     const act = button.dataset.act;
     if ((act === "." || act === "-") && state.keyMode !== "tap") keyer.up(act);
   }
@@ -271,7 +281,7 @@ export function createKeys({
    * them; they're off unless asked for, so Ctrl stays free for
    * shortcuts (Ctrl+C would otherwise key a dit first).
    *
-   *   space      letter space (straight key: the key itself)
+   *   space      letter space; held, a word space (straight key: the key itself)
    *   /          word space
    *   backspace  undo        enter   send        P   play / pause
    *

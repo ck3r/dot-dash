@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#1c1916">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <title>privacy · dot-da.sh</title>
+  <meta name="description" content="What dot-da.sh and its browser extension do with what you type and select: it stays in your browser.">
+
+  <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
+
+  <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/design/design.css">
+
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://dot-da.sh/privacy/">
+  <meta property="og:title" content="privacy · dot-da.sh">
+  <meta property="og:description" content="What you type and select stays in your browser.">
+  <meta property="og:image" content="https://dot-da.sh/preview.png">
+</head>
+
+<body class="notes">
+  <header class="top">
+    <a href="/" class="home">dot-da.sh</a>
+  </header>
+
+  <main>
+    <h1>privacy</h1>
+    <p class="lead">In short: what you key, type or select stays in your browser. No accounts, no analytics, no ads, no cookies, nothing sold or shared. The one exception is a link you choose to share, below.</p>
+
+    <section class="frame" id="extension" aria-labelledby="l-extension">
+      <h2 class="frame-label" id="l-extension">the extension</h2>
+      <ul>
+        <li>It reads a page only when you ask it to: the toolbar button, its shortcut, the right-click menu, or <code>morse</code> in the address bar. Then it reads the selection, or the page's main text if nothing is selected. Until then it has no access to any site, and nothing of it runs in your pages.</li>
+        <li>Sending opens the station at <code>dot-da.sh/#text=…</code>. The text goes after the <code>#</code>, and browsers never send that part of an address to a server. The station reads it in your browser and tidies the address back to <code>/</code>.</li>
+        <li>The card, Play here and the copy items work within the browser. They send nothing anywhere.</li>
+        <li>Its settings (speed, pitch) are kept by your browser's extension storage. If you've turned on sync for extensions, your browser syncs them as it does for any other extension.</li>
+        <li>It collects nothing and sends nothing to us or anyone else.</li>
+      </ul>
+    </section>
+
+    <section class="frame" id="permissions" aria-labelledby="l-permissions">
+      <h2 class="frame-label" id="l-permissions">why each permission</h2>
+      <ul>
+        <li><code>activeTab</code>, <code>scripting</code>: to read the selection or the page you're on, once, when you click.</li>
+        <li><code>contextMenus</code>: the right-click items.</li>
+        <li><code>clipboardWrite</code>: Copy as Morse, Copy a link.</li>
+        <li><code>offscreen</code>: in Chrome and Edge, a hidden page to play the tone from.</li>
+        <li><code>storage</code>: your settings.</li>
+      </ul>
+    </section>
+
+    <section class="frame" id="site" aria-labelledby="l-site">
+      <h2 class="frame-label" id="l-site">the site</h2>
+      <ul>
+        <li>Your settings, history and stats are kept in your browser (local storage) and never uploaded. Clearing the site's data in your browser removes them.</li>
+        <li>Everything the site needs, fonts included, comes from dot-da.sh. Nothing is loaded from anyone else.</li>
+        <li>The site is hosted by GitHub Pages, with link previews made by a Cloudflare Worker. Like any web host, they may keep ordinary request logs (address, time, browser). We don't add any tracking of our own.</li>
+      </ul>
+    </section>
+
+    <section class="frame" id="links" aria-labelledby="l-links">
+      <h2 class="frame-label" id="l-links">links you share</h2>
+      <p>A share link (<code>dot-da.sh/?/…</code>) carries its message in the address itself, after the <code>?</code>, so a chat app can show a preview and the moving picture. That part does reach the server when the link is opened or previewed. Share only what you'd put in any link. Nothing is stored there: the message is drawn from the address each time.</p>
+    </section>
+
+    <section class="frame" id="changes" aria-labelledby="l-changes">
+      <h2 class="frame-label" id="l-changes">changes</h2>
+      <p>If any of this changes, this page will say so first. Last changed 3 November 2026.</p>
+    </section>
+
+    <footer>
+      <p><a href="/">the station</a> · <a href="/ref/">the reference</a> · made by ck3r</p>
+    </footer>
+  </main>
+</body>
+</html>

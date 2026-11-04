@@ -145,7 +145,10 @@ export function createPlayback({
   for (const type of ["pointerup", "pointercancel"]) window.addEventListener(type, () => trace.zoom(false));
 
   function playerControls() {
-    document.body.classList.toggle("playing", player.playing);   // the caret holds still
+    document.body.classList.toggle("playing", player.playing);
+    /* playing, or paused part-way: the lit letter is where you are,
+       so the caret (where typing goes) steps out until it's over */
+    document.body.classList.toggle("playback", player.playing || (state.playKey !== null && player.position < player.duration));
     media.follow(player.playing, playable()?.words);   // the system's controls (js/tx/media.js)
     tab.playing(player.playing);                        // the tab's icon lit (js/tx/tab.js)
     const can = !!playable();
@@ -212,6 +215,7 @@ export function createPlayback({
       const note = speedNote();      // played slower than set (the flashlight)
       if (note) toast(note);
       player.play();
+      drawTree();     // every branch the message takes (tx/tree.js)
       state.record("play", { entry: state.playEntry });
       revealEntry();
     }
@@ -234,6 +238,7 @@ export function createPlayback({
     player.stop();
     clearHighlight();
     drawLocal();
+    drawTree();     // back to the letters, and the branch to what's showing
     if (wasPast) settleTape();
     state.playKey = null;
     state.playEntry = null;

@@ -130,9 +130,9 @@
       <button type="button" data-do="save-wav">.wav</button>
       <button type="button" data-do="save-gif" id="save-gif">.gif</button>
     </div>
-    <!-- the message read out in the phonetic alphabet, from recordings -->
+    <!-- the message read out (phonetic or letters), from recordings -->
     <div class="rows" id="share-voice">
-      <button type="button" data-do="save-voice" title="the text read out in the phonetic alphabet"><span>save spoken .wav</span></button>
+      <button type="button" data-do="save-voice" title="the text read out, in the voice last chosen under sound (phonetic or letters)"><span>save spoken .wav</span></button>
     </div>
     <div class="rows" id="share-native" hidden>
       <button type="button" data-do="share"><span>share…</span></button>
@@ -558,7 +558,8 @@
             <option value="off">off</option>
             <option value="tone" selected>tone</option>
             <option value="sounder">sounder</option>
-            <option value="voice" title="spoken letters, at their own pace">voice</option>
+            <option value="voice" title="spoken in the phonetic alphabet (alfa, bravo), at its own pace">phonetic</option>
+            <option value="letters" title="spoken letter names (a, b), at their own pace">letters</option>
           </select>
         </label>
         </div>
@@ -688,7 +689,7 @@
     <div id="pad" class="pad">
       <button type="button" class="key dit" data-act="." aria-label="dit" title="dit: . [ A 1 (left Ctrl with ctrl keys on)"><b>.</b><span>dit</span></button>
       <button type="button" class="key dah" data-act="-" aria-label="dah" title="dah: - ] D 3 (right Ctrl with ctrl keys on)"><b>-</b><span>dah</span></button>
-      <button type="button" class="key side" data-act="letter" aria-label="letter space" title="letter space (space)">˽</button>
+      <button type="button" class="key side" data-act="letter" aria-label="letter space" title="letter space; hold for a word space (space)">˽</button>
       <button type="button" class="key side" data-act="word" aria-label="word space" title="word space (/)">/</button>
       <button type="button" class="key side" data-act="undo" aria-label="backspace" title="backspace: the last mark; hold for words (Backspace)">⌫</button>
       <button type="button" class="key side" data-act="send" aria-label="return" title="return: a new line (Enter)">↵</button>

@@ -14,7 +14,7 @@ import { format, DECODE } from "./morse.js";
 import { createSound } from "./tx-sound.js";
 import { timeline } from "./tx-player.js";
 import { morseText, plainText, linkTo } from "./tx-share.js";
-import { loadVoice, wordPlace, spokenWords, SAY_GAP, WORD_GAP } from "./tx/voice.js";
+import { loadVoice, wordPlace, voiceName, spokenWords, SAY_GAP, WORD_GAP } from "./tx/voice.js";
 
 export function gifLink(words, origin = location.origin) {
   return `${origin}/og/${format(words)}.gif`;
@@ -165,21 +165,22 @@ export async function renderWav({ words, rec, timing, kind, wave = "sine", pitch
 }
 
 /*
- * The message read out in the phonetic alphabet, as a .wav: built
+ * The message read out in the chosen voice, as a .wav: built
  * from the text, word by recorded word, at its own even pace (not
  * the Morse's timing). Null if there's nothing in it to say.
  */
 export async function renderSpoken(text) {
   const said = spokenWords(text);
   if (!said.length) return null;
-  const buffer = await loadVoice();
+  const name = voiceName();
+  const buffer = await loadVoice(name);
   const rate = 44100;
   const lead = 0.25, tail = 0.5;   // s
 
   let at = lead;
   const parts = said.map((word, i) => {
     if (word === null) { at += WORD_GAP; return null; }
-    const place = { ...wordPlace(word), at };
+    const place = { ...wordPlace(word, name), at };
     at += place.length + (said[i + 1] === null ? 0 : SAY_GAP);
     return place;
   }).filter(Boolean);

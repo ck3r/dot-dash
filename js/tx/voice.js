@@ -1,11 +1,18 @@
 /*
  * The spoken alphabet: real recordings, one file a voice, each word
- * played by its place in the file (voice-times.js). Web Audio, not an
+ * played by its place in the file (voice-times.js). Two voices, the
+ * same words in the same slots, so only the file and the lengths
+ * differ:
+ *
+ *   phonetic   ALFA BRAVO CHARLIE … ONE TWO …   (sound: phonetic)
+ *   letters    A B C … ONE TWO …                (sound: letters)
+ * Web Audio, not an
  * <audio> element: that can't start and stop on the exact moment, and
  * this way a tap and a rendered .wav share the same decoded sound.
  *
  *   say(ch, volume)      say one character; a tap while it's speaking
  *                        starts over, so never two at once
+ *   setVoice(name)       which voice from now on ("phonetic", "letters")
  *   loadVoice()          the decoded recording, fetched the first time
  *   wordPlace(word)      { offset, length } in seconds
  *   spokenWords(text)    what a message reads out as (null: a word gap)
@@ -13,32 +20,41 @@
  */
 import { VOICE_SLOT, VOICE_WORDS, VOICE_LENGTHS } from "../voice-times.js";
 
-const VOICE = "phonetic";
+export const VOICES = Object.keys(VOICE_LENGTHS);
+let voice = "phonetic";
+
+export function setVoice(name) {
+  if (VOICES.includes(name)) voice = name;
+}
+export const voiceName = () => voice;
 
 export const SAY_GAP = 0.15, WORD_GAP = 0.6;   // s, between letters and words
 const SILENT = 200;   // ms, for a letter with nothing to say
 
 /* not at startup, and not in the service worker's CORE: 130 KB, and
    several MB once decoded, for something many never tap. Once
-   fetched, the worker keeps it like anything else */
-let loading = null;
+   fetched, the worker keeps it like anything else. Each voice is
+   fetched on its own, the first time it's wanted */
+const loading = new Map();    // voice → its decoding, under way or done
 
-export function loadVoice() {
-  loading ??= (async () => {
-    const response = await fetch(`/voice/${VOICE}.webm`);
-    if (!response.ok) throw new Error(response.status);
-    const Offline = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-    return new Offline(1, 1, 48000).decodeAudioData(await response.arrayBuffer());
-  })().catch(error => {
-    loading = null;       // offline just now: the next tap tries again
-    throw error;
-  });
-  return loading;
+export function loadVoice(name = voice) {
+  if (!loading.has(name)) {
+    loading.set(name, (async () => {
+      const response = await fetch(`/voice/${name}.webm`);
+      if (!response.ok) throw new Error(response.status);
+      const Offline = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      return new Offline(1, 1, 48000).decodeAudioData(await response.arrayBuffer());
+    })().catch(error => {
+      loading.delete(name);   // offline just now: the next tap tries again
+      throw error;
+    }));
+  }
+  return loading.get(name);
 }
 
-export function wordPlace(word) {
+export function wordPlace(word, name = voice) {
   const i = VOICE_WORDS.indexOf(word);
-  return { offset: i * VOICE_SLOT / 1000, length: VOICE_LENGTHS[VOICE][i] / 1000 };
+  return { offset: i * VOICE_SLOT / 1000, length: VOICE_LENGTHS[name][i] / 1000 };
 }
 
 /*
@@ -141,9 +157,10 @@ export async function say(ch, volume = 1) {
   try { speaking?.stop(); } catch { }
   speaking = null;
 
-  const buffer = await loadVoice();
+  const name = voice;
+  const buffer = await loadVoice(name);
   if (tap !== taps) return;       // tapped again while it loaded
-  const { offset, length } = wordPlace(ch);
+  const { offset, length } = wordPlace(ch, name);
   const level = context.createGain();
   level.gain.value = volume;
   speaking = context.createBufferSource();

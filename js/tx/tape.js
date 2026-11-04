@@ -17,7 +17,7 @@ import { morseOf, recOfEntry, readingOf, typedOf, structure, wordsOf, tokensOf, 
 import { $, el, icon, toast, flash } from "./dom.js";
 import * as share from "../tx-share.js";
 
-export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) {
+export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pausePlayback }) {
   /*
    * ============================================================
    * THE TAPE: the message being written, and the history above it
@@ -512,12 +512,30 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) 
     if (!grab) restTimer = setTimeout(() => thumb.classList.remove("up"), THUMB_REST);
   }
   for (const t of ["wheel", "touchstart", "pointerdown"]) $("#tape").addEventListener(t, () => { yours = performance.now(); }, { passive: true });
+
+  /*
+   * Scrolling the tape yourself while it plays pauses it: the player
+   * follows the letter being sounded (tx/player.js), and would pull
+   * the tape back from wherever you went to read. A tap doesn't
+   * count (a word's bar, say), only a finger that moves, the wheel,
+   * or the thumb; ▷ carries on from where it stopped.
+   */
+  const SWIPE = 10;   // px a finger moves before it's a scroll
+  let swipeFrom = null;
+  $("#tape").addEventListener("touchstart", e => { swipeFrom = e.touches.length === 1 ? e.touches[0].clientY : null; }, { passive: true });
+  $("#tape").addEventListener("touchmove", e => {
+    if (swipeFrom === null || Math.abs(e.touches[0].clientY - swipeFrom) < SWIPE) return;
+    swipeFrom = null;
+    pausePlayback();
+  }, { passive: true });
+  $("#tape").addEventListener("wheel", () => pausePlayback(), { passive: true });
   $("#tape").addEventListener("scroll", () => {
     if (grab || performance.now() - yours < 1500) showThumb();
     else if (!thumb.hidden) placeThumb();
   }, { passive: true });
 
   thumb.addEventListener("pointerdown", event => {
+    pausePlayback();
     event.preventDefault();
     thumb.setPointerCapture?.(event.pointerId);
     grab = { dy: event.clientY - thumb.getBoundingClientRect().top };
@@ -663,7 +681,9 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) 
    * A note says what's coming, a brass line runs along the top of the
    * message while you hold, and at its end the history goes. Letting
    * go or pushing back up before then keeps it; a slide sideways
-   * calls it off, with a note.
+   * calls it off, with a note. With no history yet, the same pull
+   * clears the message being written (as its × does: undo brings
+   * it back).
    *
    *   ════════════════════──────      the line, filling
    *   clear history
@@ -676,7 +696,8 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) 
     const tape = $("#tape");
     const field = tape.closest(".field");
     let one = false, from = null, timer = null, off = false;
-    const atTop = () => tape.scrollTop <= 0 && state.history.length;
+    const atTop = () => tape.scrollTop <= 0 && (state.history.length || state.tokens.length);
+    const what = () => state.history.length ? "history" : "message";
     const stop = () => {
       clearTimeout(timer);
       timer = null;
@@ -697,19 +718,21 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo }) 
       if (timer && Math.abs(dx) > SIDEWAYS) {
         off = true;
         stop();
-        toast("history kept");
+        toast(`${what()} kept`);
         return;
       }
       if (timer && (dy < PULL || tape.scrollTop > 0)) { stop(); return; }   // pushed back up
       if (!timer && dy > PULL && Math.abs(dx) < SIDEWAYS && tape.scrollTop <= 0) {
-        toast("scroll and hold to delete history");
+        const it = what();
+        toast(it === "history" ? "scroll and hold to delete history" : "scroll and hold to clear the message");
         field.classList.add("pulling");
         timer = setTimeout(() => {
           stop();
           off = true;
-          eraseHistory();
-          state.record("pull-clear");
-          toast("history deleted");
+          if (it === "history") eraseHistory();
+          else { clearCurrent(); update(); }
+          state.record("pull-clear", { what: it });
+          toast(it === "history" ? "history deleted" : "message cleared");
         }, PULL_HOLD);
       }
     }, { passive: true });

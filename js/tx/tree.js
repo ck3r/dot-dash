@@ -163,7 +163,18 @@ export function createTreeEdge({
   function drawTree() {
     if (!treeOpen) return;
     const { path } = structure(state.tokens);
-    const codes = wordsOf(state.tokens).flat().map(inTree).filter(Boolean);
+    /*
+     * The letters, plus the branch to what's showing: a symbol off
+     * the letters (? ..--..) grows the tree, smaller, while it's the
+     * one keyed, and the next letter puts it back. Playing, every
+     * branch the message takes, so each lights as it sounds.
+     *
+     *   keying ?         the tree with its branch, smaller
+     *   then E           the letters' tree again
+     */
+    const all = wordsOf(state.tokens).flat();
+    const codes = (playing() ? all : [path || all.at(-1)])
+      .map(code => code && inTree(code)).filter(Boolean);
     sizeTreePanel();
     tree.render(buildModel({ letters: true, extra: codes }), false);
     fitTree();

@@ -26,7 +26,7 @@ const VERSION = "dot-dash-10";
 
 /* fetched on install, so the first offline open works too */
 const CORE = [
-  "/", "/ref/", "/design/", "/bookmarklet/",
+  "/", "/ref/", "/design/", "/bookmarklet/", "/privacy/",
   "/style.css", "/tx/tx.css", "/design/design.css", "/bookmarklet/bookmarklet.css", "/bookmarklet/bookmarklet.js", "/switch.svg", "/manifest.webmanifest",
   "/icons/icon-192.png", "/icons/icon-512.png",
   "/js/main.js", "/js/morse.js", "/js/tree.js", "/js/overview.js", "/js/keyer.js", "/js/logo.js",

@@ -294,7 +294,8 @@ document.addEventListener("keydown", event => {
 
 /* the tape: js/tx/tape.js */
 const { drawTape, drawStats, settleTape, fadeTape, hiding, redact, clearCurrent } = createTape({
-  state, update, setTyped: text => setTyped(text), resetKeyer: () => keyer.reset(), forgetUndo: () => undo.forget()
+  state, update, setTyped: text => setTyped(text), resetKeyer: () => keyer.reset(), forgetUndo: () => undo.forget(),
+  pausePlayback: () => { if (player.playing) togglePlay(); }
 });
 
 
@@ -480,6 +481,34 @@ $(".field").addEventListener("click", event => {
   if (trayJustClosed()) return;     // that tap closed the settings
   putKeysAway(!state.inputAway);
 });
+
+/* the whole tree, the same: a tap anywhere but a letter (which keys
+   it, tx/tree.js) puts the keys away, and the tree grows into their
+   room; another brings them back */
+$(".tree-edge").addEventListener("click", event => {
+  if (!isTreeOpen()) return;
+  const lbl = event.target.closest?.('[data-kind="lbl"]');   // (keyed, the tree's drawn afresh: it's gone from #tree by now)
+  if (lbl && !lbl.classList.contains("blank")) return;
+  if (event.target.closest("button, a")) return;
+  if (trayJustClosed()) return;
+  putKeysAway(!state.inputAway);
+});
+
+/*
+ * A held finger never starts the phone's own selection (or its
+ * copy / share menu): on a phone the station is all controls, and a
+ * stray highlight, with its handles, took the next taps until a
+ * reload. The CSS says so too (tx.css, "on touch screens"); this
+ * catches what it can't, outside a real text box.
+ */
+if (matchMedia("(pointer: coarse)").matches) {
+  const inText = event => {
+    const t = event.target.nodeType === Node.TEXT_NODE ? event.target.parentElement : event.target;
+    return !!t?.closest?.('input[type="text"], textarea');
+  };
+  document.addEventListener("selectstart", event => { if (!inText(event)) event.preventDefault(); });
+  document.addEventListener("contextmenu", event => { if (!inText(event)) event.preventDefault(); });
+}
 
 
 /*
