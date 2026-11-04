@@ -23,6 +23,7 @@
      *   │    ●   ▬●▬    │
      *   └───────────────┘   1  .65   2  .6
      *   A B C … 9 0          (each letter, as it is now)
+     *   1 2 3 5 7 8 9 0      the numbers, cut (CUT_STROKES)
      */
     .sheet { padding: 1.5rem 16px; max-width: 60rem; margin: 0 auto; }
     .sheet h1 { font-size: 1.05rem; font-weight: 700; }
@@ -61,6 +62,8 @@
     .strip button svg { display: block; width: 100%; }
     .strip button[aria-current="true"] { border-color: var(--paper); }
     .strip button.changed::after { content: "•"; position: absolute; top: 0; right: 0.2rem; color: var(--paper); }
+    .strip-name { margin-top: 1rem; color: var(--graphite); }
+    .strip-name + .strip { margin-top: 0.4rem; }
     .strip button.bad::before { content: "!"; position: absolute; top: 0; left: 0.25rem; color: var(--dot); }
 
     .out { margin-top: 1.5rem; }
@@ -92,6 +95,7 @@
     <h1>stroke editor</h1>
     <p>Drag a mark's middle along its stroke (or focus it and use the arrow
     keys, Shift for bigger steps). Size and weight are the letter's own.
+    The numbers as cut have a strip of their own, under the rest.
     Edits stay in this browser until copied out. <a href="/design/strokes/">the sheet</a></p>
 
     <div class="controls">
@@ -119,6 +123,8 @@
     </div>
 
     <div class="strip" id="strip"></div>
+    <p class="strip-name">the numbers, cut</p>
+    <div class="strip" id="strip-cut"></div>
 
     <section class="out">
       <h2>changed, as lines for js/strokes.js</h2>
@@ -128,11 +134,19 @@
   </main>
 
   <script type="module">
-    import { ENCODE } from "/js/morse.js";
+    import { ENCODE, codeOf } from "/js/morse.js";
     import { timeline } from "/js/tx-player.js";
-    import { STROKES, WEIGHT, DOT, DASH, ROUND, substrokes, createLetter } from "/js/strokes.js";
+    import { STROKES, CUT_STROKES, WEIGHT, DOT, DASH, ROUND, substrokes, createLetter } from "/js/strokes.js";
 
     const ORDER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+    /* and the numbers as cut, each by a key of its own ("9 cut"), so
+       its edits and its line are apart from the full 9's. 4 and 6
+       aren't cut: their CUT_STROKES are the full forms */
+    const CUTS = [..."1234567890"].filter(c => codeOf(c, { cut: true }) !== ENCODE[c]).map(c => `${c} cut`);
+    const KEYS = [...ORDER, ...CUTS];
+    const isCut = k => k.endsWith(" cut");
+    const charOf = k => k[0];
+    const codeFor = k => isCut(k) ? codeOf(charOf(k), { cut: true }) : ENCODE[k];
     const FIGURE = 15 / WEIGHT;           // the numbers' size and weight (strokes.js figure)
     const KEY = "dot-dash:strokes-edit";
     const $ = id => document.getElementById(id);
@@ -150,7 +164,7 @@
       scale: strokes.scale ?? 1,
       weight: strokes.weight ?? WEIGHT
     });
-    const ORIGINAL = Object.fromEntries([...ORDER].map(c => [c, plain(STROKES[c])]));
+    const ORIGINAL = Object.fromEntries(KEYS.map(k => [k, plain((isCut(k) ? CUT_STROKES : STROKES)[charOf(k)])]));
     let edits = {};
     try { edits = JSON.parse(localStorage.getItem(KEY)) ?? {}; } catch { }
     const letterOf = c => edits[c] ?? ORIGINAL[c];
@@ -171,19 +185,21 @@
     function lineOf(c) {
       const l = letterOf(c);
       /* a path by its name only where the letter's own line names it
-         (K spells out the stem B and D call STEM) */
-      const named = d => NAMES[d] && (ORIGINAL_LINES[c] ?? "").includes(`[${NAMES[d]},`) ? NAMES[d] : JSON.stringify(d);
+         (K spells out the stem B and D call STEM), with marks on it or
+         none (cut 5's [FIVE]) */
+      const line = ORIGINAL_LINES[c] ?? "";
+      const named = d => NAMES[d] && (line.includes(`[${NAMES[d]},`) || line.includes(`[${NAMES[d]}]`)) ? NAMES[d] : JSON.stringify(d);
       const body = "[" + l.strokes.map(([d, ...m]) => "[" + [named(d), ...m.map(num)].join(", ") + "]").join(", ") + "]";
       let value = body;
       if (same(l.weight, WEIGHT)) value = same(l.scale, 1) ? body : `tight(${num(l.scale)}, ${body})`;
       else if (same(l.weight, FIGURE * WEIGHT)) value = same(l.scale, FIGURE) ? `figure(${body})` : `figure(${body}, ${num(l.scale)})`;
       else value = `sized(${num(l.scale)}, ${num(l.weight)}, ${body})`;
-      return `  ${c}: ${value},`;
+      return `  ${charOf(c)}: ${value},`;
     }
 
     /* the marks, with each one's stroke and place in it */
     function marksOf(c) {
-      const l = letterOf(c), code = ENCODE[c];
+      const l = letterOf(c), code = codeFor(c);
       const subs = substrokes(asStrokes(l), code);
       let i = 0;
       return l.strokes.flatMap(([d, ...middles], s) => middles.map((_, k) => ({ ...subs[i], s, k, i: i++ })));
@@ -224,7 +240,7 @@
 
     let current = "A", round = false, playing = null;
     const finished = code => [...code].map((mark, i) => ({ mark, start: i, end: i + 1 }));
-    const draw = (c, marks = finished(ENCODE[c])) => createLetter(asStrokes(letterOf(c)), marks, { round });
+    const draw = (c, marks = finished(codeFor(c))) => createLetter(asStrokes(letterOf(c)), marks, { round });
 
     /* ---------- the big one, with a handle on each mark ---------- */
     let letter = null;
@@ -245,7 +261,7 @@
       }
       $("stage").replaceChildren(svg);
       $("who").textContent = current;
-      $("code").textContent = ENCODE[current];
+      $("code").textContent = codeFor(current);
       drawSide(touch);
       if (held) svg.querySelector(`.handle[data-i="${held.i}"]`)?.focus({ preventScroll: true });
     }
@@ -269,25 +285,34 @@
 
     /* ---------- the strip: every letter as it is ---------- */
     function drawStrip() {
-      $("strip").replaceChildren(...[...ORDER].map(c => {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.title = c;
-        b.setAttribute("aria-label", c);
-        b.setAttribute("aria-current", String(c === current));
-        b.classList.toggle("changed", lineOf(c) !== ORIGINAL_LINES[c]);
-        b.classList.toggle("bad", touching(c, false).size > 0 || touching(c, true).size > 0);
-        const l = draw(c);
-        l.at(Infinity);
-        b.append(l.el);
-        b.addEventListener("click", () => { current = c; drawAll(); });
-        return b;
-      }));
+      $("strip").replaceChildren(...[...ORDER].map(button));
+      $("strip-cut").replaceChildren(...CUTS.map(button));
+    }
+    /* one letter's button: tap it to set it */
+    function button(c) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.title = c;
+      b.setAttribute("aria-label", isCut(c) ? `${charOf(c)}, cut to ${codeFor(c)}` : c);
+      b.setAttribute("aria-current", String(c === current));
+      b.classList.toggle("changed", lineOf(c) !== ORIGINAL_LINES[c]);
+      b.classList.toggle("bad", touching(c, false).size > 0 || touching(c, true).size > 0);
+      const l = draw(c);
+      l.at(Infinity);
+      b.append(l.el);
+      b.addEventListener("click", () => { current = c; drawAll(); });
+      return b;
     }
 
+    /* the cut numbers' lines under a note of their own, as they go in
+       CUT_STROKES, each with its comment back on (what it's sent as) */
     function drawOut() {
-      const lines = [...ORDER].map(lineOf).filter((line, i) => line !== ORIGINAL_LINES[ORDER[i]]);
-      $("out").textContent = lines.join("\n");
+      const changedIn = keys => keys.filter(k => lineOf(k) !== ORIGINAL_LINES[k]);
+      const cuts = changedIn(CUTS).map(k => {
+        const line = lineOf(k), { at = 0, text = "" } = COMMENTS[k] ?? {};
+        return text ? line.padEnd(Math.max(at, line.length + 1)) + text : line;
+      });
+      $("out").textContent = [...changedIn([...ORDER]).map(lineOf), ...(cuts.length ? ["  // in CUT_STROKES:", ...cuts] : [])].join("\n");
     }
 
     const drawAll = () => { drawStage(); drawStrip(); drawOut(); };
@@ -411,7 +436,7 @@
     $("play").addEventListener("click", () => {
       cancelAnimationFrame(playing);
       const unit = 1200 / 8;
-      const { marks, duration } = timeline([[ENCODE[current]]], { unit, letter: 3 * unit, word: 7 * unit });
+      const { marks, duration } = timeline([[codeFor(current)]], { unit, letter: 3 * unit, word: 7 * unit });
       const l = draw(current, marks);
       $("stage").replaceChildren(l.el);
       const t0 = performance.now();
@@ -432,20 +457,26 @@
        an edit is whatever no longer reads the same (so what comes out
        is known to be strokes.js's own way of writing it) */
     let ORIGINAL_LINES = {};
+    const COMMENTS = {};   // a cut line's "// N  -.", and the column it starts at
     try {
       const source = await (await fetch("/js/strokes.js")).text();
       for (const [, name, d] of source.matchAll(/^const ([A-Z]+) = "([^"]+)";/gm)) NAMES[d] = name;
-      const block = source.slice(source.indexOf("export const STROKES = {"), source.indexOf("\n};", source.indexOf("export const STROKES = {")));
-      for (const line of block.split("\n")) {
-        const m = line.match(/^  (\w): /);
-        if (m) ORIGINAL_LINES[m[1]] = line;
+      const blockOf = start => source.slice(source.indexOf(start), source.indexOf("\n};", source.indexOf(start)));
+      for (const [start, keyOf] of [["export const STROKES = {", c => c], ["export const CUT_STROKES = {", c => `${c} cut`]]) {
+        for (const line of blockOf(start).split("\n")) {
+          const m = line.match(/^  (\w): /);
+          if (!m || !KEYS.includes(keyOf(m[1]))) continue;
+          const k = keyOf(m[1]), comment = line.match(/(\s+)(\/\/.*)$/);
+          if (comment) COMMENTS[k] = { at: comment.index + comment[1].length, text: comment[2] };
+          ORIGINAL_LINES[k] = comment ? line.slice(0, comment.index) : line;
+        }
       }
     } catch { }
     /* (no source to read: then as this page writes them) */
-    if (Object.keys(ORIGINAL_LINES).length !== ORDER.length) {
+    if (Object.keys(ORIGINAL_LINES).length !== KEYS.length) {
       const saved = edits;
       edits = {};
-      ORIGINAL_LINES = Object.fromEntries([...ORDER].map(c => [c, lineOf(c)]));
+      ORIGINAL_LINES = Object.fromEntries(KEYS.map(c => [c, lineOf(c)]));
       edits = saved;
     }
     /* an edit that's back where it started is no edit */
