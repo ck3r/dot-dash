@@ -116,19 +116,50 @@ export const STROKES = {
   0: figure([[ZERO, .1, .3, .5, .7, .9]]),
 };
 
-/* The numbers as cut for contests (CUT in morse.js). Fewer marks, so
-   they're back at full size; 4 and 6 have nothing to cut */
+/*
+ * The numbers as cut for contests (CUT in morse.js). Fewer marks, so
+ * they're back at full size (dots WEIGHT square, not figure's); 4 and
+ * 6 have nothing to cut and are the full forms.
+ *
+ * Set by hand, here: nothing works these out. The sheet's "the
+ * numbers, cut" row (/design/strokes/) and /ref's chart with stroke
+ * and cut on both draw from this table, so a reload shows a change.
+ * (The editor, /design/strokes/edit/, does STROKES only.)
+ *
+ * Each number is its strokes in the order they're written; each
+ * stroke is an SVG path on the 100 × 100 grid, then where its marks
+ * are centred, as a fraction of the way along that path:
+ *
+ *   (0,0) ──── x ────▶ (100,0)       1, cut to A  .-
+ *     │       ╱                        ["M50 0 L10 36", .75]  the dot
+ *     y      ■ ←.75 along the flag     ["M50 0 V100", .55]    the dash
+ *     │       │                        ["M6 100 H94"]         no marks
+ *     ▼       █ ←.55 down the stem
+ *   (0,100) ──┴── (100,100)          M x y: pen down there
+ *                                    L x y: straight to   H x / V y:
+ *                                    along, or down, to   A, C: curves
+ *
+ *   - Which mark is which comes from the code, in order across every
+ *     stroke: the first number is the first mark. So a number has as
+ *     many numbers as its cut code has marks (tests/strokes.cjs).
+ *   - Lengths come from the mark (a dash is three dots), so only the
+ *     middle is set. Keep each mark on its stroke, clear of the next:
+ *     a dot is 22 long, a dash 66, against the stroke's own length.
+ *   - Moving a mark: change its fraction (.5 → .6 is further along).
+ *     Moving a stroke: change its path; TWO, THREE, … are the full
+ *     forms' paths (above), shared so the two forms match.
+ */
 export const CUT_STROKES = {
-  1: [["M50 0 L10 36", .75], ["M50 0 V100", .55], ["M6 100 H94"]],
-  2: [[TWO, .09, .33, .76], ["M12 100 H88"]],
-  3: [["M16 0 H80 L44 42", .1, .39, .86], [THREE, .5]],
-  4: STROKES[4],
-  5: [["M24 0 V50", .5], [FIVE], ["M24 0 H78"]],
-  6: STROKES[6],
-  7: [["M0 0 H100", .5], ["M100 0 L38 100", .3, .6, .88]],
-  8: [[EIGHT, .25, .6, .9]],
-  9: [[NINE, .42], [TAIL, .8]],
-  0: [[ZERO, .5]],
+  1: [["M50 0 L10 36", .762], ["M50 0 V100", .533], ["M6 100 H94"]], // A  .-
+  2: [[TWO, .112, .362, .758], ["M12 100 H88"]],                      // U  ..-
+  3: [["M16 0 H80 L44 42", .107, .425, .907], [THREE, .52]],          // V  ...-
+  4: STROKES[4],                                                      //    not cut
+  5: [["M24 0 V50", .5], [FIVE], ["M24 0 H78"]],                      // E  .
+  6: STROKES[6],                                                      //    not cut
+  7: [["M0 0 H100", .5], ["M100 0 L38 100", .3, .6, .88]],            // B  -...
+  8: [[EIGHT, .25, .595, .907]],                                      // D  -..
+  9: [[NINE, .42], [TAIL, .783]],                                     // N  -.
+  0: [[ZERO, .5]],                                                    // T  -
 };
 
 
