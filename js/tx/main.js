@@ -27,7 +27,7 @@
  * (stopPlayback: () => stopPlayback()), so the order above holds.
  */
 
-import { parse, readLink, wordsFrom, format, DECODE, NAME_CODE, READING } from "../morse.js";
+import { parse, readLink, wordsFrom, format, namesOf, NAME_CODE, READING } from "../morse.js";
 import { spokenWords } from "./voice.js";
 import { createSound } from "../tx-sound.js";
 import { PROSIGNS_BY_CODE } from "../characters.js";
@@ -199,8 +199,9 @@ function press(act, timing = null) {
   }
   state.record(act === "." || act === "-" ? "mark" : act, act === "." || act === "-" ? { mark: act, timing } : {});
   const closed = act === "letter" || act === "word";
-  /* a letter just landed: with the voice on, it's said */
-  if (closed && sound.speaks && (last === "." || last === "-")) sound.speak(spokenWords(DECODE[wordsOf(state.tokens).flat().at(-1)] ?? ""));
+  /* a letter just landed: with the voice on, it's said, as the line
+     reads it (with prosigns on, .-.-. is <AR>, "a r", not PLUS) */
+  if (closed && sound.speaks && (last === "." || last === "-")) sound.speak(spokenWords(namesOf([wordsOf(state.tokens).flat().at(-1)])[0] ?? ""));
   if (closed && prosignsAct()) {
     if (erased()) { state.record("erase"); toast("HH: error, the word erased"); }
     const code = returned();

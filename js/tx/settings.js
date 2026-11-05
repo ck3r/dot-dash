@@ -18,12 +18,15 @@
  */
 import * as share from "../tx-share.js";
 import { READING } from "../morse.js";
+import { spokenWords } from "./voice.js";
 import { createOutputs } from "../tx-outputs.js";
-import { $, toast } from "./dom.js";
+import { $, toast, flash } from "./dom.js";
 
+/* a list whose "off" is a choice of its own (voice: no voice), not
+   its output's switch, is just its value */
 export function choice(select) {
   if (typeof select === "string") select = $(select);
-  if (select.value !== "off") return select.value;
+  if (select.value !== "off" || select.dataset.off === "own") return select.value;
   const last = select.dataset.last;
   const real = [...select.options].filter(o => o.value !== "off" && !o.disabled);
   if (real.some(o => o.value === last)) return last;
@@ -39,8 +42,8 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
   }
 
   /*
-   * The lists over their sliders: key centred over speed, sound over
-   * vol, wave over pitch, light from the light column. Where two would
+   * The lists over their sliders: key across speed, sound over
+   * vol, voice over pitch, light at the far end. Where two would
    * touch, both give way a little (keeping a gap), the rest stay put.
    * Phones (all four in one even row, tx.css) skip this.
    */
@@ -49,29 +52,38 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
 
   function placeSwitches() {
     const row = $(".switches");
-    const all = ["#opt-key", "#opt-sound", "#opt-wave", "#opt-light"].map(id => $(id).closest("label"));
+    const all = ["#opt-key", "#opt-sound", "#opt-voice", "#opt-light"].map(id => $(id).closest("label"));
     if (narrowTray.matches) {
       row.classList.remove("placed");
       row.style.height = "";
       for (const l of all) l.style.left = "";
+      $("#opt-key").style.width = "";
       return;
     }
     if ($("#tray").hidden) return;
     row.classList.add("placed");
     const base = row.getBoundingClientRect().left;
+    /* key: across speed, over both its sliders, as far as the others
+       leave room (they keep their own width; a narrow tablet, short) */
+    const speed = $("#opt-wpm").closest(".group").getBoundingClientRect();
+    const key = $("#opt-key");
+    key.style.width = "";
+    const short = all[0].offsetWidth;
+    const room = row.getBoundingClientRect().width - all.slice(1).reduce((sum, l) => sum + l.offsetWidth, 0) - 3 * SWITCH_GAP;
+    key.style.width = Math.round(Math.max(short, Math.min(speed.width, room))) + "px";
     const mid = id => { const b = $(id).getBoundingClientRect(); return b.left + b.width / 2 - base; };
     const labels = all;
     const w = labels.map(l => l.offsetWidth);
-    const ideal = {
-      "opt-key": () => 0,
-      "opt-sound": l => mid("#opt-vol") - l.offsetWidth / 2,
-      "opt-wave": l => mid("#opt-hz") - l.offsetWidth / 2,
-      "opt-light": () => $("#opt-glow").closest(".group").getBoundingClientRect().left - base
-    };
-    const x = labels.map(l => ideal[l.querySelector("select, input").id](l));
     /* the far edge: the row's own, the checkbox column runs the
        tray's whole height beside it */
     const end = row.getBoundingClientRect().width;
+    const ideal = {
+      "opt-key": () => 0,
+      "opt-sound": l => mid("#opt-vol") - l.offsetWidth / 2,
+      "opt-voice": l => mid("#opt-hz") - l.offsetWidth / 2,
+      "opt-light": l => end - l.offsetWidth          // over no slider of its own: at the far end
+    };
+    const x = labels.map(l => ideal[l.querySelector("select, input").id](l));
     /* settle: two too close share the nudge, half each, so every
        list stays as near its slider as it can; and all stay in the row */
     for (let round = 0; round < 24; round++) {
@@ -127,6 +139,7 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
   function loadSettings() {
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY)) ?? {}; } catch { }
+    saved = { ...saved, ...fromOldSound(saved["opt-sound"], saved["opt-wave"]) };
     for (const input of settingInputs()) {
       if (saved[input.id] === undefined) continue;
       if (input.tagName === "SELECT" && ![...input.options].some(o => o.value === saved[input.id])) continue;
@@ -158,12 +171,27 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
    * this device (volume, the light, vibration, the key, the theme)
    * stays out. Later, the same few words can live on a profile.
    */
+  /*
+   * Sound used to be tone, sounder or a voice, with the wave a list of
+   * its own; now sound is the wave or the sounder, and the voice has
+   * its list. What was saved, or a link made then, reads the new way:
+   *
+   *   tone + square   →  sound square
+   *   voice           →  sound (the wave), voice ALFA
+   */
+  const OLD_VOICES = { voice: "phonetic", letters: "letters", didah: "didah", dotdash: "dotdash" };
+  function fromOldSound(sound, wave) {
+    if (sound === "tone") return { "opt-sound": wave ?? "sine" };
+    if (sound in OLD_VOICES) return { "opt-sound": wave ?? "sine", "opt-voice": OLD_VOICES[sound] };
+    return {};
+  }
+
   const LINKED = [
     { id: "opt-wpm", name: "wpm", say: v => `${v} wpm` },     // a number after its name
     { id: "opt-fwpm", name: "farns", say: v => `farns. ${v}` },
     { id: "opt-hz", name: "hz", say: v => `${v} Hz` },
     { id: "opt-sound" },                                       // the choice's own word (not "off")
-    { id: "opt-wave" },
+    { id: "opt-voice" },
     { id: "opt-pretty", name: "pretty", key: "dot-dash:tx-pretty", say: on => on ? "pretty play" : "as keyed" },   // there, or no-pretty
     { id: "opt-prosigns", name: "prosigns", key: "dot-dash:tx-prosigns", say: on => on ? "prosigns" : "no prosigns", apply: on => { READING.pro = on; } },
     { id: "opt-cut", name: "cut", key: "dot-dash:tx-cut", say: on => on ? "cut numbers" : "no cut", apply: on => { READING.cut = on; } }
@@ -188,6 +216,8 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
 
   /* a link's word → [input, value], or null if it isn't one of ours */
   function readPart(part) {
+    if (part === "voice") part = "phonetic";       // an older link's words (fromOldSound)
+    if (part === "tone") part = "sine";
     for (const { id, name } of LINKED) {
       const input = $("#" + id);
       if (input.type === "checkbox") {
@@ -204,7 +234,7 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
 
   function setValue(input, v) {
     if (input.type === "checkbox") input.checked = v;
-    else if (input.tagName === "SELECT" && input.value === "off") input.dataset.last = v;   // muted: its choice for later
+    else if (input.tagName === "SELECT" && input.value === "off" && input.dataset.off !== "own") input.dataset.last = v;   // muted: its choice for later
     else input.value = v;
   }
 
@@ -360,7 +390,6 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
   for (const b of ["#report-cancel", "#report-pop .close"]) $(b).addEventListener("click", () => openReport(false));
 
   /* only offer what this phone can do */
-  $("#vibe-set").hidden = !("vibrate" in navigator);
   document.querySelector('[data-out="vibrate"]').hidden = !("vibrate" in navigator);
   /* the flashlight: Chrome on Android exposes the torch through the camera */
   if (!/Android/i.test(navigator.userAgent) || !navigator.mediaDevices?.getUserMedia) $("#torch-choice").remove();
@@ -381,7 +410,7 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
       light: outputOn("light"),
       lightMode: choice("#opt-light"),
       vibrate: outputOn("vibrate"),
-      strength: Number($("#opt-vibe").value)
+      strength: 50     // a strength of its own waits for the native app
     }),
     lampTarget: $(".station"),
     overlay: {
@@ -502,7 +531,7 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
       const on = outputOn(set.dataset.needs);
       set.classList.toggle("idle", !on);
       const select = set.querySelector("select");
-      if (!select) continue;
+      if (!select || select.dataset.off === "own") continue;   // the voice keeps its choice, greyed
       if (!on && select.value !== "off") {
         select.dataset.last = select.value;
         select.value = "off";
@@ -512,9 +541,23 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
     }
   }
 
+  /* pitch is the tone's: greyed with the sounder, which has none.
+     Touched, the tone comes back, with the wave it had */
+  const pitch = () => $("#opt-hz").closest(".fader");
+  function markPitch() {
+    const sounder = choice("#opt-sound") === "sounder";
+    pitch().classList.toggle("idle", sounder);
+    if (!sounder) $("#opt-sound").dataset.wave = choice("#opt-sound");
+  }
+
   function wake(event) {
     const set = event.target.closest?.("#tray [data-needs].idle");
     if (set) document.querySelector(`[data-out="${set.dataset.needs}"]`)?.click();
+    if (event.target.closest?.(".fader.idle") === pitch()) {
+      const select = $("#opt-sound");
+      select.value = select.dataset.wave ?? "sine";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    }
   }
   $("#tray").addEventListener("pointerdown", wake, true);
   $("#tray").addEventListener("focusin", wake, true);
@@ -599,18 +642,6 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", box.checked ? "#ebe5d7" : "#1c1916");
   }
 
-  /* light level: dims the lamp's glow and the signal lamp (a web
-     page can't dim the flashlight: it's on or off) */
-  function applyGlow() {
-    document.documentElement.style.setProperty("--glow", Number($("#opt-glow").value) / 100);   // (the invert filter lives on the page root)
-    /* the level dims the lamp (always on), the lit keys and the screen
-       lights; a web page can't dim the flashlight itself */
-    const torch = choice("#opt-light") === "torch" && outputOn("light");
-    $("#opt-glow").closest(".fader").title = torch ? "the flashlight itself can only be on or off" : "";
-  }
-  $("#opt-glow").addEventListener("input", applyGlow);
-  $("#opt-vibe").addEventListener("change", () => { if (outputOn("vibrate")) outputs.testBuzz(); });   // feel the new strength
-  $("#opt-light").addEventListener("change", applyGlow);
 
   try {
     const saved = JSON.parse(localStorage.getItem(OUTPUTS_KEY)) ?? {};
@@ -634,24 +665,25 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
     applyOutputs();
   }
 
+  /* vibration waits for the native app (strength, a sharp tap per dit,
+     roadmap): the toggle says so, and stays off */
+  document.querySelector('[data-out="vibrate"]').setAttribute("aria-pressed", "false");
+
   for (const b of document.querySelectorAll(".outputs button")) {
     b.addEventListener("click", () => {
+      if (b.dataset.out === "vibrate") return flash(b, "soon");
       setOutput(b.dataset.out, !outputOn(b.dataset.out));
       if (b.dataset.out === "sound" && sound.enabled) preview();
-      /* vibration on: a short buzz now (inside the tap, which phones require) */
-      if (b.dataset.out === "vibrate" && outputOn("vibrate") && outputs.testBuzz() === false) {
-        toast("this browser won't vibrate");
-      }
     });
   }
 
   /*
-   * Sound, wave and light also have "off" in their lists: the same
+   * Sound and light also have "off" in their lists: the same
    * switch as ♪ / ☼. Picking off turns the output off; picking
    * anything else turns it back on. While it's off the list shows
    * "off" and keeps the last real choice for when it comes back.
    */
-  for (const select of document.querySelectorAll("#opt-sound, #opt-wave, #opt-light")) {
+  for (const select of document.querySelectorAll("#opt-sound, #opt-light")) {
     select.addEventListener("change", () => {
       const name = select.closest("[data-needs]").dataset.needs;
       if (select.value === "off") return setOutput(name, false);
@@ -665,14 +697,15 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
     sound.setPitch(Number($("#opt-hz").value));
     sound.setVolume(Number($("#opt-vol").value) / 100);
     sound.setKind(choice("#opt-sound"));
-    sound.setWave(choice("#opt-wave"));
-    $("#opt-wave").disabled = choice("#opt-sound") === "sounder";   // the sounder has no wave
+    sound.setWave(choice("#opt-sound"));      // the sounder isn't a wave: the tone keeps its last
+    sound.setSpeech($("#opt-voice").value);
+    markPitch();
   }
 
   function preview() {
     sound.unlock();
     if (sound.speaks) {
-      sound.voiceReady().then(() => sound.speak(["A"]), () => toast("couldn't load the voice"));
+      sound.voiceReady().then(() => sound.speak(spokenWords("A")), () => toast("couldn't load the voice"));
       return;
     }
     const t = timingNow();
@@ -682,7 +715,11 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
   $("#opt-hz").addEventListener("input", applySound);
   $("#opt-vol").addEventListener("input", applySound);
   $("#opt-sound").addEventListener("change", () => { applySound(); preview(); });
-  $("#opt-wave").addEventListener("change", () => { applySound(); preview(); });
+  /* a voice chosen with ♪ off turns it on, as the greyed lists do */
+  $("#opt-voice").addEventListener("change", () => {
+    if ($("#opt-voice").value !== "off") setOutput("sound", true);
+    applySound(); preview();
+  });
   $("#opt-hz").addEventListener("change", preview);
   $("#opt-vol").addEventListener("change", preview);
 
@@ -696,7 +733,6 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
     markLevels();
     applySound();
     applyOutputs();
-    applyGlow();
     return linked;
   }
 

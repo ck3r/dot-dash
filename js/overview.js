@@ -53,6 +53,7 @@ import { DECODE, TREE, cost, CUT, SHARED, NAME_CODE } from "./morse.js";
 import { PHONETIC, PROSIGNS_BY_CODE, splits } from "./characters.js";
 import { STROKES, CUT_STROKES, createLetter } from "./strokes.js";
 import { STRESS, spokenOf, syllablesOf, layStair } from "./stair.js";
+import { symbolWord, codeSaid } from "./tx/voice.js";
 export { PHONETIC, PROSIGNS_BY_CODE, splits };   // (they used to live here)
 
 
@@ -453,11 +454,14 @@ export function renderCard(element, code, { say: speak, openCut, openHeard, flas
   const said = isName ? "dot-da.sh" : name && spokenOf(name);
   let nameEl = null;
   if (said && speak && !isName) {
-    nameEl = tap("card-name", `say ${said}`, () => speak(name, nameEl));
+    nameEl = tap("card-name", `say ${codeSaid(name) ?? said}`, () => speak(name, nameEl));
     layStair(nameEl, syllablesOf(name, said), STRESS[name]);
   } else if (said) {
     nameEl = make("span", "card-name");
     layStair(nameEl, isName ? ["dot", "-da", ".sh"] : syllablesOf(name, said), STRESS[name]);
+  } else if (!sign && name && speak && symbolWord(name)) {
+    /* a symbol: itself, bold, a tap says its word (as in the column) */
+    nameEl = tap("card-sign card-symbol", `say ${codeSaid(name) ?? symbolWord(name).toLowerCase()}`, () => speak(name, nameEl), name);
   } else if (sign || name) {
     nameEl = make("span", "card-sign", sign ?? name);
   }

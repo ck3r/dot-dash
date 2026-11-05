@@ -543,7 +543,7 @@ export function createPlayback({
     if (!player.playing) showPlayback(player.stateAt(player.position));
   }
   for (const id of ["#opt-wpm", "#opt-fwpm"]) $(id).addEventListener("input", retimed);
-  $("#opt-sound").addEventListener("change", retimed);   // to or from the voice's own timeline
+  $("#opt-voice").addEventListener("change", retimed);   // to or from the voice's own timeline
   /* the flashlight on or off changes the speed playback can go (main.js) */
   $("#opt-light").addEventListener("change", retimed);
   $('[data-out="light"]').addEventListener("click", retimed);

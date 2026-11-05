@@ -18,7 +18,7 @@ import { DECODE, ENCODE, CUT, NAME_CODE, READING, namesOf } from "../morse.js";
 import { PROSIGNS_BY_CODE, TERMS, splits } from "../characters.js";
 import { STRESS, spokenOf, syllablesOf, layStair } from "../stair.js";
 import { $, el, flash } from "./dom.js";
-import { say } from "./voice.js";
+import { say, symbolWord, codeSaid } from "./voice.js";
 
 export const aboutHref = code => `/ref/?/_${code}_`;
 
@@ -144,12 +144,15 @@ export function createAbout({ hiding, redact, openHeard, openCut, openWord, gree
     const isName = code === NAME_CODE;
     const spoken = isName ? "dot-da.sh" : ch && spokenOf(ch);
     const prosign = ch?.startsWith("<") ? ch : PROSIGNS_BY_CODE[code] ? `<${PROSIGNS_BY_CODE[code][0]}>` : null;
+    /* a symbol: no stair (its word is no spelling), the symbol itself,
+       big, as on the card's tile; a tap says its word */
+    const word = !prosign && ch && symbolWord(ch);
     if (!shows("name")) {
       /* switched off: nothing under the marks */
     } else if (spoken) {
       const name = el("button", "about-name");
       name.type = "button";
-      name.title = isName ? "dot-da.sh: this site's name, in its own marks (tap: the tab keys it)" : `say ${spoken}`;
+      name.title = isName ? "dot-da.sh: this site's name, in its own marks (tap: the tab keys it)" : `say ${codeSaid(ch) ?? spoken}`;
       name.setAttribute("aria-label", name.title);
       name.addEventListener("click", () => {
         if (!isName) {
@@ -162,6 +165,14 @@ export function createAbout({ hiding, redact, openHeard, openCut, openWord, gree
       /* each letter its own row; across, it steps one column per
          letter and back to the first at each syllable (js/stair.js) */
       layStair(name, isName ? ["dot", "-da", ".sh"] : syllablesOf(ch, spoken), STRESS[ch]);
+      main.append(name);
+    } else if (word) {
+      const name = el("button", "about-name about-symbol");
+      name.type = "button";
+      name.title = `say ${codeSaid(ch) ?? word.toLowerCase()}`;
+      name.setAttribute("aria-label", name.title);
+      name.addEventListener("click", () => say(ch, Number($("#opt-vol").value) / 100).catch(() => flashWord(name, "can't say it here")));
+      name.append(el("b", "", ch));
       main.append(name);
     } else if (prosign) {
       /* a tap: what it means */
@@ -260,7 +271,7 @@ export function createAbout({ hiding, redact, openHeard, openCut, openWord, gree
       heard: box.querySelector(".about-heard")
     };
     for (const o of Object.values(part)) if (o) o.hidden = true;
-    const name = box.querySelector(".about-name");
+    const name = box.querySelector(".about-name:not(.about-symbol)");   // a symbol has no stair to lay flat
     const lay = flat => { name.classList.toggle("flat", flat); name.classList.toggle("stair", !flat); };
 
     /* a prosign runs across: as big as the column allows */

@@ -130,9 +130,9 @@
       <button type="button" data-do="save-wav">.wav</button>
       <button type="button" data-do="save-gif" id="save-gif">.gif</button>
     </div>
-    <!-- the message read out (phonetic or letters), from recordings -->
+    <!-- the message read out (in the voice chosen), from recordings -->
     <div class="rows" id="share-voice">
-      <button type="button" data-do="save-voice" title="the text read out, in the voice last chosen under sound (phonetic or letters)"><span>save spoken .wav</span></button>
+      <button type="button" data-do="save-voice" title="the text read out, in the voice last chosen under sound (ALFA, ABC, Di-Dah or Dot Dash)"><span>save spoken .wav</span></button>
     </div>
     <div class="rows" id="share-native" hidden>
       <button type="button" data-do="share"><span>share…</span></button>
@@ -522,21 +522,22 @@
     <!--
       settings
 
-        20     20      600   60     60      ← value on top
-        ┃      ┃       ┃     ┃      ┃
-        ●      ●       ┃     ●      ●
-        ┃      ┃       ●     ┃      ┃
-       wpm  farns.   pitch  vol  strength   ← label at the bottom
-       └─ speed ─┘   └─ sound ─┘  vibrate
+        20     20      60   600      ← value on top
+        ┃      ┃       ┃     ┃
+        ●      ●       ┃     ●
+        ┃      ┃       ●     ┃
+       wpm  farns.    vol  pitch     ← label at the bottom
+       └─ speed ─┘   └─ noise ─┘     (not "sound": that's a list)
     -->
     <section id="tray" class="tray" hidden>
       <!--
         what first, then how much: the lists across the top, the
         faders under them, the checkboxes in a column at the right
-        (phones: a row of their own, under the lists). A setting whose output is off is greyed; touching it
-        switches that output on. The light level is never greyed: the
-        lamp (the glow round the message while the key is down) is
-        always on, and the level dims it.
+        (phones: the lists a row over both). A setting whose output is
+        off is greyed; touching it switches that output on. Pitch is
+        the tone's, greyed with the sounder. The light has no slider:
+        the phone's own brightness dims the signal lamp, and a web page
+        can't dim the flashlight.
       -->
       <div class="switches">
         <!-- key and sound share the room up to the vol | pitch gap -->
@@ -554,22 +555,26 @@
           </select>
         </label>
         <label data-needs="sound">sound
+          <!-- the tone's wave, or the sounder: what keying sounds like -->
           <select id="opt-sound">
-            <option value="off">off</option>
-            <option value="tone" selected>tone</option>
-            <option value="sounder">sounder</option>
-            <option value="voice" title="spoken in the phonetic alphabet (alfa, bravo), at its own pace">phonetic</option>
-            <option value="letters" title="spoken letter names (a, b), at their own pace">letters</option>
-          </select>
-        </label>
-        </div>
-        <label data-needs="sound">wave
-          <select id="opt-wave">
             <option value="off">off</option>
             <option value="sine" selected>sine</option>
             <option value="triangle" title="triangle">tri</option>
             <option value="square">square</option>
             <option value="sawtooth" title="sawtooth">saw</option>
+            <option value="sounder">sounder</option>
+          </select>
+        </label>
+        </div>
+        <!-- what playback says, beside the sound; "off" here is a
+             choice of its own (no voice), not the ♪ switch -->
+        <label data-needs="sound">voice
+          <select id="opt-voice" data-off="own">
+            <option value="off" selected>off</option>
+            <option value="phonetic" title="spoken in the phonetic alphabet (alfa, bravo), at its own pace">ALFA</option>
+            <option value="letters" title="spoken letter names (a, b), at their own pace">ABC</option>
+            <option value="didah" title="each letter's marks spoken (dit-dah), at their own pace">Di-Dah</option>
+            <option value="dotdash" title="each letter's marks spoken (dot-dash), at their own pace">Dot Dash</option>
           </select>
         </label>
         <label data-needs="light">light
@@ -581,10 +586,22 @@
         </label>
       </div>
 
-      <!-- the checkboxes, one order everywhere: how it's keyed, how it
-           reads, how it plays, how it looks (color and invert are shared
-           with the reference page). The box switches; the word, dotted
-           like a term to look up, says what it does (#flag-pop, #suggest-pop) -->
+      <!-- the checkboxes, one order everywhere, in pairs: how it's
+           keyed (ctrl mouse), what helps (suggest about), how it reads
+           (pro cut), how it looks (color invert; shared with the
+           reference page), how it plays (pretty), then the report.
+           A column beside the sliders, the report at its foot (on
+           phones, level with the sliders' group names):
+
+             [ ] ctrl
+             [ ] mouse
+             [x] suggest
+             …
+             [ ] pretty
+             report…
+
+           The box switches; the word, dotted like a term to look up,
+           says what it does (#flag-pop, #suggest-pop) -->
       <div class="flags">
         <span class="flag">
           <label class="check"><input type="checkbox" id="opt-ctrl" aria-label="Ctrl keys as paddles"></label>
@@ -599,20 +616,16 @@
           <button type="button" id="suggest-info" class="flag-word" aria-haspopup="dialog" aria-controls="suggest-pop" title="what the suggestions are, and how long they stay">suggest</button>
         </span>
         <span class="flag">
+          <label class="check"><input type="checkbox" id="opt-about" checked aria-label="the about column"></label>
+          <button type="button" id="about-set-info" class="flag-word" aria-haspopup="dialog" aria-controls="about-set-pop" title="what the about column shows">about</button>
+        </span>
+        <span class="flag">
           <label class="check"><input type="checkbox" id="opt-prosigns" checked aria-label="prosigns"></label>
           <button type="button" class="flag-word" data-note="pro" aria-haspopup="dialog" aria-controls="flag-pop" title="what's pro?">pro</button>
         </span>
         <span class="flag">
           <label class="check"><input type="checkbox" id="opt-cut" aria-label="cut numbers"></label>
           <button type="button" class="flag-word" data-note="cut" aria-haspopup="dialog" aria-controls="flag-pop" title="what's cut?">cut</button>
-        </span>
-        <span class="flag">
-          <label class="check"><input type="checkbox" id="opt-pretty" aria-label="pretty play"></label>
-          <button type="button" class="flag-word" data-note="pretty" aria-haspopup="dialog" aria-controls="flag-pop" title="what's pretty?">pretty</button>
-        </span>
-        <span class="flag">
-          <label class="check"><input type="checkbox" id="opt-about" checked aria-label="the about column"></label>
-          <button type="button" id="about-set-info" class="flag-word" aria-haspopup="dialog" aria-controls="about-set-pop" title="what the about column shows">about</button>
         </span>
         <span class="flag">
           <label class="check"><input type="checkbox" id="opt-color" checked aria-label="color"></label>
@@ -622,6 +635,12 @@
           <label class="check"><input type="checkbox" id="opt-theme" aria-label="invert"></label>
           <button type="button" class="flag-word" data-note="invert" aria-haspopup="dialog" aria-controls="flag-pop" title="what's invert?">invert</button>
         </span>
+        <span class="flag">
+          <label class="check"><input type="checkbox" id="opt-pretty" aria-label="pretty play"></label>
+          <button type="button" class="flag-word" data-note="pretty" aria-haspopup="dialog" aria-controls="flag-pop" title="what's pretty?">pretty</button>
+        </span>
+        <!-- for support: what's running and how it's set, never a message -->
+        <button type="button" id="report" class="quiet" title="the version, this device, the settings and the last errors; no messages" aria-haspopup="dialog">report…</button>
       </div>
 
       <div class="faders">
@@ -641,28 +660,10 @@
             <label class="fader"><output for="opt-hz">600</output>
               <input type="range" id="opt-hz" min="300" max="1000" step="10" value="600"><span>pitch</span></label>
           </div>
-          <span class="group-name">sound</span>
-        </div>
-        <div class="group">
-          <div class="pair">
-            <label class="fader"><output for="opt-glow">50</output>
-              <input type="range" id="opt-glow" min="10" max="100" step="5" value="50"><span>level</span></label>
-          </div>
-          <span class="group-name">light</span>
-        </div>
-        <div class="group" id="vibe-set" data-needs="vibrate" hidden>
-          <div class="pair">
-            <label class="fader"><output for="opt-vibe">50</output>
-              <input type="range" id="opt-vibe" min="0" max="100" value="50"><span>strength</span></label>
-          </div>
-          <span class="group-name">vibrate</span>
+          <span class="group-name">noise</span>
         </div>
       </div>
 
-      <!-- for support: what's running and how it's set, never a message -->
-      <div class="tray-foot">
-        <button type="button" id="report" class="quiet" title="the version, this device, the settings and the last errors; no messages" aria-haspopup="dialog">a report for support…</button>
-      </div>
     </section>
 
 

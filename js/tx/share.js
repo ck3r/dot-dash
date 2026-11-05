@@ -185,7 +185,7 @@ export function createShare({ state, keyer, shareable, choice, timingNow, setMod
         const blob = await renderWav({
           words, rec: p.rec, timing: timingNow(),
           kind: choice("#opt-sound"),
-          wave: choice("#opt-wave"),
+          wave: choice("#opt-sound"),      // (the sounder: no wave, and none needed)
           pitch: Number($("#opt-hz").value),
           volume: Number($("#opt-vol").value) / 100
         });

@@ -14,7 +14,7 @@ import { format, DECODE } from "./morse.js";
 import { createSound } from "./tx-sound.js";
 import { timeline } from "./tx-player.js";
 import { morseText, plainText, linkTo } from "./tx-share.js";
-import { loadVoice, wordPlace, voiceName, spokenWords, SAY_GAP, WORD_GAP } from "./tx/voice.js";
+import { loadVoice, wordPlace, voiceName, spokenWords, gapBetween, WORD_GAP } from "./tx/voice.js";
 
 export function gifLink(words, origin = location.origin) {
   return `${origin}/og/${format(words)}.gif`;
@@ -181,7 +181,7 @@ export async function renderSpoken(text) {
   const parts = said.map((word, i) => {
     if (word === null) { at += WORD_GAP; return null; }
     const place = { ...wordPlace(word, name), at };
-    at += place.length + (said[i + 1] === null ? 0 : SAY_GAP);
+    at += place.length + (said[i + 1] === null ? 0 : gapBetween(word, said[i + 1]));
     return place;
   }).filter(Boolean);
 

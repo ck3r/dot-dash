@@ -38,8 +38,9 @@
  *   --pad-cols   dit | dah | side keys; the side keys as wide as
  *                the tree column (--edge-w), so the pad's ↵ sits
  *                right under the one on the rule
- *   --key-lit    a key lit while pressed, dimmed with the light level
- *                (--glow, 0.1 … 1)
+ *   --key-lit    a key lit while pressed
+ *   --ui-glow    how bright the station's own lights are (a key held,
+ *                the glow round the message): fixed
  *   --bar        what the eye hides, drawn as a bar in the tape's colour
  */
 /* the collapsed tree column's width, as a length (so a ch here is
@@ -61,7 +62,8 @@
   --icon-box: 1.9rem;
   --edge-w: 6.5ch;
   --pad-cols: 1.7fr 2.4fr var(--edge-w);
-  --key-lit: color-mix(in srgb, var(--paper) calc(var(--glow, 1) * 100%), var(--bakelite));
+  --ui-glow: 0.5;
+  --key-lit: color-mix(in srgb, var(--paper) calc(var(--ui-glow) * 100%), var(--bakelite));
   --bar: color-mix(in srgb, var(--paper) 80%, var(--bakelite));
 }
 
@@ -273,14 +275,14 @@ body.tx {
 }
 
 /* lamp: a brass glow round the message area while the key is closed */
-/* --glow: the light level from settings, 0.1 … 1 */
+/* --ui-glow: the station's own lights, at one level */
 .station.lit {
-  --lit: color-mix(in srgb, var(--brass) calc(var(--glow, 1) * 100%), var(--wire));
+  --lit: color-mix(in srgb, var(--brass) calc(var(--ui-glow) * 100%), var(--wire));
   border-color: var(--lit);
   box-shadow:
     0 0 0 1px var(--lit),
-    0 0 18px color-mix(in srgb, var(--brass) calc(var(--glow, 1) * 45%), transparent),
-    inset 0 0 28px color-mix(in srgb, var(--brass) calc(var(--glow, 1) * 18%), transparent);
+    0 0 18px color-mix(in srgb, var(--brass) calc(var(--ui-glow) * 45%), transparent),
+    inset 0 0 28px color-mix(in srgb, var(--brass) calc(var(--ui-glow) * 18%), transparent);
 }
 
 .field {
@@ -508,6 +510,11 @@ body.tx {
   font-size: var(--fs-xs);
   letter-spacing: -0.02em;
 }
+
+/* a symbol: itself, bold and bigger, as on the card's tile (its
+   word said on a tap; a stair is for spelling a name out) */
+.about-name.about-symbol { font-size: calc(var(--fs-l) * 1.5); line-height: 1; }
+.about-symbol b { font-weight: 700; }
 
 /* a prosign: across, greyed, as big as the column allows */
 .about-prosign {
@@ -1578,21 +1585,20 @@ body.reading .caret { visibility: hidden; }
      checkboxes in a column of their own at the right */
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 0.6rem 0.5rem;
   /*
-   * The faders sit in even columns, one per slider (5 without
-   * vibrate). The lists above use the same measure: key centred over
-   * speed, sound ending just before the vol | pitch gap, wave starting
-   * at that gap, light starting at light. A list too wide for its
+   * The faders sit in even columns, one per slider (four). The lists
+   * above use the same measure: key across speed, sound ending just
+   * before the vol | pitch gap, voice starting at that gap, light at
+   * the far end (it has no slider: the phone's brightness dims it). A list too wide for its
    * place nudges the next one along rather than touching it.
    */
-  --n: 6;
+  --n: 4;
   --g: 0.3rem;                                            /* between slider columns */
   --c: calc((100% - (var(--n) - 1) * var(--g)) / var(--n)); /* one slider column */
 }
 
-.tray:has(#vibe-set[hidden]) { --n: 5; }
 .tray .switches { grid-column: 1; grid-row: 1; }
 .tray .faders   { grid-column: 1; grid-row: 2; }
 
@@ -1621,13 +1627,17 @@ body.reading .caret { visibility: hidden; }
   font-size: var(--fs-xs);
 }
 
-/* the foot: a report for support, quiet, across the tray */
-.tray-foot {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: center;
-  padding-top: 0.4rem;
-  border-top: 1px dashed var(--wire);
+/* the report: the last of the checkboxes, a dotted word like theirs
+   (under pretty, in the column or the phone's pairs) */
+.flags #report {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--graphite);
+  font-size: var(--fs-xs);
+  text-decoration: underline dotted;
+  text-underline-offset: 0.25em;
 }
 
 /* the word opens what it means (dotted, like a term to look up); the [ ] switches */
@@ -1809,7 +1819,7 @@ body.reading .caret { visibility: hidden; }
 /* the choices: lined up over the faders (see the columns above) */
 .switches {
   display: grid;
-  /* key and sound (up to the vol | pitch gap) | wave (at least up to light) | light */
+  /* key and sound (up to the vol | pitch gap) | voice | light, at the end */
   grid-template-columns:
     calc(2 * var(--c) + var(--g))
     calc(var(--c) + var(--g))
@@ -1871,8 +1881,8 @@ body.reading .caret { visibility: hidden; }
 }
 
 .switches .lead > label:first-child { justify-self: start; margin-right: 0; }
-.switches label:has(#opt-wave) { grid-column: 3; }                        /* wave, from that gap */
-.switches > label[data-needs="light"] { grid-column: 4; margin-right: 0; } /* light, from light */
+.switches label:has(#opt-voice) { grid-column: 3; }                       /* voice, from that gap */
+.switches > label[data-needs="light"] { grid-column: 4; margin-right: 0; justify-self: end; } /* light, at the end */
 
 /* the lists' chevron: drawn, so it can turn brass with the rest */
 
@@ -1896,50 +1906,53 @@ body.reading .caret { visibility: hidden; }
 
 /*
  * Phones (480px and less): no room to line the lists up over their
- * sliders, or for a column at the side, so a row for each, the tray
- * scrolling if the sliders run past the bottom:
+ * sliders, so the lists are a row of their own, four even columns;
+ * under it the sliders, a little tighter, and the checkboxes a column
+ * beside them, the report at the foot, level with the sliders'
+ * group names:
  *
- *   key      sound    wave     light       four even lists
- *   ctrl  suggest  pro  cut  pretty  color  invert   word over [ ]
- *   │ │  │ │  │  │      the sliders, full width, full height
- *      a report for support
+ *   key      sound    voice    light
+ *   10  10  50  600  50   [ ] ctrl
+ *   │   │   │   │    │    [ ] mouse
+ *   │   │   │   │    │    [x] suggest
+ *   │   │   │   │    │    …
+ *   wpm far vol pit  lev  [ ] pretty
+ *   speed   noise    light  report…
  */
 @media (max-width: 480px) {
   .tray {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    grid-template-rows: auto auto auto auto;
-    gap: 0.7rem 0.4rem;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 0.6rem 0.5rem;
   }
-  .tray .switches,
+  .tray .switches {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: 0.4rem;
+  }
   .switches .lead { display: contents; }
   .switches label,
-  .switches .lead > label:first-child { justify-self: stretch; align-self: start; margin: 0; min-width: 0; }
+  .switches .lead > label:first-child,
+  .switches > label[data-needs="light"] { justify-self: stretch; align-self: start; margin: 0; min-width: 0; }
   .switches select { width: 100%; }
-  .switches .lead > label:first-child  { grid-column: 1; grid-row: 1; }
-  .switches .lead > label:has(#opt-sound) { grid-column: 2; grid-row: 1; }
-  .switches label:has(#opt-wave)       { grid-column: 3; grid-row: 1; }
-  .switches > label[data-needs="light"] { grid-column: 4; grid-row: 1; }
-  .tray .flags {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    align-self: end;
-    flex-direction: row;
-    justify-content: space-between;
-    gap: 0;                  /* (spread by space-between: nine words just fit a 320px phone) */
-    padding-left: 0;
-    padding-right: 0.6rem;   /* clear of the tray's scrollbar, which phones draw over the edge */
-    border-left: 0;
-  }
-  .tray .flags .flag { display: flex; flex-direction: column-reverse; align-items: center; gap: 0.1rem; }
-  /* centred under its word, without the trailing space */
-  .tray .flags .check::before { content: "[ ]"; }
-  .tray .flags .check:has(input:checked)::before { content: "[x]"; }
   .tray .faders {
-    grid-column: 1 / -1;
-    grid-row: 3;
-    min-height: 200px;     /* as tall as on bigger screens; the tray scrolls */
+    grid-column: 1;
+    grid-row: 2;
+    min-height: 150px;
+    --g: 0.15rem;          /* tighter: room for the column beside */
   }
-  /* the captions under six slim columns ("strength" is the widest) */
+  .tray .flags {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: stretch;
+    justify-content: space-between;   /* the report down at the group names */
+    gap: 0.15rem;
+    padding: 0 0.6rem 0 0.4rem;      /* right: clear of the tray's scrollbar, which phones draw over the edge */
+  }
+  .tray .flags .flag { grid-template-columns: 4ch auto; }
+  /* the captions under slim columns */
   .tray .fader span,
   .tx .tray .fader .fader-name { letter-spacing: -0.06em; font-size: 0.66rem; }
   .tray { overflow-x: clip; }
@@ -2163,7 +2176,7 @@ body[data-key="straight"] .key.dit { grid-column: 1 / span 2; }
 /* playback: the key that makes the sound, half-lit */
 .key.ghost,
 .key.ghost:hover {
-  background: color-mix(in srgb, var(--paper) calc(var(--glow, 1) * 28%), var(--bakelite));
+  background: color-mix(in srgb, var(--paper) calc(var(--ui-glow) * 28%), var(--bakelite));
   border-color: var(--graphite);
 }
 
@@ -3138,7 +3151,7 @@ a.switch { text-decoration: none; }
 }
 
 .lamp.on {
-  --lit: color-mix(in srgb, var(--lamp-on) calc(var(--glow, 1) * 100%), var(--lamp-off));
+  --lit: color-mix(in srgb, var(--lamp-on) 85%, var(--lamp-off));   /* just under full: the phone's brightness does the rest */
   background: var(--lit);
   color: color-mix(in srgb, var(--lamp-off) 14%, var(--lit));
 }
@@ -3289,8 +3302,8 @@ a.switch { text-decoration: none; }
   :root .tx .flag:hover .check::before { color: var(--brass); }
 }
 
-/* held down: a brass edge, as bright as the light level */
+/* held down: a brass edge, as bright as the station's own lights */
 .tx .key.pressed,
 .tx .kbd .pressed {
-  border-color: color-mix(in srgb, var(--brass) calc(var(--glow, 1) * 100%), var(--wire));
+  border-color: color-mix(in srgb, var(--brass) calc(var(--ui-glow) * 100%), var(--wire));
 }

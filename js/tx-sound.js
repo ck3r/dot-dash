@@ -3,7 +3,7 @@
  * TX SOUND — the tone and the sounder (Web Audio)
  * ============================================================
  *
- * Three sounds, picked in settings:
+ * Two sounds for keying, picked in settings:
  *
  *   tone      a wave at the pitch slider (default 600 Hz): sine
  *             (classic, clean), triangle (brighter) or square (a
@@ -22,11 +22,12 @@
  *             Made from a burst of noise through filters (the
  *             strike) plus a short ring (the wooden body).
  *
- *   voice     the recordings (js/tx/voice.js): phonetic (ALFA BRAVO)
- *   letters   or the plain names (A B). Playback says each
- *             letter (say) instead of sounding its marks; keying keeps
- *             the tone, your hand needs it, and letters are said as
- *             they land (speak).
+ * And a voice beside either (setSpeech), from the recordings
+ * (js/tx/voice.js): phonetic (ALFA BRAVO), letters (A B), or each
+ * letter's marks said (didah: DIT DAH, dotdash: DOT DASH). Playback
+ * says each letter (say) instead of sounding its marks; keying keeps
+ * its tone or sounder, your hand needs it, and letters are said as
+ * they land (speak).
  *
  * The audio clock schedules everything, so marks are sample-
  * accurate. Live keying calls key(true/false) now; playback can
@@ -39,7 +40,7 @@
  * a buffer instead of the speakers.
  */
 
-import { loadVoice, wordPlace, setVoice, SAY_GAP } from "./tx/voice.js";
+import { loadVoice, wordPlace, setVoice, gapBetween, VOICES } from "./tx/voice.js";
 
 const RISE = 0.0015;        // setTargetAtTime constant: ~5 ms to full
 const TONE_LEVEL = 0.5;     // headroom under the master volume
@@ -188,7 +189,6 @@ export function createSound(options = {}) {
   /* ---------- the voice ---------- */
 
   /* the voice chosen, which may differ from the one decoded */
-  const VOICE_OF = { voice: "phonetic", letters: "letters" };
   let voiceName = "phonetic";
 
   const voiceReady = (name = voiceName) => loadVoice(name).then(buffer => {
@@ -214,25 +214,32 @@ export function createSound(options = {}) {
   function speak(words) {
     hush();
     let at = 0;
-    for (const word of words) at += say(word, at) + SAY_GAP;
+    words.forEach((word, i) => { at += say(word, at) + gapBetween(word, words[i + 1]); });
   }
 
   /* ---------- settings ---------- */
 
+  /* what keying sounds like: the sounder, or the tone (any wave's
+     name will do: the wave is set on its own) */
   function setKind(next) {
-    const was = speaks;
-    speaks = next in VOICE_OF;
-    if (speaks && VOICE_OF[next] !== voiceName) {
-      hush();
-      voiceName = VOICE_OF[next];
-      setVoice(voiceName);          // a tap on a name, a spoken .wav: the same voice
-    }
-    if (speaks) voiceReady().catch(() => { });      // said again, and reported, at play
-    else if (was) hush();
     const sounding = next === "sounder" ? "sounder" : "tone";
     if (sounding === kind) return;
     silence();
     kind = sounding;
+  }
+
+  /* what playback says: a voice ("phonetic", "letters", "didah",
+     "dotdash"), or nothing ("off"); keying keeps its sound either way */
+  function setSpeech(next) {
+    const was = speaks;
+    speaks = VOICES.includes(next);
+    if (speaks && next !== voiceName) {
+      hush();
+      voiceName = next;
+      setVoice(voiceName);          // a tap on a name, a spoken .wav: the same voice
+    }
+    if (speaks) voiceReady().catch(() => { });      // said again, and reported, at play
+    else if (was) hush();
   }
 
   function setWave(next) {
@@ -259,7 +266,7 @@ export function createSound(options = {}) {
 
   return {
     key, mark, silence, unlock, say, speak, voiceReady,
-    setKind, setWave, setPitch, setVolume, setEnabled,
+    setKind, setSpeech, setWave, setPitch, setVolume, setEnabled,
     get context() { return ctx; },
     get enabled() { return enabled; },
     get speaks() { return speaks; },

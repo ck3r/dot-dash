@@ -734,6 +734,7 @@ body.tree-expanded { overflow: hidden; }
 .card button.card-name { color: var(--graphite); font-size: 1.3rem; width: 100%; }
 .card button.card-label { color: var(--graphite); font-size: 0.95rem; }
 .card button.card-big { font-size: 1.3rem; font-weight: 700; line-height: 1.15; }
+.card button.card-symbol { color: var(--paper); font-size: 2rem; font-weight: 700; line-height: 1; }   /* a symbol: itself; its word on a tap */
 .card-sounds button.card-tap { font-weight: 700; }
 .card .tl { cursor: pointer; }
 @media (hover: hover) {
