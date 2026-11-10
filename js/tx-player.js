@@ -29,7 +29,9 @@
  *       path: that letter's marks so far (".-" …), "" in a gap
  *     A spoken line (line.speech) has no letter under way: each lands
  *     whole as its word starts, the word and the letter one moment
- *     (path ""; mark: the letter's last; no symbol or phase)
+ *     (path ""; mark: the letter's last; no symbol or phase). One
+ *     that says the marks (line.traces: dit-DAH) is traced like the
+ *     tone's, each mark down while its word is said
  *   end()         reached the end (not called while repeating)
  *
  *   rounds()  → how many times to play it (1, 3, Infinity …).
@@ -158,6 +160,7 @@ export function createPlayer({ sound, timing, lineOf = (words, rec) => timeline(
   /* where in the message a position falls */
   function stateAt(pos) {
     const { marks, letters, duration } = line;
+    const whole = line.speech && !line.traces;      // letters land whole
     let letter = -1, mark = -1, down = false, path = "";
     for (let i = 0; i < marks.length && marks[i].start <= pos; i++) {
       mark = i;
@@ -170,14 +173,14 @@ export function createPlayer({ sound, timing, lineOf = (words, rec) => timeline(
       /* inside the letter (or its inner gaps): the path so far;
          at the very end the last letter is over too, so it lands
          (between rounds and when the message ends, not just mid-way) */
-      if (!line.speech && pos < l.end + 1 && pos < duration) path = l.code.slice(0, m.index + 1);
+      if (!whole && pos < l.end + 1 && pos < duration) path = l.code.slice(0, m.index + 1);
     }
-    const symbol = down && !line.speech ? marks[mark].mark : null;
+    const symbol = down && !whole ? marks[mark].mark : null;
 
     /* for the timing bar: what's happening now, and how long it
        should ideally last */
     let phase = null;
-    if (line.speech) phase = null;
+    if (whole) phase = null;
     else if (mark >= 0 && down) {
       const m = marks[mark];
       phase = { kind: "hold", elapsed: pos - m.start, ideal: m.ideal, symbol: m.mark };
@@ -185,7 +188,7 @@ export function createPlayer({ sound, timing, lineOf = (words, rec) => timeline(
       const next = marks[mark + 1];
       phase = { kind: "gap", elapsed: pos - marks[mark].end, ideal: next.idealGap, gap: next.gapKind };
     }
-    if (line.speech && letter >= 0) mark = letters[letter].last;
+    if (whole && letter >= 0) mark = letters[letter].last;
     return { position: Math.min(pos, duration), duration, down, symbol, letter, mark, path, phase };
   }
 

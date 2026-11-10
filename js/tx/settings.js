@@ -22,6 +22,11 @@ import { spokenWords } from "./voice.js";
 import { createOutputs } from "../tx-outputs.js";
 import { $, toast, flash } from "./dom.js";
 
+/* the sound list: a tone's wave, the sounder, or the marks spoken
+   (Di-Dah, Dot Dash: playback says them, keying keeps the tone) */
+const WAVES = ["sine", "triangle", "square", "sawtooth"];
+const CODE_SOUNDS = ["didah", "dotdash"];
+
 /* a list whose "off" is a choice of its own (voice: no voice), not
    its output's switch, is just its value */
 export function choice(select) {
@@ -139,7 +144,7 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
   function loadSettings() {
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY)) ?? {}; } catch { }
-    saved = { ...saved, ...fromOldSound(saved["opt-sound"], saved["opt-wave"]) };
+    saved = { ...saved, ...fromOldSound(saved["opt-sound"], saved["opt-wave"], saved["opt-voice"]) };
     for (const input of settingInputs()) {
       if (saved[input.id] === undefined) continue;
       if (input.tagName === "SELECT" && ![...input.options].some(o => o.value === saved[input.id])) continue;
@@ -178,9 +183,15 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
    *
    *   tone + square   →  sound square
    *   voice           →  sound (the wave), voice ALFA
+   *
+   * Then the code voices moved from voice to sound: they say the
+   * marks, not the letters, so they're how the code sounds
+   *
+   *   voice Di-Dah    →  sound Di-Dah, voice off
    */
-  const OLD_VOICES = { voice: "phonetic", letters: "letters", didah: "didah", dotdash: "dotdash" };
-  function fromOldSound(sound, wave) {
+  const OLD_VOICES = { voice: "phonetic", letters: "letters" };
+  function fromOldSound(sound, wave, voice) {
+    if (CODE_SOUNDS.includes(voice)) return { "opt-sound": voice, "opt-voice": "off" };
     if (sound === "tone") return { "opt-sound": wave ?? "sine" };
     if (sound in OLD_VOICES) return { "opt-sound": wave ?? "sine", "opt-voice": OLD_VOICES[sound] };
     return {};
@@ -542,18 +553,23 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
   }
 
   /* pitch is the tone's: greyed with the sounder, which has none.
-     Touched, the tone comes back, with the wave it had */
+     Touched, the tone comes back, with the wave it had. The voice
+     list is greyed while the sound says the marks (Di-Dah): playback
+     says one or the other, and a touch on it brings the tone back too */
   const pitch = () => $("#opt-hz").closest(".fader");
+  const voiceSet = () => $("#opt-voice").closest("label");
   function markPitch() {
-    const sounder = choice("#opt-sound") === "sounder";
-    pitch().classList.toggle("idle", sounder);
-    if (!sounder) $("#opt-sound").dataset.wave = choice("#opt-sound");
+    const sounding = choice("#opt-sound");
+    pitch().classList.toggle("idle", sounding === "sounder");
+    voiceSet().classList.toggle("covered", CODE_SOUNDS.includes(sounding));
+    if (WAVES.includes(sounding)) $("#opt-sound").dataset.wave = sounding;
   }
 
   function wake(event) {
     const set = event.target.closest?.("#tray [data-needs].idle");
     if (set) document.querySelector(`[data-out="${set.dataset.needs}"]`)?.click();
-    if (event.target.closest?.(".fader.idle") === pitch()) {
+    const toTone = event.target.closest?.(".fader.idle") === pitch() || event.target.closest?.(".covered") === voiceSet();
+    if (toTone) {
       const select = $("#opt-sound");
       select.value = select.dataset.wave ?? "sine";
       select.dispatchEvent(new Event("change", { bubbles: true }));
@@ -696,9 +712,10 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
   function applySound() {
     sound.setPitch(Number($("#opt-hz").value));
     sound.setVolume(Number($("#opt-vol").value) / 100);
-    sound.setKind(choice("#opt-sound"));
-    sound.setWave(choice("#opt-sound"));      // the sounder isn't a wave: the tone keeps its last
-    sound.setSpeech($("#opt-voice").value);
+    const sounding = choice("#opt-sound");
+    sound.setKind(sounding);       // Di-Dah keys with the tone; it's playback that says the marks
+    sound.setWave(sounding);       // the sounder and Di-Dah aren't waves: the tone keeps its last
+    sound.setSpeech(CODE_SOUNDS.includes(sounding) ? sounding : $("#opt-voice").value);
     markPitch();
   }
 

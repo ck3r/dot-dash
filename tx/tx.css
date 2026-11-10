@@ -1969,7 +1969,9 @@ body.reading .caret { visibility: hidden; }
   transition: opacity 0.15s linear, filter 0.15s linear;
 }
 
-.tray .idle {
+/* .covered: the voice list while the sound says the marks (Di-Dah) */
+.tray .idle,
+.tray .covered {
   opacity: 0.38;
   filter: grayscale(1);
 }

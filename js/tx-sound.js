@@ -239,7 +239,13 @@ export function createSound(options = {}) {
       setVoice(voiceName);          // a tap on a name, a spoken .wav: the same voice
     }
     if (speaks) voiceReady().catch(() => { });      // said again, and reported, at play
-    else if (was) hush();
+    else {
+      if (was) hush();
+      /* no voice for playback: a tap on a name (the about card) says
+         it in the phonetic alphabet, not whatever was chosen last */
+      voiceName = "phonetic";
+      setVoice(voiceName);
+    }
   }
 
   function setWave(next) {

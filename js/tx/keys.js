@@ -194,18 +194,37 @@ export function createKeys({
    *
    *   space ▔▔╲___            ˽     (tapped)
    *   space ▔▔╲_______╱▔▔     ˽ → / at half a second
+   *
+   * Tapped twice, quickly, it's a word space too: the second tap
+   * turns the letter space it closed into a / in place, as the held
+   * one does (one token, so ⌫ and ⌃Z take it back in one step).
+   *
+   *   space ▔╲_╱▔╲_           ˽ → / on the second tap
+   *
+   * The window is a fixed 400 ms, not the keyer's word space: a
+   * double tap is a gesture of the hand, the same at any speed (tap
+   * mode has no speed at all, and 7 units at 5 wpm is nearly two
+   * seconds). A second space did nothing before, so a generous
+   * window costs nothing; anything else pressed in between starts
+   * over.
    */
   const WORD_BACK = 500;   // ms
+  const DOUBLE_SPACE = 400;   // ms, from one press of the letter space to the next
   let wordBack = null;
   let wordOn = null;
+  let spaceAt = -Infinity;    // when the letter space was last pressed (-Infinity: something else since)
 
   function keyDown(button) {
     if (!button || button.classList.contains("pressed")) return;
     if (playing() || state.playKey !== null) stopPlayback();   // back to keying: the player lets go, rewound
     button.classList.add("pressed");
     sound.unlock();                 // audio may only start inside a press
-    const act = button.dataset.act;
+    let act = button.dataset.act;
     const mark = act === "." || act === "-";
+    const now = performance.now();
+    const twice = act === "letter" && now - spaceAt < DOUBLE_SPACE;
+    spaceAt = act === "letter" && !twice ? now : -Infinity;   // a third tap starts a new pair
+    if (twice) act = "word";
 
     if (act === "send") {          // ↵, under the spaces: the line goes up
       keyer.cancel();

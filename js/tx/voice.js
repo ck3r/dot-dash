@@ -270,7 +270,7 @@ export function spokenWords(text) {
  * text and name together (tx-player.js stateAt).
  */
 export function voiceTimeline(words, names) {
-  const marks = [], letters = [], speech = [];
+  const marks = [], letters = [], speech = [], tracing = saysCode();
   let at = 0, last = null;     // the last word said
   words.forEach((word, w) => {
     const said = spokenLetters(names[w]);
@@ -284,7 +284,7 @@ export function voiceTimeline(words, names) {
       if (!own.length && spans.some(span => span.spoke)) { spans.push({ joins: true }); return; }
       if (c) at += (own.length ? gapBetween(last, own[0]) : SAY_GAP) * 1000;
       else if (w) at += WORD_GAP * 1000;
-      const start = at;
+      const start = at, from = speech.length;
       own.forEach((name, i) => {
         if (i) at += gapBetween(own[i - 1], name) * 1000;
         const length = wordPlace(name).length * 1000;
@@ -293,7 +293,7 @@ export function voiceTimeline(words, names) {
         last = name;
       });
       if (at === start) at += SILENT;
-      spans.push({ start, end: at, spoke: own.length > 0 });
+      spans.push({ start, end: at, spoke: own.length > 0, said: speech.slice(from) });
     });
 
     /* a word shared: its time split among its letters by their marks'
@@ -318,8 +318,21 @@ export function voiceTimeline(words, names) {
     }
 
     word.forEach((code, c) => {
-      const { start, end } = spans[c];
+      const { start, end, said } = spans[c];
       const first = marks.length;
+      /* a code voice says each mark: the mark lasts as its word does
+         (dah-dit-DAH: the dash lit while "dah" is said), so playback
+         traces the code as it does with a tone */
+      if (tracing && said?.length === code.length) {
+        [...code].forEach((m, i) => {
+          const { start: s, end: e } = said[i];
+          const gapKind = !marks.length ? null : i ? "inner" : c ? "letter" : "word";
+          const idealGap = !gapKind ? 0 : i ? s - said[i - 1].end : c ? start - spans[c - 1].end : WORD_GAP * 1000;
+          marks.push({ start: s, end: e, mark: m, letter: letters.length, index: i, ideal: e - s, gapKind, idealGap, recorded: false });
+        });
+        letters.push({ code, start, end, first, last: marks.length - 1 });
+        return;
+      }
       const lengths = [...code].map(m => (m === "." ? 1 : 3));
       const unit = (end - start) / (lengths.reduce((a, b) => a + b) + code.length - 1);
       let t = start;
@@ -334,7 +347,7 @@ export function voiceTimeline(words, names) {
       letters.push({ code, start, end, first, last: marks.length - 1 });
     });
   });
-  return { marks, letters, speech, duration: at };
+  return { marks, letters, speech, traces: tracing, duration: at };
 }
 
 let context = null, speaking = null, taps = 0;

@@ -93,8 +93,9 @@ export function createLayer({
 
   /*
    * Long-press an output, and its list opens on its own, above it,
-   * without the settings: ♪ the sound, ☼ the light, the Morse input
-   * (.-) which keyer. Choosing one sets the list in the tray as if
+   * without the settings: ♪ the sound, ☼ the light, the input switch
+   * (.- ⇄ A, anywhere on it) which keyer, text among them; a tap
+   * there still just swaps keying and typing. Choosing one sets the list in the tray as if
    * chosen there; the press itself doesn't toggle the output.
    *
    *        ┌───────────────┐
@@ -108,7 +109,7 @@ export function createLayer({
    */
   const LONG_PRESS = 450;   // ms
   const LISTS = [['[data-out="sound"]', "#opt-sound"], ['[data-out="light"]', "#opt-light"],
-                 ['.input-mode .side[data-mode="key"]', "#opt-key"]];
+                 ['.input-mode', "#opt-key"]];
   let list = null;          // the open list, or null
 
   function closeList() {
