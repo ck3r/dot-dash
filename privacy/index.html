@@ -70,7 +70,13 @@
 
     <section class="frame" id="contact" aria-labelledby="l-contact">
       <h2 class="frame-label" id="l-contact">contact</h2>
+      <!-- email_off: Cloudflare, in front of the site, would scramble
+           the address and add a script of its own to put it back; with
+           no script, or offline, the page then reads "[email protected]".
+           These two comments tell it to leave the line as written. -->
+      <!--email_off-->
       <p>A question about any of this, or about the site or the extension: <a href="mailto:cq@dot-da.sh">cq@dot-da.sh</a>.</p>
+      <!--/email_off-->
     </section>
 
     <section class="frame" id="changes" aria-labelledby="l-changes">
