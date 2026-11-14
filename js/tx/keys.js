@@ -357,7 +357,9 @@ export function createKeys({
    *   left    dit    (straight key: the key)
    *   right   dah    (straight key: the key too)
    *
-   * Typing, or the box off: clicks are clicks.
+   * Typing, or the box off: clicks are clicks. So are clicks on what
+   * sits in the message's box to be pressed (return, the eye, the
+   * counts, the quick-scroll thumb): those aren't the message.
    *
    * Where the browser won't hand the pointer over (a page inside
    * another, as in an app's preview), the buttons key while it's over
@@ -368,15 +370,18 @@ export function createKeys({
   let over = false;    // keying over the message (no lock to be had)
   let taken = false;   // the click that took the pointer: it does nothing else
   const field = $("#tape").closest(".field");
-  const keying = event => locked() || (over && field.contains(event.target));
+  const control = event => !!event.target.closest?.(".field-foot, #tape-eye, #tape-thumb");
+  const onMessage = event => field.contains(event.target) && !control(event);
+  const keying = event => locked() || (over && onMessage(event));
   field.addEventListener("pointerdown", event => {
-    if (locked() || over || !mouseKeys() || state.mode === "type" || event.pointerType !== "mouse") return;
+    if (locked() || over || !mouseKeys() || state.mode === "type" || event.pointerType !== "mouse" || control(event)) return;
     event.preventDefault();
     event.stopPropagation();
     taken = true;
     document.body.requestPointerLock?.()?.catch?.(() => { });   // refused: pointerlockerror says so (below)
   }, { capture: true });
   field.addEventListener("click", event => {
+    if (!locked() && control(event)) return;
     if (!taken && !over) return;
     taken = false;
     event.preventDefault();

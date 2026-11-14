@@ -11,7 +11,13 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="dot-da.sh">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <title>dot-da.sh</title>
+  <!-- The words here are for search engines and anything else that
+       reads the page without running it: once the script is up, the
+       tab keys the name and rests on "dot-da.sh" (js/keyer.js). The
+       og: and twitter: tags below stay in Morse: that's the card a
+       shared link shows. -->
+  <title>dot-da.sh · Morse code station: key, type, play and share</title>
+  <link rel="canonical" href="https://dot-da.sh/">
 
   <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
   <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }
@@ -20,8 +26,8 @@
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/tx/tx.css">
   <!-- Primary Meta Tags -->
-<meta name="title" content="dot-da.sh" />
-<meta name="description" content=".... . .-.. .-.. --- / .-- --- .-. .-.. -.." />
+<meta name="title" content="dot-da.sh · Morse code station: key, type, play and share" />
+<meta name="description" content="A Morse code station on the web: key it, type it, hear it, and share any message as a link. Free, no account, nothing to install." />
 
 <!-- Open Graph / Facebook -->
 <meta property="og:type" content="website" />
@@ -38,6 +44,24 @@
 <meta property="twitter:image" content="https://dot-da.sh/preview.png" />
 
 <!-- Meta Tags Generated with https://metatags.io -->
+
+<!-- what this is, for search engines and AI answers, in their own format -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "dot-da.sh",
+  "url": "https://dot-da.sh/",
+  "description": "A Morse code station on the web: key it, type it, hear it, and share any message as a link. Free, no account, nothing to install.",
+  "applicationCategory": "EducationalApplication",
+  "operatingSystem": "Any",
+  "browserRequirements": "A modern browser with JavaScript",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "image": "https://dot-da.sh/preview.png",
+  "author": { "@type": "Person", "name": "ck3r" }
+}
+</script>
 </head>
 
 <!--
@@ -182,6 +206,9 @@
 
 
   <main class="station">
+    <!-- headings nobody sees: a screen reader's way around the station
+         (its parts are told apart by frames and place, not by titles) -->
+    <h1 class="visually-hidden">dot-da.sh: a Morse code station</h1>
 
     <!-- the switch sits ON the box's bottom edge, like the preview card:
          open, the lever lifts and leaves a gap; closed, it drops into the line -->
@@ -195,7 +222,8 @@
 
     <!-- the tree: a magnified view of where you are; >< opens the
          whole tree in the left half, the message moves to the right -->
-    <aside class="tree-edge" aria-label="the Morse tree">
+    <aside class="tree-edge" aria-labelledby="tree-heading">
+      <h2 class="visually-hidden" id="tree-heading">the Morse tree</h2>
       <!-- the toggle and the (i) stay put when the tree opens -->
       <div class="edge-head"><button type="button" id="tree-toggle" class="edge-toggle" aria-expanded="false" title="show the whole tree"><svg class="ico" aria-hidden="true"><use href="#i-in"/></svg></button></div>
       <div id="local" class="local" title="show the whole tree"></div>
@@ -214,7 +242,8 @@
       </div>
     </aside>
 
-    <section class="field" aria-label="message">
+    <section class="field" aria-labelledby="field-heading">
+      <h2 class="visually-hidden" id="field-heading">message</h2>
       <ol id="tape" class="tape"></ol>
       <!-- quick scroll: a thumb to drag through a long tape (tx/tape.js) -->
       <button type="button" id="tape-thumb" class="tape-thumb" tabindex="-1" aria-hidden="true" hidden></button>
@@ -453,6 +482,7 @@
 
 
   <div class="controls">
+    <h2 class="visually-hidden">player, settings and keys</h2>
 
     <!--
       on arrival: the privacy note sits over the keys until the first
@@ -601,42 +631,44 @@
              report…
 
            The box switches; the word, dotted like a term to look up,
-           says what it does (#flag-pop, #suggest-pop) -->
+           says what it does (#flag-pop, #suggest-pop). The box's name
+           is hidden text in its label, so the label isn't an empty one
+           to a screen reader or to someone asking for it by voice -->
       <div class="flags">
         <span class="flag">
-          <label class="check"><input type="checkbox" id="opt-ctrl" aria-label="Ctrl keys as paddles"></label>
+          <label class="check"><input type="checkbox" id="opt-ctrl"><span class="visually-hidden">Ctrl keys as paddles</span></label>
           <button type="button" class="flag-word" data-note="ctrl" aria-haspopup="dialog" aria-controls="flag-pop" title="what's ctrl?">ctrl</button>
         </span>
         <span class="flag">
-          <label class="check"><input type="checkbox" id="opt-mouse" aria-label="the mouse as the key"></label>
+          <label class="check"><input type="checkbox" id="opt-mouse"><span class="visually-hidden">the mouse as the key</span></label>
           <button type="button" class="flag-word" data-note="mouse" aria-haspopup="dialog" aria-controls="flag-pop" title="what's mouse?">mouse</button>
         </span>
         <span class="flag">
-          <label class="check"><input type="checkbox" id="opt-suggest" checked aria-label="suggestions"></label>
+          <label class="check"><input type="checkbox" id="opt-suggest" checked><span class="visually-hidden">suggestions</span></label>
           <button type="button" id="suggest-info" class="flag-word" aria-haspopup="dialog" aria-controls="suggest-pop" title="what the suggestions are, and how long they stay">suggest</button>
         </span>
         <span class="flag">
-          <label class="check"><input type="checkbox" id="opt-about" checked aria-label="the about column"></label>
+          <label class="check"><input type="checkbox" id="opt-about" checked><span class="visually-hidden">the about column</span></label>
           <button type="button" id="about-set-info" class="flag-word" aria-haspopup="dialog" aria-controls="about-set-pop" title="what the about column shows">about</button>
         </span>
         <span class="flag">
-          <label class="check"><input type="checkbox" id="opt-prosigns" checked aria-label="prosigns"></label>
+          <label class="check"><input type="checkbox" id="opt-prosigns" checked><span class="visually-hidden">prosigns</span></label>
           <button type="button" class="flag-word" data-note="pro" aria-haspopup="dialog" aria-controls="flag-pop" title="what's pro?">pro</button>
         </span>
         <span class="flag">
-          <label class="check"><input type="checkbox" id="opt-cut" aria-label="cut numbers"></label>
+          <label class="check"><input type="checkbox" id="opt-cut"><span class="visually-hidden">cut numbers</span></label>
           <button type="button" class="flag-word" data-note="cut" aria-haspopup="dialog" aria-controls="flag-pop" title="what's cut?">cut</button>
         </span>
         <span class="flag">
-          <label class="check"><input type="checkbox" id="opt-color" checked aria-label="color"></label>
+          <label class="check"><input type="checkbox" id="opt-color" checked><span class="visually-hidden">color</span></label>
           <button type="button" class="flag-word" data-note="color" aria-haspopup="dialog" aria-controls="flag-pop" title="what's color?">color</button>
         </span>
         <span class="flag">
-          <label class="check"><input type="checkbox" id="opt-theme" aria-label="invert"></label>
+          <label class="check"><input type="checkbox" id="opt-theme"><span class="visually-hidden">invert</span></label>
           <button type="button" class="flag-word" data-note="invert" aria-haspopup="dialog" aria-controls="flag-pop" title="what's invert?">invert</button>
         </span>
         <span class="flag">
-          <label class="check"><input type="checkbox" id="opt-pretty" aria-label="pretty play"></label>
+          <label class="check"><input type="checkbox" id="opt-pretty"><span class="visually-hidden">pretty play</span></label>
           <button type="button" class="flag-word" data-note="pretty" aria-haspopup="dialog" aria-controls="flag-pop" title="what's pretty?">pretty</button>
         </span>
         <!-- for support: what's running and how it's set, never a message -->

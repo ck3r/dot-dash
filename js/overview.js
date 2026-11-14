@@ -180,20 +180,31 @@ function timeline(parts, { join = 3, labels = [], gone = new Set() } = {}) {
   const marks = make("span", "tl-marks");
   const under = make("span", "tl-labels");
   const units = n => `calc(var(--u) * ${n})`;
-  let t = 0, i = 0;
+  /* t: where a mark sits along the wire; at: when it sounds. A mark
+     not sent takes its room but no time, so what's left of 7 8 9 0
+     (their end) starts with the card's other lines, not after a wait
+     for the grey ones:
+       ░░░ ░░░ █ █ █      the first █ at 0, not 8 units in          */
+  let t = 0, at = 0, i = 0, sounded = false;
   parts.forEach((part, p) => {
+    let space = 0;          // the silence since the mark before
     if (p) {
       marks.append(Object.assign(make("i", "gap"), { style: `width:${units(join)}` }));
       under.append(Object.assign(make("span", ""), { style: `width:${units(join)}` }));
-      t += join;
+      t += join; space = join;
     }
     let width = 0;
     [...part].forEach((m, k) => {
-      if (k) { marks.append(Object.assign(make("i", "gap"), { style: `width:${units(1)}` })); t++; width++; }
+      if (k) { marks.append(Object.assign(make("i", "gap"), { style: `width:${units(1)}` })); t++; width++; space = 1; }
       const n = m === "." ? 1 : 3;
-      const mark = make("i", `m ${m === "." ? "dot" : "dash"}${gone.has(i) ? " gone" : ""}`);
+      const sent = !gone.has(i);
+      const mark = make("i", `m ${m === "." ? "dot" : "dash"}${sent ? "" : " gone"}`);
       mark.style.width = units(n);
-      mark.style.setProperty("--t", `${t * UNIT}ms`);
+      if (sent) {
+        if (sounded) at += space;   // (no silence to wait out before the first)
+        mark.style.setProperty("--t", `${at * UNIT}ms`);
+        at += n; sounded = true;
+      }
       mark.style.setProperty("--d", `${n * UNIT}ms`);
       marks.append(mark);
       t += n; width += n; i++;

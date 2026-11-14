@@ -1,0 +1,12 @@
+# dot-da.sh: everyone may read it.
+#
+# Content signals (contentsignals.org): find it in search, and use it
+# to answer a question (see /llms.txt for how the links and files
+# work); don't train a model on it (LICENSE.md: noncommercial, and the
+# voice recordings are not to be trained on or imitated).
+
+User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=no
+Allow: /
+
+Sitemap: https://dot-da.sh/sitemap.xml

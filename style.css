@@ -243,6 +243,24 @@ a {
   color: var(--graphite);
 }
 
+/* the reference's list of the characters' own pages: a quiet index
+   under the chart, each character with room around it for a thumb
+
+     A B C D E F G …
+     1 2 3 4 5 6 7 8 9 0
+     . , ? ! ' " ( ) & …                                          */
+.pages {
+  margin-top: 1.5rem;
+  color: var(--graphite);
+}
+.pages p { margin: 0.25rem 0 0; max-width: none; }
+.pages a {
+  display: inline-block;
+  min-width: 1.5em;
+  padding: 0.25em 0;
+  text-align: center;
+}
+
 
 /* ============================================================
  * CONTROLS
@@ -1009,10 +1027,11 @@ body.tree-expanded { overflow: hidden; }
 }
 
 /* the phonetic name, greyed, beside its character (on the inner
-   side, so the codes stay at the outer edges) */
+   side, so the codes stay at the outer edges). Plain graphite and no
+   dimmer: at this size it's as faint as small text can be and still
+   be read (4.5 to 1 against the background, in either theme) */
 .morse-code .say {
   color: var(--graphite);
-  opacity: 0.75;
   font-size: 0.78em;
   white-space: nowrap;
 }

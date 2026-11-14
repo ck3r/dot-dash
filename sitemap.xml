@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The pages worth finding; the characters' own pages are added by
+     npm run ref (tools/ref-pages.cjs), which writes this file. Message
+     links (?/…) aren't here: they're anyone's messages, and the Worker
+     asks search engines to leave them out. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://dot-da.sh/</loc></url>
+  <url><loc>https://dot-da.sh/ref/</loc></url>
+  <url><loc>https://dot-da.sh/design/</loc></url>
+  <url><loc>https://dot-da.sh/bookmarklet/</loc></url>
+  <url><loc>https://dot-da.sh/privacy/</loc></url>
+  <url><loc>https://dot-da.sh/ref/e/</loc></url>
+  <url><loc>https://dot-da.sh/ref/t/</loc></url>
+  <url><loc>https://dot-da.sh/ref/i/</loc></url>
+  <url><loc>https://dot-da.sh/ref/a/</loc></url>
+  <url><loc>https://dot-da.sh/ref/n/</loc></url>
+  <url><loc>https://dot-da.sh/ref/m/</loc></url>
+  <url><loc>https://dot-da.sh/ref/s/</loc></url>
+  <url><loc>https://dot-da.sh/ref/u/</loc></url>
+  <url><loc>https://dot-da.sh/ref/r/</loc></url>
+  <url><loc>https://dot-da.sh/ref/w/</loc></url>
+  <url><loc>https://dot-da.sh/ref/d/</loc></url>
+  <url><loc>https://dot-da.sh/ref/k/</loc></url>
+  <url><loc>https://dot-da.sh/ref/g/</loc></url>
+  <url><loc>https://dot-da.sh/ref/o/</loc></url>
+  <url><loc>https://dot-da.sh/ref/h/</loc></url>
+  <url><loc>https://dot-da.sh/ref/v/</loc></url>
+  <url><loc>https://dot-da.sh/ref/f/</loc></url>
+  <url><loc>https://dot-da.sh/ref/l/</loc></url>
+  <url><loc>https://dot-da.sh/ref/p/</loc></url>
+  <url><loc>https://dot-da.sh/ref/j/</loc></url>
+  <url><loc>https://dot-da.sh/ref/b/</loc></url>
+  <url><loc>https://dot-da.sh/ref/x/</loc></url>
+  <url><loc>https://dot-da.sh/ref/c/</loc></url>
+  <url><loc>https://dot-da.sh/ref/y/</loc></url>
+  <url><loc>https://dot-da.sh/ref/z/</loc></url>
+  <url><loc>https://dot-da.sh/ref/q/</loc></url>
+  <url><loc>https://dot-da.sh/ref/5/</loc></url>
+  <url><loc>https://dot-da.sh/ref/4/</loc></url>
+  <url><loc>https://dot-da.sh/ref/3/</loc></url>
+  <url><loc>https://dot-da.sh/ref/2/</loc></url>
+  <url><loc>https://dot-da.sh/ref/ampersand/</loc></url>
+  <url><loc>https://dot-da.sh/ref/plus/</loc></url>
+  <url><loc>https://dot-da.sh/ref/1/</loc></url>
+  <url><loc>https://dot-da.sh/ref/6/</loc></url>
+  <url><loc>https://dot-da.sh/ref/equals/</loc></url>
+  <url><loc>https://dot-da.sh/ref/slash/</loc></url>
+  <url><loc>https://dot-da.sh/ref/open-bracket/</loc></url>
+  <url><loc>https://dot-da.sh/ref/7/</loc></url>
+  <url><loc>https://dot-da.sh/ref/8/</loc></url>
+  <url><loc>https://dot-da.sh/ref/9/</loc></url>
+  <url><loc>https://dot-da.sh/ref/0/</loc></url>
+  <url><loc>https://dot-da.sh/ref/question-mark/</loc></url>
+  <url><loc>https://dot-da.sh/ref/underscore/</loc></url>
+  <url><loc>https://dot-da.sh/ref/quote/</loc></url>
+  <url><loc>https://dot-da.sh/ref/period/</loc></url>
+  <url><loc>https://dot-da.sh/ref/at/</loc></url>
+  <url><loc>https://dot-da.sh/ref/apostrophe/</loc></url>
+  <url><loc>https://dot-da.sh/ref/hyphen/</loc></url>
+  <url><loc>https://dot-da.sh/ref/semicolon/</loc></url>
+  <url><loc>https://dot-da.sh/ref/exclamation-mark/</loc></url>
+  <url><loc>https://dot-da.sh/ref/close-bracket/</loc></url>
+  <url><loc>https://dot-da.sh/ref/comma/</loc></url>
+  <url><loc>https://dot-da.sh/ref/colon/</loc></url>
+  <url><loc>https://dot-da.sh/ref/dollar/</loc></url>
+</urlset>

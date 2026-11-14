@@ -2856,7 +2856,8 @@ body:has(#train:not([hidden])) .pad {
  *
  * The waiting screen, the 404 page (and any other error page) are
  * one skeleton: the station's own shape, its parts at rest, keying a
- * short message over and over.
+ * short message: waiting, over and over for as long as it takes; an
+ * error, once, as the page loads.
  *
  *   dot-da.sh                         (◯)    the header: home, profile
  *   ┌──────────────────────────────────┐
