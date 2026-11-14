@@ -11,7 +11,9 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="dot-da.sh">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <title>dot-da.sh</title>
+  <!-- words for search engines; the tab keys the name once the script is up (see /index.html) -->
+  <title>Morse code reference: chart, tree, prosigns, Q codes · dot-da.sh</title>
+  <link rel="canonical" href="https://dot-da.sh/ref/">
 
   <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
 
@@ -19,8 +21,8 @@
   <link rel="stylesheet" href="/style.css">
 
   <!-- Primary Meta Tags -->
-<meta name="title" content="dot-da.sh" />
-<meta name="description" content=".... . .-.. .-.. --- / .-- --- .-. .-.. -.." />
+<meta name="title" content="Morse code reference: chart, tree, prosigns, Q codes · dot-da.sh" />
+<meta name="description" content="Every Morse code character, with its sound and its place in the tree: letters, numbers, punctuation, prosigns, Q codes and abbreviations." />
 
 <!-- Open Graph / Facebook -->
 <meta property="og:type" content="website" />
@@ -48,6 +50,9 @@
   </header>
 
   <main>
+    <!-- the page's heading, for a screen reader: on screen the frames'
+         labels (tree, selected character, all characters) say it all -->
+    <h1 class="visually-hidden">Morse code reference</h1>
 
     <!-- ───────────── tree ───────────── -->
     <section class="frame tree-frame" aria-labelledby="tree-label">
@@ -142,7 +147,7 @@
          [x] cards    ▷ 2.8s ━━━━━━━━┃━━━━━━━ ⟲3 │ speed 5 wpm  consecutive   -->
   <div class="chart-bar">
     <div class="cards-switch">
-      <label class="check box-only"><input type="checkbox" id="opt-cards" aria-label="characters as cards"></label>
+      <label class="check box-only"><input type="checkbox" id="opt-cards"><span class="visually-hidden">characters as cards</span></label>
       <button type="button" id="cards-info" class="flag-word" aria-haspopup="dialog" aria-controls="cards-pop">cards</button>
     </div>
     <div class="stroke-player" hidden>
@@ -426,6 +431,18 @@
 
 </div>
     </section>
+
+    <!-- a page of its own for each character (/ref/k/, made by npm run
+         ref): plain links, so a reader with no script, a crawler, finds
+         them from here. The chart's own links stay on this page: they
+         choose a character in place. tests/ref-pages.cjs checks every
+         page is listed -->
+    <nav class="pages" aria-labelledby="pages-label">
+      <p id="pages-label">A page of its own for each character, with pictures to keep:</p>
+      <p><a href="/ref/a/" title="A in Morse code">A</a> <a href="/ref/b/" title="B in Morse code">B</a> <a href="/ref/c/" title="C in Morse code">C</a> <a href="/ref/d/" title="D in Morse code">D</a> <a href="/ref/e/" title="E in Morse code">E</a> <a href="/ref/f/" title="F in Morse code">F</a> <a href="/ref/g/" title="G in Morse code">G</a> <a href="/ref/h/" title="H in Morse code">H</a> <a href="/ref/i/" title="I in Morse code">I</a> <a href="/ref/j/" title="J in Morse code">J</a> <a href="/ref/k/" title="K in Morse code">K</a> <a href="/ref/l/" title="L in Morse code">L</a> <a href="/ref/m/" title="M in Morse code">M</a> <a href="/ref/n/" title="N in Morse code">N</a> <a href="/ref/o/" title="O in Morse code">O</a> <a href="/ref/p/" title="P in Morse code">P</a> <a href="/ref/q/" title="Q in Morse code">Q</a> <a href="/ref/r/" title="R in Morse code">R</a> <a href="/ref/s/" title="S in Morse code">S</a> <a href="/ref/t/" title="T in Morse code">T</a> <a href="/ref/u/" title="U in Morse code">U</a> <a href="/ref/v/" title="V in Morse code">V</a> <a href="/ref/w/" title="W in Morse code">W</a> <a href="/ref/x/" title="X in Morse code">X</a> <a href="/ref/y/" title="Y in Morse code">Y</a> <a href="/ref/z/" title="Z in Morse code">Z</a></p>
+      <p><a href="/ref/1/" title="1 in Morse code">1</a> <a href="/ref/2/" title="2 in Morse code">2</a> <a href="/ref/3/" title="3 in Morse code">3</a> <a href="/ref/4/" title="4 in Morse code">4</a> <a href="/ref/5/" title="5 in Morse code">5</a> <a href="/ref/6/" title="6 in Morse code">6</a> <a href="/ref/7/" title="7 in Morse code">7</a> <a href="/ref/8/" title="8 in Morse code">8</a> <a href="/ref/9/" title="9 in Morse code">9</a> <a href="/ref/0/" title="0 in Morse code">0</a></p>
+      <p><a href="/ref/period/" title=". (period) in Morse code">.</a> <a href="/ref/comma/" title=", (comma) in Morse code">,</a> <a href="/ref/question-mark/" title="? (question mark) in Morse code">?</a> <a href="/ref/exclamation-mark/" title="! (exclamation mark) in Morse code">!</a> <a href="/ref/apostrophe/" title="' (apostrophe) in Morse code">'</a> <a href="/ref/quote/" title="&quot; (quote) in Morse code">&quot;</a> <a href="/ref/open-bracket/" title="( (open bracket) in Morse code">(</a> <a href="/ref/close-bracket/" title=") (close bracket) in Morse code">)</a> <a href="/ref/ampersand/" title="&amp; (ampersand) in Morse code">&amp;</a> <a href="/ref/colon/" title=": (colon) in Morse code">:</a> <a href="/ref/semicolon/" title="; (semicolon) in Morse code">;</a> <a href="/ref/slash/" title="/ (slash) in Morse code">/</a> <a href="/ref/underscore/" title="_ (underscore) in Morse code">_</a> <a href="/ref/equals/" title="= (equals) in Morse code">=</a> <a href="/ref/plus/" title="+ (plus) in Morse code">+</a> <a href="/ref/hyphen/" title="- (hyphen) in Morse code">-</a> <a href="/ref/dollar/" title="$ (dollar) in Morse code">$</a> <a href="/ref/at/" title="@ (at) in Morse code">@</a></p>
+    </nav>
 
     <p class="colophon"><a href="/design/">design notes</a>: why the site looks and behaves as it does. <a href="/bookmarklet/">bookmarklet</a>: send what you've selected on any page here. <a href="/privacy/">privacy</a>: what you type stays in your browser.</p>
 

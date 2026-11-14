@@ -1,0 +1,43 @@
+/* ============================================================
+ * A REFERENCE PAGE OF ITS OWN  (/ref/k/, made by npm run ref)
+ * ============================================================
+ *
+ * A notes page (design.css) with the card at its head:
+ *
+ *   the reference / K
+ *   K in Morse code
+ *   ┌ the letter K ───────────┐   the card, as the station's (i)
+ *   │ the tree   path, depth… │   and the reference show it
+ *   │ the marks  the tile     │   (js/ref-item.js, overview.js)
+ *   │ the name   how it sounds│
+ *   └─────────────────────────┘
+ *   ┌ the prosign <K> ─┐  ┌ the abbreviation K ─┐  ┌ to keep ─┐
+ *
+ * Everything else, the frames included, is style.css's.
+ */
+
+.item .crumb { color: var(--graphite); margin-bottom: 0.4rem; }
+
+/* the card is the reference's (style.css .card): a notes page's own
+   list rules (design.css: bold terms, grey answers, a gap before each
+   term) are for prose, and would push its rows out of line */
+.item .card dt { font-weight: 400; margin-top: 0; }
+.item .card dd { color: inherit; }
+
+.item-open { margin-top: 1.25rem; }
+.item-jump { margin-top: 1.25rem; color: var(--graphite); }
+.item .na { color: var(--graphite); }
+
+/* the pictures to keep, small, in a row that wraps: a tap opens the
+   full one. The signal lamp's is the Worker's card, wide, on a row
+   of its own */
+.item-keep { display: flex; flex-wrap: wrap; gap: 1rem; }
+.item-keep figure { margin: 0; width: 9.5rem; }
+.item-keep figure.wide { width: 100%; }
+.item-keep figure.wide a { display: block; max-width: 20rem; }
+.item-keep img { display: block; width: 100%; height: auto; border: 1px solid var(--wire); }
+.item-keep figcaption { margin-top: 0.3rem; color: var(--graphite); font-size: 0.85em; }
+@media (hover: hover) {
+  .item-keep a:hover { background: transparent; }
+  .item-keep a:hover img { border-color: var(--brass); }
+}
