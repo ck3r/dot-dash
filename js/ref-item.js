@@ -4,7 +4,7 @@
  * a reader with no script. Here it's drawn again in place by the same
  * code as the station's (i) and the reference's selected character
  * (overview.js renderCard), so it plays as it opens, a tap on the
- * tile plays it again, and the marks copy.
+ * tile plays it again, its name says itself, and the marks copy.
  *
  *   no script          with script
  *   ┌ the letter K ┐   ┌ the letter K ┐
@@ -18,6 +18,7 @@
  */
 import { renderCard } from "./overview.js";
 import { PAGES } from "./ref-pages.js";
+import { say } from "./tx/voice.js";
 
 const card = document.querySelector("#item-card");
 if (card) {
@@ -32,6 +33,7 @@ if (card) {
     }
   };
   new MutationObserver(point).observe(card, { childList: true, subtree: true });
-  renderCard(card, card.dataset.code);
+  /* its name says itself, as in the reference (no volume here: full) */
+  renderCard(card, card.dataset.code, { say: ch => say(ch).catch(() => { }) });
   point();
 }

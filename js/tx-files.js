@@ -197,7 +197,7 @@ export async function renderSpoken(text) {
 }
 
 /* 16-bit mono PCM */
-function wavFile(data, rate) {
+export function wavFile(data, rate) {
   const out = new DataView(new ArrayBuffer(44 + data.length * 2));
   const str = (o, s) => [...s].forEach((c, i) => out.setUint8(o + i, c.charCodeAt(0)));
   str(0, "RIFF"); out.setUint32(4, 36 + data.length * 2, true); str(8, "WAVEfmt ");

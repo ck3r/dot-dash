@@ -16,7 +16,8 @@
  *                first, and twice if it would flash faster than
  *                3 times a second)
  *   flashlight   the phone's torch (Android Chrome only: it goes
- *                through the camera, so it asks for camera access)
+ *                through the camera, so it asks for camera access;
+ *                slow to switch: see "flashlight" below)
  *
  * Vibration (where the phone supports it; not iPhone): buzzes for
  * each mark. A web page can't set how hard a phone vibrates, so
@@ -85,10 +86,48 @@ export function createOutputs({ settings, lampTarget, overlay }) {
 
   /* ---------- flashlight ---------- */
 
+  /*
+   * The torch is slow, and a page can't hurry it: each switch goes
+   * through the camera and takes its time (the lag: tens of ms on
+   * some phones, a couple of hundred on others), one switch at a
+   * time. A mark longer than the lag comes out right, just late:
+   *
+   *   wanted   ▁███▁▁▁      lit   ▁▁███▁▁     (on and off both late)
+   *
+   * but a mark shorter than the lag can't: "off" waits for "on" to
+   * finish, so the light stays lit a whole lag whatever was asked.
+   * With a lag of a dah, E and T looked the same:
+   *
+   *   wanted   ▁█▁▁▁▁▁      lit   ▁▁▁███▁
+   *
+   * So the lag is measured when the flashlight is chosen (it blinks
+   * twice: the first switch also wakes the camera, the second is the
+   * one that counts), and playback goes no faster than it can follow
+   * (tx/main.js). Switches are sent one at a time, the latest wanted
+   * state last, so none is lost if your hand outruns it.
+   */
   let torchTrack = null;
   let torchAsked = false;
+  let torchLag = 0;        // ms one switch takes here (0: not measured)
+  let torchLit = false;    // what the torch was last told
+  let torchWant = false;   // what the signal wants
+  let torchBusy = false;   // a switch is under way
 
-  async function torchReady() {
+  /* one switch; resolves with the ms it took */
+  function flip(track, on) {
+    const t = performance.now();
+    return track.applyConstraints({ advanced: [{ torch: on }] }).then(() => performance.now() - t, () => 0);
+  }
+
+  /* asked again while it's still being measured: the same answer */
+  let torchComing = null;
+  function torchReady() {
+    if (torchComing) return torchComing;
+    const coming = torchComing = findTorch().finally(() => { if (torchComing === coming) torchComing = null; });
+    return coming;
+  }
+
+  async function findTorch() {
     if (torchTrack) return torchTrack;
     if (torchAsked || !navigator.mediaDevices?.getUserMedia) return null;
     torchAsked = true;
@@ -99,7 +138,13 @@ export function createOutputs({ settings, lampTarget, overlay }) {
         track?.stop();
         return null;
       }
+      let lag = 0;
+      for (let i = 0; i < 2; i++) lag = Math.max(await flip(track, true), await flip(track, false));
+      if (!torchAsked) { track.stop(); return null; }   // let go of meanwhile
+      torchLag = lag;
       torchTrack = track;
+      torchLit = false;
+      torch(torchWant);                                  // keyed while it blinked
       return track;
     } catch {
       return null;
@@ -107,14 +152,23 @@ export function createOutputs({ settings, lampTarget, overlay }) {
   }
 
   function torch(on) {
-    if (!torchTrack) return;
-    torchTrack.applyConstraints({ advanced: [{ torch: on }] }).catch(() => { });
+    torchWant = on;
+    if (!torchTrack || torchBusy || torchLit === on) return;
+    const track = torchTrack;
+    torchLit = on;
+    torchBusy = true;
+    flip(track, on).then(() => {
+      torchBusy = false;
+      if (torchTrack === track) torch(torchWant);        // changed again meanwhile
+    });
   }
 
   function releaseTorch() {
-    if (torchTrack) { torch(false); torchTrack.stop(); }
+    if (torchTrack) { torchTrack.applyConstraints({ advanced: [{ torch: false }] }).catch(() => { }); torchTrack.stop(); }
     torchTrack = null;
     torchAsked = false;
+    torchLag = 0;
+    torchLit = torchWant = torchBusy = false;
   }
 
   /* ---------- the signal ---------- */
@@ -140,7 +194,11 @@ export function createOutputs({ settings, lampTarget, overlay }) {
     vibrate(false);
   }
 
-  return { signal, quiet, torchReady, releaseTorch, testBuzz, get down() { return down; } };
+  return {
+    signal, quiet, torchReady, releaseTorch, testBuzz,
+    get down() { return down; },
+    get torchLag() { return torchLag; }
+  };
 }
 
 
