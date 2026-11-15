@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#1c1916">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <title>key hero · dot-da.sh</title>
+  <link rel="canonical" href="https://dot-da.sh/hero/">
+  <meta name="description" content="Key hero: Morse notes come down a road, key each one as it reaches the line. Two keys, your own timing, your own tone.">
+  <!-- a first version, not yet linked from the station -->
+  <meta name="robots" content="noindex">
+
+  <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
+  <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/hero/hero.css">
+</head>
+
+<body class="hero" data-state="ready">
+  <header class="hero-top">
+    <a href="/" class="home">dot-da.sh</a>
+    <h1>KEY HERO</h1>
+  </header>
+
+  <main>
+    <!-- everything over the keys: the road, and around it the message
+         (in at the top right, keyed at the top left), the letter at
+         the bar, and the settings -->
+    <div class="stage">
+      <!-- the road is a picture of the song; the keys, the keyed
+           message and the card say what a reader needs -->
+      <section class="road" aria-hidden="true">
+        <div class="plane">
+          <div class="lanes"></div>
+          <div class="strip"></div>
+          <div class="line"></div>
+        </div>
+        <!-- the bar, flat on the screen where the road's line comes
+             out, and the switch on it as on the station's box: the
+             lever drops and the bar lights while a key is down -->
+        <div class="bar">
+          <i></i>
+          <span class="logo switch">
+            <svg viewBox="0 0 73 79" fill="none">
+              <circle cx="13.66" cy="52.81" r="7" stroke="currentColor" stroke-width="6"/>
+              <rect class="arm" x="16.02" y="47.22" width="56" height="7" rx="3.5" fill="currentColor"/>
+              <circle class="led" cx="13.66" cy="52.81" r="3.6"/>
+            </svg>
+          </span>
+          <i></i>
+        </div>
+      </section>
+
+      <!-- the message, coming: the top line feeds right to left, the
+           word on deck underlined (js/hero/message.js). A tap on it
+           brings the text keyboard up, to type a message of your own -->
+      <p class="incoming" title="type your own text"><span class="rows" aria-hidden="true"></span></p>
+
+      <!-- and keyed: each word floats up here when it's done -->
+      <p class="keyed" id="keyed" aria-label="keyed so far" aria-live="off"></p>
+
+      <!-- under the bar, by the keys: the caret, and the word being
+           spelled (its letter is the road's, waiting over the bar) -->
+      <p class="now" aria-hidden="true"><span class="caret">&gt;</span><span class="word" id="word"></span></p>
+
+      <p id="note"></p>
+
+      <!-- down the right, from the foot up: pause, nearest the thumb,
+           the strikes and the run of notes keyed, and the gear -->
+      <aside class="settings" aria-label="settings">
+        <!-- the settings open upward from the gear, and are out of
+             the way while a song is played -->
+        <div class="tray" id="tray" hidden>
+          <label class="pick">text <select id="song"></select></label>
+          <div class="flags">
+            <label class="check" title="the Ctrl keys as paddles: left is dit, right is dah (a VBand adapter)"><input type="checkbox" id="opt-ctrl"><span>ctrl</span></label>
+            <label class="check" title="the mouse as the key: left is dit, right is dah"><input type="checkbox" id="opt-mouse"><span>mouse</span></label>
+            <label class="check" title="dots red, dashes blue"><input type="checkbox" id="opt-color" checked><span>color</span></label>
+            <label class="check" title="the light theme: dark on paper"><input type="checkbox" id="opt-theme"><span>invert</span></label>
+            <label class="check" title="a wpm faster after every word keyed with no letter missed, up to 40"><input type="checkbox" id="opt-ramp"><span>ramp</span></label>
+          </div>
+          <div class="group">
+            <div class="pair">
+              <label class="fader"><output for="opt-wpm">10</output>
+                <input type="range" id="opt-wpm" min="5" max="40" value="10"><span>wpm</span></label>
+              <label class="fader"><output for="opt-fwpm">10</output>
+                <span class="track"><input type="range" id="opt-fwpm" min="5" max="40" value="10"><i class="cap" aria-hidden="true"></i></span><span title="Farnsworth: the speed overall, the spaces between letters stretched to make it">farns.</span></label>
+            </div>
+            <span class="group-name">speed</span>
+          </div>
+        </div>
+        <button type="button" id="gear" aria-expanded="false" aria-controls="tray" aria-label="settings" title="settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>
+          <i class="chevron" aria-hidden="true"></i>
+        </button>
+        <p id="streak" aria-hidden="true"></p>
+        <!-- three strikes and the run is over: each box fills by thirds -->
+        <p id="strikes" role="img" aria-label="0 of 3 strikes"><i></i><i></i><i></i></p>
+        <button type="button" id="pause" disabled>pause</button>
+      </aside>
+    </div>
+
+    <!-- the results: framed and named as the station's popups are,
+         an x to send it away, and the longest run over it all, a
+         brass ghost -->
+    <section class="result" id="card" role="dialog" hidden aria-labelledby="c-title">
+      <span class="frame-label" id="c-title">RESULTS</span>
+      <button type="button" class="close" id="card-close" aria-label="close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button>
+      <p class="ghost" id="c-ghost" aria-hidden="true"></p>
+      <p class="percent"><b id="c-percent"></b> <span id="c-best"></span></p>
+      <dl>
+        <div><dt>landed</dt><dd id="c-landed"></dd></div>
+        <div><dt>close</dt><dd id="c-close"></dd></div>
+        <div><dt>missed</dt><dd id="c-missed"></dd></div>
+        <div><dt>stray</dt><dd id="c-stray"></dd></div>
+        <div><dt>strikes</dt><dd id="c-strikes"></dd></div>
+        <div><dt>longest run</dt><dd id="c-streak"></dd></div>
+        <div><dt>dah to dit</dt><dd id="c-ratio"></dd></div>
+        <div><dt>on average</dt><dd id="c-lag"></dd></div>
+        <div><dt>speed at the end</dt><dd id="c-speed"></dd></div>
+      </dl>
+      <button type="button" id="again">again</button>
+      <span class="hint">or either key</span>
+    </section>
+
+    <!-- two keys, both yours to time: hold each as long as its note -->
+    <section class="keybox" aria-label="the key">
+      <button type="button" class="key" data-lane="." aria-label="dit"><span class="mark">●</span><kbd>[</kbd></button>
+      <button type="button" class="key" data-lane="-" aria-label="dah"><span class="mark">▬</span><kbd>]</kbd></button>
+    </section>
+    <!-- the station's text keyboard (js/tx/keyboard.js), in the keys'
+         place while a message of your own is typed -->
+    <div id="kbd" class="kbd" aria-label="keyboard" hidden></div>
+    <section id="hold-pop" class="result" role="dialog" aria-labelledby="hold-title" hidden>
+      <p id="hold-title"><b>hold for more</b></p>
+      <p>A key with a mark in its corner holds more: press and hold,
+      slide onto one, and let go. A quick tap is just the letter.</p>
+      <button type="button" class="close">close</button>
+    </section>
+  </main>
+
+  <script type="module" src="/js/hero/main.js"></script>
+</body>
+</html>
