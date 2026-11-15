@@ -22,7 +22,7 @@
  * Bump VERSION to clear the old cache after a big change.
  */
 
-const VERSION = "dot-dash-12";
+const VERSION = "dot-dash-13";
 
 /* fetched on install, so the first offline open works too */
 const CORE = [
@@ -34,6 +34,10 @@ const CORE = [
   "/js/tx/main.js", "/js/tx/dom.js", "/js/tx/state.js", "/js/tx/keyboard.js", "/js/tx/about.js",
   "/js/tx/player.js", "/js/tx/share.js", "/js/tx/settings.js", "/js/tx/tree.js", "/js/tx/layer.js", "/js/tx/tape.js", "/js/tx/keys.js", "/js/tx/typing.js", "/js/tx/suggest.js", "/js/tx/undo.js", "/js/tx/media.js", "/js/tx/tab.js", "/js/tx/stats.js", "/js/tx/profile.js", "/js/tx/practice.js", "/js/tx/wear.js",
   "/js/characters.js", "/js/voice-times.js", "/js/tx/voice.js", "/js/strokes.js", "/js/stair.js",
+  /* hearing (RX): fetched the first time rx is chosen, kept here so that works offline too */
+  "/js/tx/rx.js", "/js/rx-decoder.js", "/js/rx-worklet.js",
+  /* key hero (/hero), and what it shares with the station */
+  "/hero/", "/hero/hero.css", "/js/hero/main.js", "/js/hero/chart.js", "/js/hero/road.js", "/js/hero/message.js", "/js/judge.js", "/js/keymap.js",
   /* a character's own page (/ref/k/): what every one of them needs; the pages and their
      pictures are kept as they're visited (there are dozens, and most are never opened) */
   "/ref/item.css", "/js/ref-item.js", "/js/ref-pages.js"
