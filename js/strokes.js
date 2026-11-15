@@ -302,5 +302,8 @@ export function createLetter(strokes, marks, { round = false } = {}) {
       if (was !== null && was < end && ms >= end) el.dispatchEvent(new Event("keyed", { bubbles: true }));
       was = ms;
     },
+    /* one mark by itself, for a letter keyed by hand (the games): as
+       full as it's been held, whatever the marks around it are */
+    mark(i, done) { parts[i]?.show(Math.min(1, Math.max(0, done))); },
   };
 }
