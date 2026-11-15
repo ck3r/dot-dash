@@ -20,6 +20,8 @@
  *   stats.js     your keying, counted from the event log
  *   wear.js      where your finger lands on each key
  *   profile.js   the ring: a callsign, those counts, the wear
+ *   rx.js        hearing: the microphone or a file, read onto the line
+ *                (loaded the first time rx is chosen)
  *
  * What stays here: the note on arrival, keying into the message
  * (press, send), update, the input slot, and startup. A part made
@@ -171,10 +173,12 @@ function returned() {
   return code;
 }
 
-function press(act, timing = null) {
+/* (heard: it came in by ear, RX; on the line it's a mark like any
+   other, but the log says so, and its timing is the sender's) */
+function press(act, timing = null, heard = false) {
   state.lastInput = performance.now();
   if (act === "." || act === "-" || act === "undo" || act === "word-back") state.localCleared = false;
-  if (timing) timing.unit = Math.round(timingNow().unit * 10) / 10;   // the speed it was keyed at
+  if (timing && !heard) timing.unit = Math.round(timingNow().unit * 10) / 10;   // the speed it was keyed at
   const last = state.tokens[state.tokens.length - 1];
   switch (act) {
     case ".":
@@ -197,7 +201,7 @@ function press(act, timing = null) {
       dropWord();
       break;
   }
-  state.record(act === "." || act === "-" ? "mark" : act, act === "." || act === "-" ? { mark: act, timing } : {});
+  state.record(act === "." || act === "-" ? "mark" : act, { ...(act === "." || act === "-" ? { mark: act, timing } : {}), ...(heard && { heard }) });
   const closed = act === "letter" || act === "word";
   /* a letter just landed: with the voice on, it's said, as the line
      reads it (with prosigns on, .-.-. is <AR>, "a r", not PLUS) */
@@ -357,7 +361,8 @@ const { keyer, trainView, logo, ctrlPaddle, isChord, setKeyMode, syncKeySelect, 
  */
 function markModeButtons() {
   syncKeySelect();
-  for (const side of document.querySelectorAll(".input-mode .side")) side.classList.toggle("on", side.dataset.mode === state.mode);
+  /* (receiving, neither is on: the keys aren't there; a press brings them back) */
+  for (const side of document.querySelectorAll(".input-mode .side")) side.classList.toggle("on", !state.rx && side.dataset.mode === state.mode);
   $(".input-mode").setAttribute("aria-label", state.mode === "key" ? "keying Morse: switch to typing" : "typing: switch to keying Morse");
   const t = $("#keys-toggle");
   t.setAttribute("aria-expanded", String(!state.inputAway));
@@ -376,6 +381,7 @@ function putKeysAway(away) {
 function setMode(next, focus = true) {
   state.mode = next;
   state.inputAway = false;
+  if (state.rx) setRx(false);     // the keys are wanted: receiving gives the slot back
   document.body.dataset.mode = state.mode;
   markModeButtons();
   showInput();
@@ -429,15 +435,71 @@ $(".input-mode").addEventListener("click", () => {
 $(".input-mode").addEventListener("animationend", event => event.target.classList.remove("flash"));
 $("#keys-toggle").addEventListener("click", () => putKeysAway(!state.inputAway));
 
-/* one input slot: the pad or the keyboard; the tray takes their
-   place while it's open */
+/* one input slot: the pad, the keyboard, or (receiving) the hearing
+   view; the tray takes their place while it's open */
 function showInput() {
   const off = !$("#tray").hidden || state.inputAway;   // the tray in their place, or put away
-  $("#pad").hidden = off || state.mode !== "key";
-  $("#type").hidden = off || state.mode !== "type";
-  $("#train").hidden = off || state.mode !== "key" || state.keyMode === "tap";
+  $("#rx").hidden = off || !state.rx;
+  $("#pad").hidden = off || state.rx || state.mode !== "key";
+  $("#type").hidden = off || state.rx || state.mode !== "type";
+  $("#train").hidden = off || state.rx || state.mode !== "key" || state.keyMode === "tap";
   document.body.classList.toggle("reading", state.inputAway && $("#tray").hidden);
 }
+
+/*
+ * TX ⇄ RX, by the name, drawn as .- ⇄ A is beside the keys: receiving,
+ * (the player and the settings row are the transmitter's: they go,
+ * and the slot grows up into the player's room, so the station above
+ * doesn't move; tx.css body.rx)
+ * the hearing view takes the keys' place in the slot (js/tx/rx.js,
+ * fetched the first time). Nothing listens until its own button is
+ * pressed. Either input mode brings the keys, and transmitting, back.
+ *
+ *   dot-da.sh  [tx] ⇄ [rx]            paste  share  (o)
+ */
+let rx = null, rxLoading = null;
+async function setRx(on) {
+  if (on === state.rx) return;
+  /* measured while the player's still there: how far up the slot
+     may grow, and how tall the row the suggestions are left in was */
+  const row = $(".control-row");
+  if (on) {
+    if (!$("#tray").hidden) openTray(false);
+    document.body.style.setProperty("--rx-extra", `${row.getBoundingClientRect().top - $(".player").getBoundingClientRect().top}px`);
+    row.style.minHeight = `${row.offsetHeight}px`;
+  } else {
+    document.body.style.removeProperty("--rx-extra");
+    row.style.minHeight = "";
+  }
+  state.rx = on;
+  document.body.classList.toggle("rx", on);
+  for (const side of document.querySelectorAll("#trx .side")) side.classList.toggle("on", (side.dataset.trx === "rx") === on);
+  $("#trx").setAttribute("aria-label", on ? "receiving: switch to transmitting" : "transmitting: switch to receiving");
+  if (on) {
+    state.inputAway = false;
+    if (player.playing) togglePlay();
+    cancelTaps();
+    keyer.reset();
+  }
+  markModeButtons();
+  showInput();
+  update();
+  if (on && !rx) {
+    rxLoading ??= import("./rx.js");
+    const { createRx } = await rxLoading;
+    rx ??= createRx({ state, press, unitNow: () => timingNow().unit, fist: () => stats.read().fist, logo, playing: () => player.playing });
+  }
+  rx?.show(state.rx);
+}
+$("#trx").addEventListener("click", () => {
+  const on = !state.rx;
+  setRx(on);
+  const side = $(`#trx .side[data-trx="${on ? "rx" : "tx"}"]`);
+  side.classList.remove("flash");
+  void side.offsetWidth;         // restart the animation
+  side.classList.add("flash");
+});
+$("#trx").addEventListener("animationend", event => event.target.classList.remove("flash"));
 
 /* type mode: js/tx/typing.js */
 const { setTyped, retype, openHold, redrawKeys } = createTyping({
@@ -457,6 +519,7 @@ const {
 } = createSettings({
   state, sound, logo, ctrlPaddle, timingNow, showInput, drawStats,
   stopPlayback: () => stopPlayback(), redrawTrace: () => trace.redraw(),
+  torchTimed: () => retimed(),
   /* the tray's reading changed: the line reads again (typing: the box
      too). Cut changes what typed digits send, so they go out afresh */
   reread: part => {
@@ -513,23 +576,35 @@ if (matchMedia("(pointer: coarse)").matches) {
 
 
 /*
- * A phone's flashlight takes tens of milliseconds to switch: past
- * about 25 wpm it drops marks. While it's the light, playback goes
- * no faster than 20 wpm (a 60 ms dit), and says so when it starts.
+ * A phone's flashlight takes its time to switch: tens of
+ * milliseconds on some, a couple of hundred on others, and a mark
+ * shorter than that comes out as long as the switch (a dit as long
+ * as a dah: js/tx-outputs.js). While it's the light, playback goes
+ * no faster than 20 wpm (a 60 ms dit), and slower still where the
+ * switch was measured slower: a dit lasts the switch and a quarter
+ * more. It says so when it starts. Never under 5 wpm: slower than
+ * that isn't worth the wait, and the light does what it can.
  * Keying live can't be slowed: the light follows your hand.
  */
 const TORCH_WPM = 20;
-const playTiming = () => timingNow(torchOn() ? TORCH_WPM : Infinity);
+const TORCH_SLOWEST = 5;
+const TORCH_ROOM = 1.25;       // a dit, in switches
+const torchWpm = () => {
+  const lag = outputs.torchLag;
+  if (!lag) return TORCH_WPM;
+  return Math.max(TORCH_SLOWEST, Math.min(TORCH_WPM, Math.floor(1200 / (lag * TORCH_ROOM))));
+};
+const playTiming = () => timingNow(torchOn() ? torchWpm() : Infinity);
 let paceNoted = false;
 const speedNote = () => {
   /* speech can't change speed without changing pitch; said once a visit */
   if (sound.speaks && !paceNoted) { paceNoted = true; return "voice: at its own pace, whatever the speed"; }
-  return torchOn() && Number($("#opt-wpm").value) > TORCH_WPM ? `flashlight: played at ${TORCH_WPM} wpm, as fast as it switches` : null;
+  return torchOn() && Number($("#opt-wpm").value) > torchWpm() ? `flashlight: played at ${torchWpm()} wpm, as fast as it switches` : null;
 };
 
 /* the player row: js/tx/player.js */
 const {
-  player, trace, playerControls, togglePlay, stopPlayback, messageKey, shareable, tapeRedrawn, isPlayerActive, setPlayerActive
+  player, trace, playerControls, togglePlay, stopPlayback, messageKey, shareable, tapeRedrawn, isPlayerActive, setPlayerActive, retimed
 } = createPlayback({
   state, sound, keyer, tree, trainView, tab, timingNow: playTiming, speedNote, choice, cancelTaps, setSignal,
   wantsLamp, lampOk, askLamp, openLamp, closeLamp,

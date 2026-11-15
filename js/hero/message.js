@@ -25,7 +25,7 @@
  * floats up to its place in the message, as a line does in a chat.
  *
  *   createMessage({ feed, keyed, word }) → {
- *     load(letters, unit)   a chart's letters (chart.js)
+ *     load(letters, unit)   a chart's letters (js/game/chart.js)
  *     draw(now)             peel, feed, and move on what's done
  *   }
  *
@@ -35,11 +35,12 @@ import { el } from "../tx/dom.js";
 
 export const PEEL = 21;   // units from the bar: about where the road comes out of the dark
 const FLOAT = 900;        // ms: a word's way up
+const LONGEST = 14;       // letters: what fits either side of the middle, on deck (hero.css --mid)
 
 export function createMessage({ feed, keyed, word }) {
   const rows = feed.querySelector(".rows");
   const still = matchMedia("(prefers-reduced-motion: reduce)");
-  let letters = [], words = [], unit = 100;
+  let letters = [], words = [], pieces = [], unit = 100;   // pieces: the words as they're laid out, a long one in several
   let peeled = 0;         // letters before this one have left the feed
   let at = 0;             // the letter at the bar
 
@@ -61,20 +62,33 @@ export function createMessage({ feed, keyed, word }) {
     const room = feed.clientWidth - parseFloat(getComputedStyle(rows).paddingLeft);   // the lines that wait start clear of the road
     const cols = Math.max(6, Math.floor(room / (probe.getBoundingClientRect().width / 10 || 8)));
     probe.remove();
+    /*
+     * A word too long for a line (or for the room either side of the
+     * middle, on deck) is broken, and goes on in the line under:
+     *
+     *   SUPERCALIFRAGI      each piece is on deck in its turn
+     *   LISTIC NOW
+     */
+    const most = Math.min(cols, LONGEST);
+    pieces = [];
     let run = null, col = 0, row = -1;
     for (const w of words) {
-      const n = w.letters.length;
-      if (!run || col + n > cols) {
-        run = rows.appendChild(el("span", "row")).appendChild(el("span", "run"));
-        col = 0;
-        row++;
+      for (let from = 0; from < w.letters.length; from += most) {
+        const piece = { letters: w.letters.slice(from, from + most), el: el("span", "w") };
+        const n = piece.letters.length;
+        if (!run || from > 0 || col + n > cols) {
+          run = rows.appendChild(el("span", "row")).appendChild(el("span", "run"));
+          col = 0;
+          row++;
+        }
+        Object.assign(piece, { run, row, col });
+        for (const letter of piece.letters) { piece.el.append(letter.queued = el("b", "", letter.ch)); letter.piece = piece; }
+        run.append(piece.el, " ");
+        col += n + 1;
+        pieces.push(piece);
       }
-      Object.assign(w, { run, row, col, el: el("span", "w") });
-      for (const letter of w.letters) w.el.append(letter.queued = el("b", "", letter.ch));
-      run.append(w.el, " ");
-      col += n + 1;
     }
-    if (words[0]) deck(words[0]);
+    if (pieces[0]) deck(pieces[0]);
     draw(0);
   }
 
@@ -89,7 +103,7 @@ export function createMessage({ feed, keyed, word }) {
   /* a word has gone down the road: on to the next, in this line or the one under it */
   function next(w) {
     w.el.classList.remove("deck");
-    const then = words[words.indexOf(w) + 1];
+    const then = pieces[pieces.indexOf(w) + 1];
     if (then) return deck(then);
     w.run.parentElement.classList.add("spent");      // the last one: its line stays where it was
   }
@@ -124,7 +138,7 @@ export function createMessage({ feed, keyed, word }) {
     while (now > 0 && peeled < letters.length && letters[peeled].t0 - now < PEEL * unit) {
       const letter = letters[peeled++];
       letter.queued.classList.add("gone");
-      if (letter.last) next(words[letter.word]);
+      if (letter === letter.piece.letters.at(-1)) next(letter.piece);
     }
     /* its closing dotted line at the bar, and graded: the same moment
        the line pushes the letter on down the road (road.js) */

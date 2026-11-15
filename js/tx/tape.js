@@ -27,7 +27,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
 
   /* one letter: its code over its character (under the 2nd mark),
      named as its word's reading reads it */
-  function letter(code, name, partial = false) {
+  function letter(code, name, partial = false, doubt = null, reading = READING) {
     const c = el("span", partial ? "c partial" : "c");
     const m = el("span", "m");
     for (const s of code) m.append(el("span", s === "." ? "dot" : "dash", s));
@@ -36,7 +36,58 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
     const p = el("span", "p", " ".repeat(under));   // only the name is underlined
     p.append(el("span", "n", name));
     c.append(m, p);
+    if (doubt) unsure(c, code, doubt, reading);
     return c;
+  }
+
+  /*
+   * A letter heard (RX) with a mark that fell between a dit and a
+   * dah: a guess, and shown as one, in graphite. Nothing more than
+   * that on the line (the other reading under it was too busy).
+   *
+   *   -.-        the middle mark was long for a dit
+   *    K         graphite: K, or was it O?
+   *
+   * A tap on the letter takes the other reading, when there's just
+   * one mark in doubt; its title says which. Only on the line being
+   * written: once sent, a message is what it says.
+   */
+  function unsure(c, code, doubt, reading) {
+    c.classList.add("unsure");
+    if (doubt.length !== 1) return;
+    const [d] = doubt;
+    const other = code.slice(0, d.k) + (code[d.k] === "." ? "-" : ".") + code.slice(d.k + 1);
+    const name = namesOf([other], reading)[0];
+    if (!name) return;
+    const p = c.querySelector(".p");
+    p.classList.add("takes");
+    p.title = `or ${name} (${other}): tap to take it`;
+    p.addEventListener("click", event => {
+      event.stopPropagation();
+      state.tokens[d.at] = state.tokens[d.at] === "." ? "-" : ".";
+      state.took[d.at] = sureOf(state.took[d.at]);
+      state.lastInput = performance.now();
+      if (state.mode === "type") setTyped(plainText(wordsOf(state.tokens)) ?? state.typed);
+      update();
+    });
+  }
+  const sureOf = took => { if (!took) return took; const { unsure: _, ...rest } = took; return rest; };
+
+  /* the marks in doubt on the line being written, by letter:
+     "word:letter" → [{ k: which mark of the letter, at: which token }] */
+  function doubts() {
+    const found = new Map();
+    let w = 0, i = 0, k = 0;
+    state.tokens.forEach((t, at) => {
+      if (t === "/") { w++; i = 0; k = 0; return; }
+      if (t === " ") { i++; k = 0; return; }
+      if (state.took[at]?.unsure) {
+        const key = `${w}:${i}`;
+        found.set(key, [...(found.get(key) ?? []), { k, at }]);
+      }
+      k++;
+    });
+    return found;
   }
 
   /* a line: words of letters with slashes between; optionally the
@@ -53,7 +104,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
        WATCHED RACES                                           */
   const BREAK = { "<AA>": "br", "<BT>": "para" };
 
-  function line(words, { path = "", slash = false, caret = false, key = "", reading = READING } = {}) {
+  function line(words, { path = "", slash = false, caret = false, key = "", reading = READING, doubt = null } = {}) {
     const box = el("span", "line");
     const read = namesFor(words, reading);
     const space = brk => el("span", brk ? `slash ${brk}` : "slash", "/");
@@ -63,10 +114,11 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
       const wEl = el("span", "w");
       wEl.dataset.word = `${key}:${w}`;
       if (shownWords.has(wEl.dataset.word)) wEl.classList.add("shown");
+      wEl.append(revealButton(wEl));
       const keying = w === words.length - 1 && path;
       const names = keying ? namesOf([...word, path], reading) : read[w];
-      word.forEach((code, i) => wEl.append(letter(code, names[i])));
-      if (keying) wEl.append(letter(path, names.at(-1), true));
+      word.forEach((code, i) => wEl.append(letter(code, names[i], false, doubt?.get(`${w}:${i}`), reading)));
+      if (keying) wEl.append(letter(path, names.at(-1), true));   // (in doubt or not, it's still a guess: shown once it closes)
       box.append(wEl);
       brk = BREAK[names.at(-1)] ?? null;
     });
@@ -74,6 +126,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
       const wEl = el("span", "w");
       wEl.dataset.word = `${key}:0`;
       if (shownWords.has(wEl.dataset.word)) wEl.classList.add("shown");
+      wEl.append(revealButton(wEl));
       wEl.append(letter(path, namesOf([path], reading)[0], true));
       box.append(wEl);
     }
@@ -96,6 +149,43 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
   const shownWords = new Set();
   let shownFor = null;
 
+  /*
+   * A bar keeps its word from the ear as well as the eye: what's under
+   * it isn't read out, and each word has a button of its own to show
+   * it (and hide it again), the tap on the bar for a keyboard or a
+   * screen reader. First in its word, with no text of its own (the
+   * line's text stays the message's), and only there as bars (tx.css):
+   *
+   *   .... ..   --.- ...- .--.
+   *   [show]██  [show]████████        Tab to a word, Enter: it shows
+   */
+  function revealButton(w) {
+    const b = el("button", "reveal");
+    b.type = "button";
+    b.setAttribute("aria-label", w.classList.contains("shown") ? "hide this word" : "show this word");
+    return b;
+  }
+
+  /* a word through its bar, or back under it */
+  function toggleWord(w) {
+    const shown = w.classList.toggle("shown");
+    if (shown) shownWords.add(w.dataset.word); else shownWords.delete(w.dataset.word);
+    w.querySelector(".reveal")?.setAttribute("aria-label", shown ? "hide this word" : "show this word");
+    hush();
+  }
+
+  /* what the bars cover, kept from a screen reader too (the colour
+     alone only hides it from the eye); a word shown is read again.
+     Collapsed needs none of this: that row isn't drawn at all */
+  function hush() {
+    const tape = $("#tape");
+    const row = tape.classList.contains("hide-p") ? "p" : tape.classList.contains("hide-m") ? "m" : null;
+    for (const e of tape.querySelectorAll(".w .p, .w .m")) {
+      if (e.classList.contains(row) && !e.closest(".w").classList.contains("shown")) e.setAttribute("aria-hidden", "true");
+      else e.removeAttribute("aria-hidden");
+    }
+  }
+
   function drawTape() {
     const tape = $("#tape");
     tape.textContent = "";
@@ -117,7 +207,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
       li.dataset.i = String(i);       // (a long-press copies it: js/tx/share.js)
       li.append(el("span", "marker", ""));
       const l = line(parse(morseOf(saved)), { key: i, reading: readingOf(saved) });
-      l.title = "tap to key it again";
+      l.title = state.rx ? "switch to tx to load it" : "tap to key it again";
       l.addEventListener("click", () => recall(i));
       li.append(l);
       const x = el("button", "x");
@@ -147,7 +237,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
       li.append(hint);
     } else {
       const words = word.length || path ? [...done, word] : done;
-      li.append(line(words, { path, slash, caret: true, key: "now" }));
+      li.append(line(words, { path, slash, caret: true, key: "now", doubt: doubts() }));
       const x = el("button", "x");
       x.innerHTML = icon("x");
       x.type = "button";
@@ -156,6 +246,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
       li.append(x);
     }
     tape.append(li);
+    hush();
     $("#tape-eye").replaceChildren(eyeButton());
     steadyCaret();
     settleTape();
@@ -286,6 +377,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
     tape.classList.toggle("hide-m", typing && look === "bars");
     tape.classList.toggle("collapse-p", !typing && look === "collapsed");
     tape.classList.toggle("collapse-m", typing && look === "collapsed");
+    hush();
   }
 
   const BAR = { type: "bar-m", key: "bar-p" };
@@ -559,6 +651,9 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
 
   /* tap a past message: it comes back as the current line */
   function recall(i) {
+    /* receiving, the line is what's being heard: a message from the
+       history would land in the middle of it */
+    if (state.rx) { toast("switch to tx to load it"); return; }
     resetKeyer();
     state.tokens = tokensOf(parse(morseOf(state.history[i])));
     state.took = tookFor(state.tokens, recOfEntry(state.history[i]));
@@ -589,7 +684,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
       box.textContent = "";
       for (const [n, w] of rows) {
         const num = el("span", "n", String(n));
-        if (secret) num.classList.add("redact");
+        if (secret) { num.classList.add("redact"); num.setAttribute("aria-hidden", "true"); }   // not read out either
         box.append(num, el("span", "w", `${w}${n === 1 ? "" : "s"}`));
       }
     };
@@ -624,16 +719,23 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
   $("#tape").addEventListener("click", event => {
     const tape = event.currentTarget;
     const row = tape.classList.contains("hide-p") ? ".p" : tape.classList.contains("hide-m") ? ".m" : null;
-    const c = row && event.target.closest(".entry:not(.anim) .w .c");
-    if (!c) return;
-    const r = c.querySelector(row).getBoundingClientRect();
-    if (event.clientY < r.top || event.clientY > r.bottom) return;
+    /* the word's own button (a keyboard, a screen reader): the same */
+    const button = row && event.target.closest(".entry:not(.anim) .w .reveal");
+    const c = row && !button && event.target.closest(".entry:not(.anim) .w .c");
+    if (!button && !c) return;
+    if (c) {
+      const r = c.querySelector(row).getBoundingClientRect();
+      if (event.clientY < r.top || event.clientY > r.bottom) return;
+    }
     event.stopPropagation();
     event.preventDefault();
-    const w = c.closest(".w");
-    const shown = w.classList.toggle("shown");
-    if (shown) shownWords.add(w.dataset.word); else shownWords.delete(w.dataset.word);
+    toggleWord((button ?? c).closest(".w"));
   }, { capture: true });
+  /* on a word's button, Enter and Space press it: they don't return
+     the line or space the message (the station's keys, anywhere else) */
+  for (const type of ["keydown", "keyup"]) $("#tape").addEventListener(type, event => {
+    if (event.target.closest?.(".reveal") && (event.key === "Enter" || event.code === "Space")) event.stopPropagation();
+  });
 
   $("#stats-text").addEventListener("click", () => copyCounts($("#stats-text"), "text"));
   $("#stats-morse").addEventListener("click", () => copyCounts($("#stats-morse"), "morse"));

@@ -38,7 +38,7 @@ export function choice(select) {
   return (real.find(o => o.defaultSelected) ?? real[0]).value;   // the list's default
 }
 
-export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, showInput, drawStats, stopPlayback, redrawTrace, reread }) {
+export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, showInput, drawStats, stopPlayback, redrawTrace, reread, torchTimed = () => { } }) {
   function openTray(open) {
     $("#tray").hidden = !open;
     $("#tray-toggle").setAttribute("aria-expanded", String(open));
@@ -445,6 +445,7 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
       setOutput("light", false);
       saveSettings();
     }
+    torchTimed();     // how fast it switches is known now: playback's pace follows
   }
   $("#opt-light").addEventListener("change", () => {
     outputs.quiet();

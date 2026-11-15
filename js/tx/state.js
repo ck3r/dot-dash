@@ -13,6 +13,7 @@
  *     collapsed     and hidden all the way: that row takes no room
  *     keyMode       tap, straight, bug, iambic-a / -b, ultimatic
  *     inputAway     read mode: the keys put away
+ *     rx            receiving: the hearing view in the keys' place
  *     localCleared  a space was pressed: the tree starts fresh
  *     playKey       which message the player has loaded (or null)
  *     playEntry     and where it is: "current" or a history index
@@ -150,6 +151,10 @@ export function plainText(words, reading = READING) {
  *   send    { morse }           a message onto the tape
  *   play    { entry }           the player started
  *   clear                       the line, or the whole history, cleared
+ *   listen  { file }            the microphone opened, or a recording read
+ *
+ * A mark or a space that was heard (RX), not keyed, says so:
+ * { heard: true }. It's on the line all the same.
  *
  * Nothing on the page listens yet; the tape, the tree, the about
  * column and (later) a profile's metrics can, without touching the
@@ -188,6 +193,7 @@ export function createState() {
     ...loadHidden(),   // hidden, collapsed
     keyMode: "tap",
     inputAway: false,
+    rx: false,
     localCleared: false,
     playKey: null,
     playEntry: null,

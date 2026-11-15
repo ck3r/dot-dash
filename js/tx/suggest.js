@@ -25,6 +25,10 @@
  * A tap keys it (a letter or prosign goes in as if keyed, so a
  * prosign does its job) or, typing, replaces the partial word.
  *
+ * Receiving (rx), they follow what's coming in the same way, whichever
+ * input mode was left behind: the letter being heard, the word it's
+ * heading for, right above the scope. A tap takes it, as a fix.
+ *
  * Behind a setting (the tray's "suggest"), on until switched off:
  * predictions work against practice, and its note says so.
  *
@@ -172,7 +176,7 @@ export function createSuggest({ state, retype, update, press }) {
   }
 
   function draw() {
-    const groups = flag.checked ? (state.mode === "type" ? typed() : keyed()) : [];
+    const groups = flag.checked ? (state.mode === "type" && !state.rx ? typed() : keyed()) : [];
     /* the groups in their order, a rule between those that are there */
     const out = [];
     for (const g of groups.filter(g => g.length)) {

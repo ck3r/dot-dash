@@ -59,7 +59,7 @@
  *   ━━━━━    then      ━K━━━      and away under the keys
  *
  *   createRoad({ element }) → {
- *     load(chart, timing, windows)   lay a chart out (chart.js; the
+ *     load(chart, timing, windows)   lay a chart out (js/game/chart.js; the
  *                                judge's windows say what's on time)
  *     draw(now)                  slide to this time (ms)
  *     down(lane, at, note)       a key went down (note: the one the

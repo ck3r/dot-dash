@@ -12,6 +12,7 @@
  *     shareable()       the line being written, for the share menu
  *     tapeRedrawn()     the tape was redrawn: re-apply the highlight
  *     isPlayerActive(), setPlayerActive(on)
+ *     retimed()         the pace changed: re-time what's loaded
  *   }
  */
 import { parse, namesFor, READING } from "../morse.js";
@@ -580,6 +581,7 @@ export function createPlayback({
 
   return {
     player, trace, playerControls, togglePlay, stopPlayback, messageKey, shareable,
+    retimed,          // the pace changed from outside (the flashlight's, measured)
     /* the tape was redrawn: paused part-way, light it again where it
        stopped (a finished message rests unlit, as playbackEnded left it) */
     tapeRedrawn: () => {

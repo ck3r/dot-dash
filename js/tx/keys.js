@@ -18,6 +18,7 @@
  */
 import { createKeyer, timing, MODES } from "../tx-keyer.js";
 import { $, el, toast } from "./dom.js";
+import { DIT_KEYS, DAH_KEYS } from "../keymap.js";
 
 export function timingNow(maxWpm = Infinity) {
   const wpm = Number($("#opt-wpm").value), fwpm = Number($("#opt-fwpm").value);
@@ -307,8 +308,7 @@ export function createKeys({
    * With the straight key, any of them is the one key.
    */
   /* (the arrow keys belong to the player: see PLAYER KEYS) */
-  const DIT_KEYS = new Set(["Period", "NumpadDecimal", "BracketLeft", "KeyA", "Digit1", "Numpad1"]);
-  const DAH_KEYS = new Set(["Minus", "NumpadSubtract", "BracketRight", "KeyD", "Digit3", "Numpad3"]);
+  /* (which keys: js/keymap.js, shared with the games) */
   const ctrlKeys = () => $("#opt-ctrl").checked;
   const padKey = act => document.querySelector(`#pad .key[data-act="${CSS.escape(act)}"]`);
 

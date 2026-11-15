@@ -13,30 +13,54 @@
  *     │                  paused                       │
  *     └────────────────── a key (again) ──────────────┘
  *
- * Time is the page's own clock (performance.now), and a press is
- * judged by its event's time stamp, not by the frame it's drawn in.
+ * This file is the game's own rules (what a press costs, what ramp
+ * does, what the card says) and the wiring. What another game would
+ * want as it is lives in js/game/:
  *
- * A message in the address is the song (/hero/?/_..._---_..._, the
- * station's own links); else one from the short list.
+ *   store     what's kept between visits     texts    the text picker
+ *   clock     the song's time                typing   a text of your own
+ *   speed     the two faders                 strikes  three, in thirds
+ *   look      the station's four boxes       chart    a message in time
+ *   paddles   two keys, however pressed      share    the share menu
+ *
+ * and beside it: judge.js grades a press, road.js and message.js are
+ * this game's two views.
  */
-import { readLink, encode, DECODE } from "../morse.js";
 import { timing } from "../tx-keyer.js";
 import { createSound } from "../tx-sound.js";
 import { createJudge } from "../judge.js";
-import { DIT_KEYS, DAH_KEYS } from "../keymap.js";
 import { $ } from "../tx/dom.js";
-import { chart } from "./chart.js";
+import { keep, kept, keptJSON, keptBox } from "../game/store.js";
+import { createClock } from "../game/clock.js";
+import { createSpeed } from "../game/speed.js";
+import { createLook } from "../game/look.js";
+import { createPaddles, chord } from "../game/paddles.js";
+import { createStrikes } from "../game/strikes.js";
+import { createTexts } from "../game/texts.js";
+import { createTyping } from "../game/typing.js";
+import { createShare } from "../game/share.js";
+import { format } from "../morse.js";
+import { chart } from "../game/chart.js";
 import { createRoad, MARGIN } from "./road.js";
 import { createMessage } from "./message.js";
 
 const SONGS = ["ET TE TEE TET", "TIME ITEM EMIT MEET", "KM MK KMK MKM", "SOS SOS SOS", "CQ CQ DE K", "PARIS PARIS", "HELLO WORLD"];
-const WPM_KEY = "dot-dash:hero-wpm", FWPM_KEY = "dot-dash:hero-fwpm", SONG_KEY = "dot-dash:hero-song", BEST_KEY = "dot-dash:hero-best";
+/* what "random" draws from: short, common, and a few of the air's own */
+const BAG = ["THE", "AND", "FOR", "YOU", "NOT", "ARE", "BUT", "ALL", "CAN", "HER", "WAS", "ONE", "OUR", "OUT", "DAY", "GET", "HAS", "HIM",
+  "HOW", "MAN", "NEW", "NOW", "OLD", "SEE", "TWO", "WAY", "WHO", "TIME", "GOOD", "HERE", "NAME", "RAIN", "WIND", "SEND", "KEY", "CODE",
+  "DOT", "DASH", "TONE", "WIRE", "SHIP", "MOON", "STAR", "NORTH", "EAST", "WEST", "SOUTH", "RADIO", "CQ", "DE", "ES", "TNX", "FB", "73"];
+const BEST_KEY = "dot-dash:hero-best";
 /* the count-in is seen, not heard: the first note starts part way
    down the road, and never less than a couple of seconds off */
 const LEAD = 16, LEAD_MIN = 2000;
 /* the card stays a moment before a key can send it away: a hand
    still keying the last letter shouldn't dismiss what it hasn't read */
 const CARD_HOLD = 900;
+/* going on after a pause, the road backs up this much (of the page's
+   time) and runs up to where it stood: the hand finds the beat again
+   before a note is due. What comes by again has been keyed, or
+   missed, and a key down on it is nothing */
+const RUN_UP = 1500;
 
 /*
  * Strikes, in thirds: three whole ones end the run. What costs what:
@@ -51,155 +75,85 @@ const CARD_HOLD = 900;
  * (never under none).
  */
 const THIRDS = { letterGap: 1, wordGap: 3, both: 1, noGap: 1 };
-const OUT = 9, HEAL_EVERY = 10, HEAL = 3;
+const HEAL_EVERY = 10, HEAL = 3;
 const GAP_MIN = 0.2;      // units: nearer than this to the last key-up is no gap at all
 const WPM_MAX = 40;       // as far as ramp goes
 
-const keep = (key, value) => { try { localStorage.setItem(key, value); } catch { /* storage blocked */ } };
-const kept = key => { try { return localStorage.getItem(key); } catch { return null; } };
-const keptJSON = key => { try { return JSON.parse(localStorage.getItem(key)) ?? {}; } catch { return {}; } };
+/* ---------- the parts ---------- */
 
-/* ---------- the song ---------- */
-
-/* "auto": the text that came in the address (/hero/?/hello+world or
-   /hero/?/_...._.._), or the one typed here (below: your own text) */
-let own = location.search.startsWith("?/") ? readLink(location.search.slice(2)) : [];
-const songList = $("#song");
-songList.add(new Option("auto", "link"));
-for (const [i, text] of SONGS.entries()) songList.add(new Option(text.toLowerCase(), i));
-songList.value = own.length ? "link" : SONGS[kept(SONG_KEY)] ? kept(SONG_KEY) : 0;
-const wordsNow = () => (songList.value === "link" ? own : encode(SONGS[songList.value]));
-const songName = () => (songList.value === "link" ? own.map(w => w.map(c => DECODE[c] ?? "?").join("")).join(" ") : SONGS[songList.value]);
-
-/*
- * ---------- the speed ----------
- *
- * Two faders, as the station's: wpm is how fast a letter's marks go,
- * farns. (Farnsworth) the speed overall, the spaces between letters
- * stretched to make it. It follows wpm while the two are equal, stays
- * where it's put once lower, and is never the faster.
- */
-const wpmFader = $("#opt-wpm"), fwpmFader = $("#opt-fwpm");
-const within = (input, value) => Math.min(Number(input.max), Math.max(Number(input.min), value));
-wpmFader.value = within(wpmFader, Number(kept(WPM_KEY)) || 10);
-fwpmFader.value = Math.min(wpmFader.value, within(fwpmFader, Number(kept(FWPM_KEY)) || Number(wpmFader.value)));
-let wpmWas = Number(wpmFader.value);
-
-function markFaders() {
-  for (const input of [wpmFader, fwpmFader]) {
-    input.style.setProperty("--p", String((input.value - input.min) / (input.max - input.min)));
-    input.closest(".fader").querySelector("output").value = input.value;
-  }
-  /* the farnsworth track above wpm: out of reach (the cap) */
-  fwpmFader.closest(".track").style.setProperty("--f", String((fwpmFader.max - wpmFader.value) / (fwpmFader.max - fwpmFader.min)));
-}
-
-wpmFader.addEventListener("input", () => {
-  const wpm = Number(wpmFader.value);
-  if (Number(fwpmFader.value) === wpmWas || Number(fwpmFader.value) > wpm) fwpmFader.value = wpm;
-  wpmWas = wpm;
-  markFaders();
-});
-fwpmFader.addEventListener("input", () => {
-  if (Number(fwpmFader.value) > Number(wpmFader.value)) fwpmFader.value = wpmFader.value;
-  markFaders();
-});
-for (const input of [wpmFader, fwpmFader]) {
-  input.addEventListener("change", () => {
-    keep(WPM_KEY, wpmFader.value);
-    keep(FWPM_KEY, fwpmFader.value);
-    input.blur();           // or the arrow keys and the keying keys would be the slider's
-    load();
-  });
-}
-
-/*
- * ---------- how it looks ----------
- *
- * Four boxes, the station's own and kept with them. ctrl: the Ctrl
- * keys as paddles (a VBand adapter). mouse: its buttons as the keys,
- * left dit and right dah. color: dots red, dashes blue, on what's
- * been keyed, the keys and the far end (on unless it's been turned
- * off). invert: the light theme, the same instrument printed on paper.
- */
-const colorBox = $("#opt-color"), themeBox = $("#opt-theme"), ctrlBox = $("#opt-ctrl"), mouseBox = $("#opt-mouse");
-/* and one of the game's own. ramp: a word keyed with no letter
+const texts = createTexts({ list: $("#song"), texts: SONGS, bag: BAG, draw: 5, key: "dot-dash:hero-song", change: load });
+const speed = createSpeed({ wpm: $("#opt-wpm"), fwpm: $("#opt-fwpm"), wpmKey: "dot-dash:hero-wpm", fwpmKey: "dot-dash:hero-fwpm", change: load });
+const look = createLook({ ctrl: $("#opt-ctrl"), mouse: $("#opt-mouse"), color: $("#opt-color"), theme: $("#opt-theme") });
+/* and a box of the game's own. ramp: a word keyed with no letter
    missed, and the next is a wpm faster (the whole song's clock runs
    faster, so farns. keeps its share), up to 40 */
-const rampBox = $("#opt-ramp");
-rampBox.checked = kept("dot-dash:hero-ramp") === "1";
-rampBox.addEventListener("change", () => { keep("dot-dash:hero-ramp", rampBox.checked ? "1" : "0"); rampBox.blur(); load(); });
-ctrlBox.checked = kept("dot-dash:tx-ctrl-keys") === "1";
-mouseBox.checked = kept("dot-dash:tx-mouse-key") === "1";
-ctrlBox.addEventListener("change", () => { keep("dot-dash:tx-ctrl-keys", ctrlBox.checked ? "1" : "0"); ctrlBox.blur(); });
-mouseBox.addEventListener("change", () => { keep("dot-dash:tx-mouse-key", mouseBox.checked ? "1" : "0"); mouseBox.blur(); });
-colorBox.checked = kept("dot-dash:signal") !== "0";
-themeBox.checked = document.documentElement.classList.contains("light");
-function look() {
-  document.body.classList.toggle("signal", colorBox.checked);
-  document.documentElement.classList.toggle("light", themeBox.checked);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeBox.checked ? "#ebe5d7" : "#1c1916");
-}
-look();
-colorBox.addEventListener("change", () => { look(); keep("dot-dash:signal", colorBox.checked ? "1" : "0"); colorBox.blur(); });
-themeBox.addEventListener("change", () => { look(); keep("dot-dash:theme", themeBox.checked ? "light" : "dark"); themeBox.blur(); });
-
-/* ---------- the parts ---------- */
+const ramp = keptBox($("#opt-ramp"), "dot-dash:hero-ramp", { change: load });
 
 /* the station's tone, at the pitch set there */
 const sound = createSound();
 const pitch = Number(keptJSON("dot-dash:tx-settings")["opt-hz"]);
 if (pitch) sound.setPitch(pitch);
 
+const clock = createClock();
+const strikes = createStrikes({ element: $("#strikes") });
 const road = createRoad({ element: $(".road") });
 const message = createMessage({ feed: $(".incoming"), keyed: $("#keyed"), word: $("#word") });
 const keys = { ".": $('.keybox [data-lane="."]'), "-": $('.keybox [data-lane="-"]') };
 const down = { ".": false, "-": false };
 const holding = { ".": null, "-": null };   // the note each key is on, if it's on one
 
+/* a text of your own: a tap on the incoming message, and the
+   station's keyboard is in the keys' place (js/game/typing.js) */
+const typing = createTyping({
+  field: $(".incoming"),
+  board: $("#kbd"),
+  text: texts.typed,
+  change: text => { texts.type(text); load(); },
+  before: pause,
+  /* nothing typed: back to the song that was chosen before */
+  toggle: on => { if (!on) texts.settle(); load(); },
+});
+
+/*
+ * share, where the station's is: the text as a link that opens here
+ * (a challenge: the same words, random's draw too), the run just
+ * keyed in a line, and the text in the station.
+ */
+const linkHere = () => (words.length ? `${location.origin}/hero/?/${format(words)}` : "");
+const share = createShare({
+  toggle: $("#share-toggle"),
+  menu: $("#share"),
+  copy: { link: linkHere, result: () => (result ? `${result} ${linkHere()}` : "") },
+  native: () => ({ title: "Key hero", text: result || "Key this, in Morse:", url: linkHere() }),
+  opened() {
+    pause();
+    $("#share-station").href = `/?/${format(words)}`;
+  },
+});
+
 let state = "ready";
 let t, song, judge;
-/*
- * The song's clock: where it stood (base) when the page's clock read
- * mark, and how fast it runs from there (rate: 1, or more as ramp
- * speeds it up). Paused, it stands at base.
- */
-let base = 0, mark = 0, rate = 1;
+let words = [];           // the text being played (random: this draw of it)
+let result = "";          // the run just keyed, in a line: there while its card is
+let heldAt = 0;           // the song's clock at the last pause: before it, on the run-up, a key is nothing
 let doneAt = 0;           // the page's clock when the card came up
-let thirds = 0;           // strikes, in thirds
 let lastUp = -Infinity;   // the song's clock when a key last came up
-let typing = false;       // the text keyboard is up (your own text, below)
-
-const now = (stamp = performance.now()) => (state === "running" ? base + (stamp - mark) * rate : base);
-
-function setRate(next) {
-  const stamp = performance.now();
-  base = now(stamp);
-  mark = stamp;
-  rate = next;
-  speedNow();
-}
-
-/* the speed as it is now, over the faders (the handles stay where they were set) */
-function speedNow() {
-  for (const input of [wpmFader, fwpmFader]) input.closest(".fader").querySelector("output").value = Math.round(input.value * rate);
-}
 
 function load() {
-  const wpm = Number(wpmFader.value), fwpm = Number(fwpmFader.value);
-  t = timing(wpm, fwpm);
-  song = chart(wordsNow(), t, { lead: Math.max(LEAD * t.unit, LEAD_MIN) });
+  t = timing(speed.wpm(), speed.fwpm());
+  words = texts.words();
+  result = "";
+  heldAt = 0;
+  song = chart(words, t, { lead: Math.max(LEAD * t.unit, LEAD_MIN) });
   judge = createJudge(song.notes, { unit: t.unit });
   road.load(song, t, judge.windows);
   message.load(song.letters, t.unit);
-  markFaders();
-  base = 0;
-  rate = 1;
-  thirds = 0;
+  clock.reset();
+  speed.show();
+  strikes.reset();
   lastUp = -Infinity;
   setState("ready");
   streak();
-  strikes();
 }
 
 function setState(next) {
@@ -208,7 +162,7 @@ function setState(next) {
   $("#pause").textContent = next === "paused" ? "go on" : "pause";
   $("#pause").disabled = next === "ready" || next === "done";
   $("#card").hidden = next !== "done";
-  $("#note").textContent = typing ? "type your text" : { ready: "press either key to start", paused: "paused" }[next] ?? "";
+  $("#note").textContent = typing.on() ? "type your text" : { ready: "press either key to start", paused: "paused" }[next] ?? "";
 }
 
 /*
@@ -221,30 +175,24 @@ function graded(note) {
   road.grade(note);
   streak();
   const run = judge.tally().streak;
-  if (run && run % HEAL_EVERY === 0 && thirds) { thirds = Math.max(0, thirds - HEAL); strikes(); }
+  if (run && run % HEAL_EVERY === 0 && strikes.any()) strikes.heal(HEAL);
   const letter = note.letter;
   if (letter.notes.some(n => !n.grade)) return;
   letter.grade = letter.notes.some(n => n.grade === "missed") ? "missed"
     : letter.notes.every(n => n.grade === "landed") ? "perfect" : "correct";
   /* ramp: its word done, and no letter of it missed */
-  if (!rampBox.checked || !letter.last || state !== "running") return;
+  if (!ramp() || !letter.last || state !== "running") return;
   const word = song.letters.filter(l => l.word === letter.word);
-  const wpm = Number(wpmFader.value);
-  if (word.every(l => l.grade && l.grade !== "missed")) setRate(Math.min(WPM_MAX, Math.round(wpm * rate) + 1) / wpm);
+  if (word.every(l => l.grade && l.grade !== "missed")) {
+    const wpm = speed.wpm();
+    clock.setRate(Math.min(WPM_MAX, Math.round(wpm * clock.rate) + 1) / wpm);
+    speed.show(clock.rate);
+  }
 }
-
-/* the strikes, three boxes filling by thirds */
-function strikes() {
-  for (const [i, box] of [...$("#strikes").children].entries()) box.style.setProperty("--fill", Math.min(1, Math.max(0, thirds / 3 - i)));
-  $("#strikes").setAttribute("aria-label", `${strikesSaid()} of 3 strikes`);
-}
-const strikesSaid = () => `${Math.floor(thirds / 3) || (thirds % 3 ? "" : "0")}${["", "⅓", "⅔"][thirds % 3]}`;
 
 /* three, and it's over, with no key left down */
 function strike(n) {
-  thirds = Math.min(OUT, thirds + n);
-  strikes();
-  if (thirds < OUT || state !== "running") return;
+  if (!strikes.add(n) || state !== "running") return;
   for (const lane of [".", "-"]) release(lane, performance.now());
   finish();
 }
@@ -292,7 +240,8 @@ function carry(lane, at) {
 /* ---------- the run ---------- */
 
 function start(stamp) {
-  mark = stamp;
+  if (state === "paused") { heldAt = clock.now(); clock.rewind(RUN_UP); }
+  clock.start(stamp);
   setState("running");
   requestAnimationFrame(frame);
 }
@@ -300,13 +249,13 @@ function start(stamp) {
 function pause() {
   if (state !== "running") return;
   for (const lane of [".", "-"]) release(lane, performance.now());
-  base = now();
+  clock.stop();
   setState("paused");
 }
 
 function frame(stamp) {
   if (state !== "running") return;
-  const at = now(stamp);
+  const at = clock.now(stamp);
   for (const lane of [".", "-"]) {
     const until = holding[lane]?.letter.until;
     if (until <= at) carry(lane, until);
@@ -325,8 +274,8 @@ function frame(stamp) {
  * that were keyed, however they were graded.
  */
 function finish() {
-  base = now();
-  const out = thirds >= OUT;
+  clock.stop();
+  const out = strikes.out();
   const { landed, close, missed, stray, best } = judge.tally();
   const total = song.notes.length;
   const percent = Math.round(100 * (landed + close) / total);
@@ -338,8 +287,8 @@ function finish() {
   const starts = song.notes.filter(n => n.err).map(n => n.err.start);
   const lag = starts.length ? Math.round(starts.reduce((a, b) => a + b) / starts.length) : null;
 
-  const wpm = wpmFader.value, fwpm = fwpmFader.value;
-  const id = `${songName()} @${wpm}${fwpm < wpm ? "/" + fwpm : ""}${rampBox.checked ? " ramp" : ""}`;
+  const wpm = speed.wpm(), fwpm = speed.fwpm();
+  const id = `${texts.name()} @${wpm}${fwpm < wpm ? "/" + fwpm : ""}${ramp() ? " ramp" : ""}`;
   const bests = keptJSON(BEST_KEY);
   const before = bests[id] ?? null;
   /* a run that struck out isn't a best: the song wasn't finished */
@@ -347,16 +296,21 @@ function finish() {
 
   $("#c-percent").textContent = percent + "%";
   $("#c-best").textContent = out ? "three strikes" : before === null ? "first run" : percent > before ? `best yet (was ${before}%)` : `best ${before}%`;
-  $("#c-strikes").textContent = `${strikesSaid()} of 3`;
-  $("#c-speed").textContent = rate > 1 ? `${Math.round(wpm * rate)} wpm` : `${wpm} wpm`;
+  $("#c-strikes").textContent = `${strikes.said()} of 3`;
+  $("#c-speed").textContent = `${Math.round(wpm * clock.rate)} wpm`;
   $("#c-landed").textContent = landed;
   $("#c-close").textContent = close;
   $("#c-missed").textContent = missed;
   $("#c-stray").textContent = stray;
   $("#c-streak").textContent = best;
-  $("#c-ghost").textContent = "×" + best;
+  /* the ghost over the card: the longest run, or, struck out, the
+     three strikes that ended it (the boxes, full) */
+  $("#c-ghost").textContent = out ? "" : "×" + best;
+  $("#c-ghost").classList.toggle("struck", out);
+  if (out) $("#c-ghost").append(...[0, 1, 2].map(() => document.createElement("i")));
   $("#c-ratio").textContent = dit && dah ? `${(dah / dit).toFixed(1)} : 1` : "–";
   $("#c-lag").textContent = lag === null ? "–" : lag === 0 ? "on the line" : `${Math.abs(lag)} ms ${lag > 0 ? "late" : "early"}`;
+  result = `Key hero: ${texts.name() === "random" ? "random words" : texts.name()} at ${Math.round(wpm * clock.rate)} wpm, ${percent}%, longest run ×${best}${out ? " (three strikes)" : ""}.`;
   doneAt = performance.now();
   setState("done");
   $("#again").focus({ preventScroll: true });
@@ -365,17 +319,18 @@ function finish() {
 /* ---------- the keys ---------- */
 
 function press(lane, stamp) {
-  if (down[lane] || typing) return;
+  if (down[lane] || typing.on()) return;
   if (state === "done") {                 // either key: again
     if (performance.now() - doneAt > CARD_HOLD) load();
     return;
   }
   if (state === "ready" || state === "paused") { sound.unlock(); return start(stamp); }   // the press that starts isn't a note
+  if (clock.now(stamp) < heldAt) return;  // the run-up after a pause: not a note either
   down[lane] = true;
   keys[lane].classList.add("down");
   sound.key(true);
   road.lit(true);
-  const at = now(stamp);
+  const at = clock.now(stamp);
   holding[lane] = judge.down(lane, at);
   road.down(lane, at, holding[lane]);
   /* what it costs, the dearest of what applies */
@@ -391,7 +346,7 @@ function release(lane, stamp) {
   down[lane] = false;
   keys[lane].classList.remove("down");
   if (!down["."] && !down["-"]) { sound.key(false); road.lit(false); }
-  const at = now(stamp);
+  const at = clock.now(stamp);
   lastUp = at;
   holding[lane] = null;
   road.up(lane, at);
@@ -399,82 +354,52 @@ function release(lane, stamp) {
   if (note) graded(note);
 }
 
-/* the pads: on pointer DOWN, as the station's, and held */
-for (const [lane, key] of Object.entries(keys)) {
-  key.addEventListener("pointerdown", event => {
-    event.preventDefault();
-    key.setPointerCapture?.(event.pointerId);
-    press(lane, event.timeStamp);
-  });
-  for (const type of ["pointerup", "pointercancel", "lostpointercapture"])
-    key.addEventListener(type, event => release(lane, event.timeStamp));
-  key.addEventListener("contextmenu", event => event.preventDefault());
-}
-
-/* a keyboard, or a paddle plugged in as one: the station's own keys
-   for its two paddles (js/keymap.js; and Ctrl, with its box ticked) */
-function laneFor(event) {
-  const { code } = event, ctrlKeys = ctrlBox.checked;
-  if (DIT_KEYS.has(code) || event.key === "." || (ctrlKeys && code === "ControlLeft")) return ".";
-  if (DAH_KEYS.has(code) || event.key === "-" || (ctrlKeys && code === "ControlRight")) return "-";
-  return null;
-}
-const chord = event => event.metaKey || event.altKey || (event.ctrlKey && !/^Control/.test(event.code));
-
 /* Esc, P or the space bar: pause, and go on */
 const PAUSE_KEYS = new Set(["Escape", "KeyP", "Space"]);
 
-addEventListener("keydown", event => {
-  if (typing) return typed(event);
-  if (event.target.closest?.("select")) return;
-  if (PAUSE_KEYS.has(event.code) && !chord(event) && (state === "running" || state === "paused")) {
+createPaddles({
+  pads: keys,
+  ctrl: look.ctrl,
+  mouse: look.mouse,
+  press,
+  release,
+  /* the page's own keys, before the paddles': typing, and pause */
+  keydown(event) {
+    if (share.isOpen()) {                 // Esc puts it away; no key keys under it
+      if (event.code === "Escape") share.open(false);
+      return true;
+    }
+    if (typing.on()) { typing.key(event); return true; }
+    if (event.target.closest?.("select")) return true;
+    /* R: from the top, with no wait for three strikes */
+    if (event.code === "KeyR" && !chord(event) && state !== "ready") {
+      event.preventDefault();
+      if (!event.repeat) load();
+      return true;
+    }
+    if (!PAUSE_KEYS.has(event.code) || chord(event) || (state !== "running" && state !== "paused")) return false;
     event.preventDefault();
-    if (event.repeat) return;
-    return state === "running" ? pause() : start(event.timeStamp);
-  }
-  const lane = laneFor(event);
-  if (!lane || chord(event)) return;
-  event.preventDefault();
-  if (!event.repeat) press(lane, event.timeStamp);
+    if (!event.repeat) state === "running" ? pause() : start(event.timeStamp);
+    return true;
+  },
+  off: typing.on,
+  clickable: ".settings, .result, .hero-top, .share-menu, .key, .incoming, .kbd",
 });
-addEventListener("keyup", event => {
-  const lane = laneFor(event);
-  if (lane) release(lane, event.timeStamp);
-});
-
-/*
- * The mouse as the key (its box ticked): left is dit, right is dah,
- * wherever the pointer is, but for the things that are there to be
- * clicked (the settings, the card, the top; the pads key themselves).
- */
-const mouseLane = event => (event.button === 0 ? "." : event.button === 2 ? "-" : null);
-const mouseKeys = event => mouseBox.checked && !typing && !event.target.closest?.(".settings, .result, .hero-top, .key, .incoming, .kbd");
-addEventListener("mousedown", event => {
-  const lane = mouseLane(event);
-  if (!lane || !mouseKeys(event)) return;
-  event.preventDefault();
-  press(lane, event.timeStamp);
-});
-addEventListener("mouseup", event => {
-  const lane = mouseLane(event);
-  if (lane && mouseBox.checked) release(lane, event.timeStamp);
-});
-addEventListener("contextmenu", event => { if (mouseKeys(event)) event.preventDefault(); });
 
 /* looking away: the song waits, and no key is left down */
 document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); });
 addEventListener("blur", pause);
-addEventListener("resize", () => { road.measure(); road.draw(now()); });
+addEventListener("resize", () => { road.measure(); road.draw(clock.now()); });
 /* the type comes in after the first drawing, and the lines are cut to its width */
 document.fonts?.ready.then(() => { if (state === "ready") load(); });
 
 /* ---------- the controls ---------- */
 
 /* the gear: the settings, open or shut, and kept that way */
-function setTray(open) {
+const setTray = open => {
   $("#tray").hidden = !open;
   $("#gear").setAttribute("aria-expanded", String(open));
-}
+};
 setTray(kept("dot-dash:hero-tray") === "1");
 $("#gear").addEventListener("click", () => {
   const open = $("#tray").hidden;
@@ -489,68 +414,5 @@ $("#pause").addEventListener("click", event => {
 });
 $("#again").addEventListener("click", load);
 $("#card-close").addEventListener("click", load);
-songList.addEventListener("change", () => {
-  if (songList.value !== "link") keep(SONG_KEY, songList.value);
-  songList.blur();
-  load();
-});
-
-/*
- * ---------- your own text ----------
- *
- * A tap on the incoming message brings the station's text keyboard up
- * in the keys' place (the same height: nothing above it moves), and
- * what's typed is the song, "auto", shown where it will come in from.
- * A tap there again, ↵ or Esc, and the keys are back.
- *
- *   ┌ incoming ─┐           ┌ incoming ─┐
- *   │ CQ DE K   │  tap ▶    │ HELLO▮    │
- *   ├─────┬─────┤           ├───────────┤
- *   │  ●  │  ▬  │           │ Q W E R … │
- *   └─────┴─────┘           └───────────┘
- */
-const typedText = () => own.map(w => w.map(c => DECODE[c] ?? "").join("")).join(" ");
-let draft = "";
-let keyboard = null;        // the station's (js/tx/keyboard.js), fetched the first time
-
-function setDraft(text) {
-  draft = text.toUpperCase().replace(/\s+/g, " ").replace(/^ /, "");
-  own = encode(draft);
-  songList.value = "link";
-  history.replaceState(null, "", draft.trim() ? `/hero/?/${encodeURIComponent(draft.trim()).replace(/%20/g, "+")}` : "/hero/");
-  load();
-}
-
-function typeKey(k) {
-  if (k === "send") return setTyping(false);
-  if (k === "back") return setDraft(draft.slice(0, -1));
-  if (k === "back-word") return setDraft(draft.replace(/\S*\s*$/, ""));
-  setDraft(draft + k);
-}
-
-/* a real keyboard types too, while the on-screen one is up */
-function typed(event) {
-  if (chord(event) || event.ctrlKey) return;
-  if (event.key === "Escape" || event.key === "Enter") { event.preventDefault(); return setTyping(false); }
-  if (event.key === "Backspace") { event.preventDefault(); return typeKey("back"); }
-  if (event.key.length !== 1) return;
-  event.preventDefault();
-  typeKey(event.key);
-}
-
-async function setTyping(on) {
-  if (on === typing) return;
-  if (on && state === "running") pause();
-  if (on && !keyboard) keyboard = (await import("../tx/keyboard.js")).createKeyboard({ typeKey });
-  typing = on;
-  document.body.dataset.input = on ? "text" : "keys";
-  $("#kbd").hidden = !on;
-  if (on) draft = songList.value === "link" ? typedText() : "";
-  /* nothing typed: back to the song that was chosen before */
-  if (!on && !own.length) songList.value = SONGS[kept(SONG_KEY)] ? kept(SONG_KEY) : 0;
-  load();
-}
-
-$(".incoming").addEventListener("click", () => setTyping(!typing));
 
 load();

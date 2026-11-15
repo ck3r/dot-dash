@@ -23,6 +23,11 @@
  *        ─── ·   ───          K: 3 + 1 + 1 + 1 + 3 = 9 units
  *        └──── 540 ms ───┘    9 units in 540 ms: 60 ms a unit, 20 wpm
  *
+ * Your fist, too: how long your dits, your dahs and the gaps inside
+ * your letters really are, lately (timed keys only). Hearing starts
+ * from it (js/tx/rx.js): copying yourself, the reader's first guess
+ * is your hand, not the textbook's.
+ *
  * Kept as one small record in localStorage; never sent anywhere.
  */
 import { DECODE } from "../morse.js";
@@ -34,6 +39,9 @@ const RECENT = 50;
 
 /* a gap longer than a word space (7 units) is a pause, not keying */
 const PAUSE_UNITS = 7;
+
+/* the fist follows the last few dozen marks: each new one counts a tenth */
+const FIST = 0.1;
 
 const fresh = () => ({ since: new Date().toISOString(), marks: 0, letters: 0, words: 0, lines: 0, fixes: 0, ms: 0, chars: {}, timed: {}, recent: [] });
 
@@ -81,6 +89,7 @@ export function createStats({ state }) {
   }
 
   state.on(event => {
+    if (event.heard) return;      // RX: someone else's keying, not yours
     switch (event.type) {
       case "mark": {
         s.marks++;
@@ -88,7 +97,15 @@ export function createStats({ state }) {
         path += event.mark;
         times.push(event.timing);
         const t = event.timing;
-        if (t) s.ms += t.on + Math.min(t.gap ?? 0, PAUSE_UNITS * (t.unit || 60));
+        if (t) {
+          s.ms += t.on + Math.min(t.gap ?? 0, PAUSE_UNITS * (t.unit || 60));
+          const f = s.fist ??= { dit: 0, dah: 0, inside: 0, n: 0 };
+          const follow = (k, ms) => { f[k] = f[k] ? f[k] + (ms - f[k]) * FIST : ms; };
+          follow(event.mark === "." ? "dit" : "dah", t.on);
+          /* (the gap before a letter's first mark is a space, not the hand) */
+          if (path.length > 1 && t.gap > 0 && t.gap < 3 * (t.unit || 60)) follow("inside", t.gap);
+          f.n++;
+        }
         break;
       }
       case "letter":
@@ -127,7 +144,9 @@ export function createStats({ state }) {
       .map(([ch, [u, m]]) => [ch, m / u])
       .sort((a, b) => b[1] - a[1])
       .map(([ch]) => ch);
-    return { ...s, speed, most, slowest };
+    /* a fist is a habit: both marks, and a few dozen of them */
+    const fist = s.fist?.n >= 30 && s.fist.dit && s.fist.dah && s.fist.inside ? s.fist : null;
+    return { ...s, speed, most, slowest, fist };
   }
 
   function clear() {
