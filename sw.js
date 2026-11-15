@@ -22,7 +22,7 @@
  * Bump VERSION to clear the old cache after a big change.
  */
 
-const VERSION = "dot-dash-13";
+const VERSION = "dot-dash-14";
 
 /* fetched on install, so the first offline open works too */
 const CORE = [
@@ -37,7 +37,8 @@ const CORE = [
   /* hearing (RX): fetched the first time rx is chosen, kept here so that works offline too */
   "/js/tx/rx.js", "/js/rx-decoder.js", "/js/rx-worklet.js",
   /* key hero (/hero), and what it shares with the station */
-  "/hero/", "/hero/hero.css", "/js/hero/main.js", "/js/hero/chart.js", "/js/hero/road.js", "/js/hero/message.js", "/js/judge.js", "/js/keymap.js",
+  "/hero/", "/hero/hero.css", "/js/hero/main.js", "/js/hero/road.js", "/js/hero/message.js", "/js/judge.js", "/js/keymap.js",
+  "/js/game/store.js", "/js/game/clock.js", "/js/game/speed.js", "/js/game/look.js", "/js/game/paddles.js", "/js/game/strikes.js", "/js/game/texts.js", "/js/game/typing.js", "/js/game/chart.js", "/js/game/share.js",
   /* a character's own page (/ref/k/): what every one of them needs; the pages and their
      pictures are kept as they're visited (there are dozens, and most are never opened) */
   "/ref/item.css", "/js/ref-item.js", "/js/ref-pages.js"

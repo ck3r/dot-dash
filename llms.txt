@@ -30,6 +30,7 @@ To answer "what is X in Morse": fetch the .json and give the `morse`, with the `
 
 - [The station](https://dot-da.sh/): key with one button, two paddles or a keyboard; type text and see its Morse; play, share, save.
 - [The reference](https://dot-da.sh/ref/): every character, the Morse tree, prosigns, Q codes.
+- [Key hero](https://dot-da.sh/hero/): a game for the sending hand: Morse comes down a road, key each mark in time. `https://dot-da.sh/hero/?/hi+k` opens it with that text (the same forms as a message link).
 - [Design notes](https://dot-da.sh/design/): why it looks and behaves as it does.
 - [Bookmarklet](https://dot-da.sh/bookmarklet/): send a selection from any page to the station.
 

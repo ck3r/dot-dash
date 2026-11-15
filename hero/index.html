@@ -10,8 +10,20 @@
   <title>key hero · dot-da.sh</title>
   <link rel="canonical" href="https://dot-da.sh/hero/">
   <meta name="description" content="Key hero: Morse notes come down a road, key each one as it reaches the line. Two keys, your own timing, your own tone.">
-  <!-- a first version, not yet linked from the station -->
-  <meta name="robots" content="noindex">
+  <!-- the card a shared link shows. For a link with a text in it
+       (/hero/?/hi+k) the Worker rewrites these, as it does the
+       station's (worker/src/preview.js): the text's own card -->
+  <meta name="title" content="key hero · dot-da.sh">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://dot-da.sh/hero/">
+  <meta property="og:title" content="key hero · dot-da.sh">
+  <meta property="og:description" content="Morse comes down a road: key each mark as it reaches the line.">
+  <meta property="og:image" content="https://dot-da.sh/preview.png">
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://dot-da.sh/hero/">
+  <meta property="twitter:title" content="key hero · dot-da.sh">
+  <meta property="twitter:description" content="Morse comes down a road: key each mark as it reaches the line.">
+  <meta property="twitter:image" content="https://dot-da.sh/preview.png">
 
   <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
   <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
@@ -23,7 +35,42 @@
   <header class="hero-top">
     <a href="/" class="home">dot-da.sh</a>
     <h1>KEY HERO</h1>
+    <!-- share where the station's is; and its profile, to come here
+         too: a placeholder for now -->
+    <div class="top-right">
+    <button type="button" id="share-toggle" class="share-toggle" aria-expanded="false" aria-controls="share">share</button>
+    <button type="button" class="profile" id="profile" disabled title="profile (to come)" aria-label="profile (to come)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3.2"/><path d="M6.4 18.6c1.3-2.2 3.3-3.4 5.6-3.4s4.3 1.2 5.6 3.4"/></svg></button>
+    </div>
   </header>
+
+  <!--
+    share (js/game/share.js): the text being played, as a link that
+    opens here, and the run just keyed
+
+      ┌─ share ─────────────────────┐
+      │ copy link     dot-da.sh/h…  │
+      │ copy result   Key hero: …   │   (once there is one)
+      │ ─────────────────────────── │
+      │ share…                      │
+      │ this text in the station ↗  │
+      └─────────────────────────────┘
+  -->
+  <section id="share" class="share-menu" hidden aria-label="share">
+    <span class="frame-label">share</span>
+    <button type="button" class="close" aria-label="close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button>
+    <div class="rows">
+      <button type="button" data-do="copy-link" title="a link that opens Key hero with this text"><span>copy link</span><span class="peek"></span></button>
+      <button type="button" data-do="copy-result" title="the run just keyed, in a line, with the link"><span>copy result</span><span class="peek"></span></button>
+    </div>
+    <div class="rows">
+      <button type="button" data-do="share"><span>share…</span></button>
+    </div>
+    <div class="rows">
+      <a id="share-station" href="/">this text in the station ↗</a>
+    </div>
+    <p class="share-note" aria-live="polite"></p>
+    <p class="privacy">Morse is an encoding, not encryption.<br>Don't send anything private.</p>
+  </section>
 
   <main>
     <!-- everything over the keys: the road, and around it the message
@@ -99,13 +146,13 @@
         <p id="streak" aria-hidden="true"></p>
         <!-- three strikes and the run is over: each box fills by thirds -->
         <p id="strikes" role="img" aria-label="0 of 3 strikes"><i></i><i></i><i></i></p>
-        <button type="button" id="pause" disabled>pause</button>
+        <button type="button" id="pause" disabled title="pause, and go on: esc, p or the space bar; r starts over">pause</button>
       </aside>
     </div>
 
     <!-- the results: framed and named as the station's popups are,
          an x to send it away, and the longest run over it all, a
-         brass ghost -->
+         brass ghost (struck out: the three strikes, full) -->
     <section class="result" id="card" role="dialog" hidden aria-labelledby="c-title">
       <span class="frame-label" id="c-title">RESULTS</span>
       <button type="button" class="close" id="card-close" aria-label="close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button>

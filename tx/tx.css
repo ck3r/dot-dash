@@ -197,6 +197,40 @@ body.tx {
   text-underline-offset: 4px;
 }
 
+/*
+ * Transmit ⇄ receive: one switch, drawn as the input modes' (.- ⇄ A)
+ * is, a size down. It sits at the left, by the name (the header
+ * spreads its parts apart: the auto margin keeps it there). The side
+ * that's on is paper; a press anywhere flips it.
+ */
+.trx {
+  margin: 0 auto 0 1.6ch;
+  display: flex;
+  align-items: center;
+  gap: 0.4ch;
+  padding: 0;
+  border: 0;
+  color: var(--graphite);
+  background: transparent;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+
+.trx .side {
+  padding: 0.1rem 0.35rem;
+  border: 1px solid var(--wire);
+  color: var(--graphite);
+  text-align: center;
+}
+
+.trx .side.on {
+  border-color: var(--paper);
+  color: var(--paper);
+}
+
+.trx .side.flash { animation: mode-flash 0.45s ease-out; }
+.trx .swap { user-select: none; }
+
 
 /*
  * ============================================================
@@ -920,6 +954,25 @@ body[data-mode="type"] .entry.current .empty-line {
   .tape.hide-m .entry:not(.anim) .line .w:not(.shown):has(.m:hover) .c::after { background: var(--brass); }
 }
 
+/*
+ * The bar's button: each hidden word's own way to be shown without a
+ * pointer (tx/tape.js). Nothing to see, so the word wears its focus;
+ * only there as bars.
+ */
+.line .w .reveal { display: none; }
+.tape.hide-p .entry:not(.anim) .line .w .reveal,
+.tape.hide-m .entry:not(.anim) .line .w .reveal {
+  display: block;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.line .w:has(.reveal:focus-visible) { outline: 1px dashed var(--brass); outline-offset: 3px; }
+
 .tape.collapse-p .entry:not(.anim) .line .p { display: none; }
 .tape.collapse-m .entry:not(.anim) .line .m { width: 0; overflow: hidden; visibility: hidden; white-space: nowrap; }
 .tape.collapse-m .entry:not(.anim) .line .p { white-space: normal; }        /* no leading spaces (they set it under its code) */
@@ -996,6 +1049,12 @@ body[data-mode="type"] .entry.current .line:not(.empty-line) .caret {
 
 /* the letter being keyed: its best guess so far, dimmed */
 .line .c.partial .p { color: var(--graphite); }
+
+/* a letter heard with a mark in doubt (RX, js/tx/tape.js unsure): a
+   guess, in graphite, and no more than that. A tap takes the other
+   reading */
+.line .c.unsure .p { color: var(--graphite); }
+.line .c.unsure .p.takes { cursor: pointer; }
 
 .caret {
   display: inline-block;
@@ -2117,6 +2176,157 @@ body.reading .caret { visibility: hidden; }
 }
 
 body.reading .slot { display: none; }
+
+/*
+ * Receiving (rx): the hearing view, a tape recorder (js/tx/rx.js).
+ * It has the bottom of the station to itself: the player and the
+ * settings row are the transmitter's, so they go, and the slot
+ * grows up into the player's room (--rx-extra, measured by
+ * js/tx/main.js setRx) while the station above stays where it is.
+ * The suggestions stay, in their row, right over the scope.
+ *
+ *   ┌──────────────────────────────────────┐
+ *   │          C     Q         D    X      │
+ *   │          ▄ ▄▄▄ ▄     ▄▄▄ ▄▄▄ ▄       │
+ *   │ 6 s            600 Hz · sine · 18 wpm │   a meter's corners
+ *   └──────────────────────────────────────┘
+ *   [ ● ][ ▶ ][ ❚❚ ][ ◀◀ ][ ▶▶ ][ ■ ][ × ]     the deck
+ *   Heard on this device only …   open a file…  save a .wav
+ *
+ * and over it all, in the suggestions' row at the right: isolate.
+ *
+ * The scope is a control too: a tap is rec, then pause; not
+ * recording, a drag winds the tape (touch-action: none, so a drag
+ * and a pinch are the scope's, not the page's).
+ */
+body.rx .player,
+body.rx .control-row > :not(.chips, .rx-isolate) { display: none; }
+body:not(.rx) .rx-isolate { display: none; }
+
+/* isolate, at the right of the suggestions' row: paper while the
+   tape plays isolated (only the tone that was read), grey for raw */
+.rx-isolate {
+  flex: none;
+  padding: 0.3rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--graphite);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+  text-decoration: underline dotted;
+  text-underline-offset: 0.25em;
+}
+.rx-isolate[aria-pressed="true"] { color: var(--paper); text-decoration-style: solid; }
+body.rx .slot { height: calc(var(--input-h) + var(--rx-extra, 0px)); }
+
+.rx {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  height: 100%;
+  min-height: 0;
+}
+
+.rx-screen {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.rx-scope {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: 1px solid var(--wire);
+  background: color-mix(in srgb, var(--paper) 4%, var(--bakelite));
+  cursor: pointer;
+  touch-action: none;
+}
+
+.rx.on .rx-scope { border-color: var(--graphite); }
+.rx.drop .rx-scope { border-color: var(--brass); }      /* a file held over it: let go, and it's read */
+.rx.paused .rx-scope { cursor: grab; }
+.rx.paused .rx-scope:active { cursor: grabbing; }
+
+/* the meter's corners: how much is across the scope (and how far
+   back the tape stands), and the sender as heard. Over the canvas,
+   out of the finger's way */
+.rx-span, .rx-read {
+  position: absolute;
+  bottom: 0.3rem;
+  color: var(--graphite);
+  font-size: var(--fs-xs);
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.rx-span { left: 0.5rem; }
+.rx-read { right: 0.5rem; }
+
+/*
+ * The deck: seven keys in one bar, as on a cassette recorder, each
+ * its sign over its name. Grey at rest; the one that's down is
+ * paper (rec's lamp, brass); one with nothing to do is dimmed.
+ */
+.deck {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border: 1px solid var(--wire);
+}
+
+.deck button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.35rem 0 0.3rem;
+  border: 0;
+  border-left: 1px solid var(--wire);
+  border-radius: 0;
+  color: var(--graphite);
+  background: transparent;
+  font-size: var(--fs-xs);
+  line-height: 1;
+}
+.deck button:first-child { border-left: 0; }
+.deck button .ico { width: 1.15rem; height: 1.15rem; }
+.deck button:disabled { opacity: 0.4; cursor: default; }
+.deck button[aria-pressed="true"] {
+  color: var(--paper);
+  background: color-mix(in srgb, var(--paper) 7%, var(--bakelite));
+}
+.deck #rx-rec[aria-pressed="true"] .ico { color: var(--brass); }
+.deck #rx-clear.armed { color: var(--brass); }
+
+.rx-foot {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 1.4ch;
+}
+
+.rx-note {
+  flex: 1;
+  margin: 0;
+  color: var(--graphite);
+  font-size: var(--fs-xs);
+}
+
+/* open a file…, save a .wav: words to press, as paste and share are */
+.rx-link {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--graphite);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+  text-decoration: underline dotted;
+  text-underline-offset: 0.25em;
+}
+.rx-link:disabled { opacity: 0.4; cursor: default; text-decoration: none; }
 
 .pad {
   display: grid;
@@ -3259,7 +3469,7 @@ a.switch { text-decoration: none; }
 @media (hover: hover) {
   /* text and icons: brass, never a fill */
   :root .tx :is(#paste, #share-toggle, #profile, .tx-top .home, .tray-toggle, .keys-toggle, .outputs button, .chip, .flag-word,
-                .input-mode, .edge-toggle, #local button, .about a, .about button,
+                .input-mode, .trx, .deck button, .rx-link, .rx-isolate, .edge-toggle, #local button, .about a, .about button,
                 .marker .eye, .entry .x, .tape-head button, .player button,
                 .share-menu button, .popup .close, .popup .actions button, .quiet, .paste-bubble,
                 .about-pop .about-card a, .about-pop .about-more a, .stats:not(:empty), .quick-list button:not(.on)):not(:disabled):not(.secret):hover {
@@ -3278,6 +3488,8 @@ a.switch { text-decoration: none; }
   /* framed: the frame too */
   /* the input switch: the side a press would turn on */
   :root .tx .input-mode:hover .side:not(.on) { border-color: var(--brass); color: var(--brass); }
+  :root .tx .trx:hover .side:not(.on) { border-color: var(--brass); color: var(--brass); }
+  :root .tx .line .c.unsure .p.takes:hover { color: var(--brass); }
   :root .tx .chip:hover { border-color: var(--brass); }
   :root .tx .chip:hover .chip-name { color: var(--brass); }
   :root .tx :is(.popup .actions button, .paste-bubble):not(:disabled):hover {

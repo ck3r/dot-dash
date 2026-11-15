@@ -114,6 +114,15 @@
   <header class="tx-top">
     <a href="/" class="home" aria-label="dot-da.sh home">dot-da.sh</a>
 
+    <!-- transmit ⇄ receive: one switch, as .- ⇄ A is (js/tx/main.js
+         setRx); at the left, by the name: what the station is doing,
+         apart from what to do with the message -->
+    <button type="button" id="trx" class="trx" aria-label="transmitting: switch to receiving" title="transmit ⇄ receive (hear Morse)">
+      <span class="side on" data-trx="tx">tx</span>
+      <span class="swap" aria-hidden="true">⇄</span>
+      <span class="side" data-trx="rx">rx</span>
+    </button>
+
     <!-- what to do with the message; at the far right, the profile -->
     <div class="top-right">
       <button type="button" id="paste" class="share-toggle" title="paste into the message (or long-press the message)">paste</button>
@@ -477,6 +486,12 @@
         what you hear, then show them with the eye. Copying 90%? Add a character.</p>
       <button type="button" id="practice-go" class="quiet koch-go">▷ start</button>
     </div>
+
+    <!-- and practice for the hand: the game (/hero) -->
+    <div class="profile-practice">
+      <p class="profile-since">sending practice</p>
+      <p class="profile-note"><a href="/hero/">Key hero ↗</a>: Morse comes down a road; key each mark as it reaches the line.</p>
+    </div>
     </div>
   </section>
 
@@ -527,6 +542,9 @@
       </button>
       <!-- suggestions (js/tx/suggest.js): a tap keys it -->
       <div id="chips" class="chips" aria-label="suggestions"></div>
+      <!-- receiving only (js/tx/rx.js): how the tape plays, the tone that
+           was read alone (isolated), or the sound as it was (raw) -->
+      <button type="button" id="rx-isolate" class="rx-isolate" aria-pressed="true" title="play the tape isolated (only the tone that was read) or raw (the sound as it was)">isolate</button>
       <div class="actions">
         <span class="outputs" role="group" aria-label="outputs">
           <button type="button" data-out="sound" aria-pressed="true" title="sound"><svg class="ico" aria-hidden="true"><use href="#i-sound"/></svg></button>
@@ -698,6 +716,49 @@
 
     </section>
 
+
+    <!--
+      receiving (rx, by the name): the hearing view (js/tx/rx.js). It
+      has the bottom of the station to itself: the keys' place and,
+      above it, the player's and the settings' (they're the
+      transmitter's). A tape recorder: the scope shows what's heard,
+      the newest at the right, each letter over its marks, and in its
+      bottom corners how much is shown and the sender as heard; under
+      it, a deck's keys.
+
+        ┌──────────────────────────────────────────┐
+        │            C     Q          D    X       │
+        │            ▄ ▄▄▄ ▄      ▄▄▄ ▄▄▄ ▄        │
+        │ 6 s                600 Hz · sine · 18 wpm │
+        └──────────────────────────────────────────┘
+        [ ● ][ ▶ ][ ❚❚ ][ ◀◀ ][ ▶▶ ][ ■ ][ × ]
+         rec  play pause  rw    ff   stop clear
+        Heard on this device only …  open a file…  save a .wav
+    -->
+    <div id="rx" class="rx" hidden>
+      <div class="rx-screen">
+        <canvas id="rx-scope" class="rx-scope" aria-hidden="true" title="tap to listen"></canvas>
+        <span id="rx-span" class="rx-span" aria-hidden="true"></span>
+        <!-- the sender, as heard: pitch, the tone's shape, speed (20/8: stretched spaces) -->
+        <span id="rx-read" class="rx-read" role="status"></span>
+      </div>
+      <div class="deck" role="group" aria-label="the tape of what's heard">
+        <button type="button" id="rx-rec" aria-pressed="false" title="record: listen (the microphone), read as Morse onto the line"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg><span class="word">rec</span></button>
+        <button type="button" id="rx-play" aria-pressed="false" title="play the tape from where the scope stands: only the tone that was read"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5 19 12 8 19Z" fill="currentColor"/></svg><span class="word">play</span></button>
+        <button type="button" id="rx-pause" aria-pressed="false" title="pause; again, and it goes on"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></svg><span class="word">pause</span></button>
+        <button type="button" id="rx-rw" title="rewind (hold)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M11.5 6v12L3 12zM21 6v12l-8.5-6z" fill="currentColor"/></svg><span class="word">rw</span></button>
+        <button type="button" id="rx-ff" title="fast forward (hold)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l8.5 6L3 18zM12.5 6 21 12l-8.5 6z" fill="currentColor"/></svg><span class="word">ff</span></button>
+        <button type="button" id="rx-stop" title="stop"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5h11v11h-11z" fill="currentColor"/></svg><span class="word">stop</span></button>
+        <button type="button" id="rx-clear" title="wipe the tape (the message on the line stays)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg><span class="word">clear</span></button>
+      </div>
+      <div class="rx-foot">
+        <p id="rx-note" class="rx-note">Heard on this device only: not kept, never sent.</p>
+        <button type="button" id="rx-file" class="rx-link" title="a recording of Morse (sound, or a video's sound), read onto the line; or drop one here">open a file…</button>
+        <input type="file" id="rx-file-input" accept="audio/*,video/*" hidden>
+        <!-- the one way the sound is kept, and only when asked -->
+        <button type="button" id="rx-save" class="rx-link" title="the tape, as a .wav file on this device" disabled>save a .wav</button>
+      </div>
+    </div>
 
     <!--
       timing train (timed keying), lined up with the keys below:

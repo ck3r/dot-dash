@@ -6,6 +6,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://dot-da.sh/</loc></url>
   <url><loc>https://dot-da.sh/ref/</loc></url>
+  <url><loc>https://dot-da.sh/hero/</loc></url>
   <url><loc>https://dot-da.sh/design/</loc></url>
   <url><loc>https://dot-da.sh/bookmarklet/</loc></url>
   <url><loc>https://dot-da.sh/privacy/</loc></url>
@@ -63,4 +64,13 @@
   <url><loc>https://dot-da.sh/ref/comma/</loc></url>
   <url><loc>https://dot-da.sh/ref/colon/</loc></url>
   <url><loc>https://dot-da.sh/ref/dollar/</loc></url>
+  <url><loc>https://dot-da.sh/ref/sos/</loc></url>
+  <url><loc>https://dot-da.sh/ref/sk/</loc></url>
+  <url><loc>https://dot-da.sh/ref/hh/</loc></url>
+  <url><loc>https://dot-da.sh/ref/cl/</loc></url>
+  <url><loc>https://dot-da.sh/ref/bk/</loc></url>
+  <url><loc>https://dot-da.sh/ref/do/</loc></url>
+  <url><loc>https://dot-da.sh/ref/sn/</loc></url>
+  <url><loc>https://dot-da.sh/ref/ka/</loc></url>
+  <url><loc>https://dot-da.sh/ref/aa/</loc></url>
 </urlset>
