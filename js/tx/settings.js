@@ -688,6 +688,8 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
 
   for (const b of document.querySelectorAll(".outputs button")) {
     b.addEventListener("click", () => {
+      /* receiving, ♪ and ☼ say what's read, not what comes out (js/tx/main.js); ≋ is greyed */
+      if (document.body.classList.contains("rx")) return document.dispatchEvent(new CustomEvent("dot-dash:rx-out", { detail: b.dataset.out }));
       if (b.dataset.out === "vibrate") return flash(b, "soon");
       setOutput(b.dataset.out, !outputOn(b.dataset.out));
       if (b.dataset.out === "sound" && sound.enabled) preview();

@@ -14,7 +14,10 @@
  *   └──────────────────────────────────────────┘
  *   [ ● ][ ▶ ][ ❚❚ ][ ◀◀ ][ ▶▶ ][ ■ ][ × ]         a tape deck's keys
  *    rec  play pause  rw    ff   stop clear
- *   Heard on this device only …   open a file…  save a .wav
+ *
+ * and above it all, in the row over the slot, after settings:
+ *
+ *   ⚙  Heard here only: …   open a file…  save a .wav
  *
  * It's a tape recorder. What's heard goes onto a tape (in memory,
  * the last ten minutes) as well as onto the line:
@@ -38,14 +41,33 @@
  * NOTHING STOPS IT BUT YOU: listening goes on until pause, stop,
  * play, a file opened, or leaving rx. Silence doesn't end it.
  *
+ * SOUND OR LIGHT ("sound  light", in the suggestions' row): light is
+ * the camera, pointed at a lamp that flashes. Its picture stands
+ * over the scope with a ring in it, the spot that's watched: tap the
+ * lamp and the ring goes there, as often as the camera wanders
+ * (js/tx/rx-eye.js; the reading is js/rx-light.js). The deck works
+ * it the same way, with a camera's differences:
+ *
+ *   rec      watch: the camera; or a video that's been opened,
+ *            played from where it stands
+ *   pause    hold (a video stays where it is)
+ *   stop     stop (a video goes back to its start)
+ *   play     nothing to play: there's no tape of pictures. The scope
+ *            still winds through what was seen, and the line with it
+ *   clear    the video goes too
+ *
+ * What's seen is drawn on the same scope and goes onto the same
+ * line; nothing of the picture is kept at all.
+ *
  *   createRx({ state, press, unitNow, fist, logo, playing }) → {
  *     show(on)     the view came or went (it stops when it goes)
  *     stop()       stop listening, and playing
  *     listening    is the microphone open?
  *   }
  *
- * The hearing itself is js/rx-decoder.js (no page in it); this is
- * the microphone, a file, the tape and the picture. Loaded the first
+ * The hearing itself is js/rx-decoder.js (no page in it), the seeing
+ * js/rx-light.js; this is the microphone, a file, the tape and the
+ * scope. Loaded the first
  * time rx is chosen: a station that only sends never fetches it.
  *
  * The sound stays on this device and isn't kept: the tape is in
@@ -53,6 +75,8 @@
  * "save a .wav" is the one way it's kept, and it's you who asks.
  */
 import { createHearing, hear } from "../rx-decoder.js";
+import { createSeeing } from "../rx-light.js";
+import { createEye } from "./rx-eye.js";
 import { DECODE } from "../morse.js";
 import { wordsOf } from "./state.js";
 import { $, toast } from "./dom.js";
@@ -133,6 +157,12 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
   const tape = createTape();
   let ctx = null, stream = null, node = null, source = null, hearing = null;
   let starting = false;
+  let medium = "sound";         // or "light": what rec takes in
+  let eye = null, seeing = null;   // the camera's view (made when light is first chosen); what's reading it
+  let asked = 0;                // (each time the camera's asked for: one that comes after a stop is let go)
+  let sounded = false;          // is there sound on the tape (light leaves none)?
+  /* taking in, either way: the microphone open, or the camera watched */
+  const going = () => !!stream || starting || !!seeing;
   let paused = null;            // "rec" or "play": what pause is holding
   let learned = null;           // the hand heard before a pause: where the reader starts again
 
@@ -170,10 +200,12 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
     letter = [];
     back = 0;
   }
-  function level({ at, level: l, down }) {
+  /* (`ms`: how long the column stands for, when it isn't the scope's
+     own 16: a camera's pictures are further apart than that) */
+  function level({ at, level: l, down, ms }) {
     at += from;
     if (!column || at - column.at >= COLUMN_MS) {
-      column = { at, level: l, down, mark: null };
+      column = { at, level: l, down, mark: null, ...(ms && { ms }) };
       columns.push(column);
       while (at - columns[0].at > KEPT_MS) columns.shift();
       while (letters.length && at - letters[0].to > KEPT_MS) letters.shift();
@@ -198,7 +230,7 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
     const at = how.at + from;
     colour(m, at, how.on);
     letter.push({ at, on: how.on, m, sure: how.sure });
-    press(m, { on: how.on, gap: how.gap, unit: how.unit, ...(!how.sure && { unsure: true }) }, true);
+    press(m, { on: how.on, gap: how.gap, unit: how.unit, ...(!how.sure && { unsure: true, dah: how.dah }) }, true);
   }
   function space(kind) {
     if (letter.length) {
@@ -268,7 +300,7 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
   const reach = () => (columns.length ? newest() - columns[0].at : 0);
   function look(nextSpan, nextBack) {
     span = Math.max(SPAN_MIN, Math.min(SPAN_MAX, nextSpan));
-    back = stream ? 0 : Math.max(0, Math.min(reach(), nextBack));
+    back = going() ? 0 : Math.max(0, Math.min(reach(), nextBack));
     dirty = true;
   }
 
@@ -298,14 +330,16 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
     g.textAlign = "center";
     g.textBaseline = "middle";
     if (!columns.length) {
-      if (!stream) { g.fillStyle = ink("--graphite"); g.fillText("tap to listen", w / 2, h / 2); }
+      /* (light: the picture above says "tap to watch") */
+      if (!going() && medium === "sound") { g.fillStyle = ink("--graphite"); g.fillText("tap to listen", w / 2, h / 2); }
       return;
     }
-    const end = newest() - back, per = w / span, wide = Math.max(1, COLUMN_MS * per + 0.4);   // (a hair over: magnified, no stripes between columns)
+    const end = newest() - back, per = w / span;
     for (let i = columns.length - 1; i >= 0; i--) {
       const c = columns[i];
       if (c.at > end) continue;
-      const x = w - (end - c.at) * per - COLUMN_MS * per;
+      const ms = c.ms ?? COLUMN_MS, wide = Math.max(1, ms * per + 0.4);   // (a hair over: magnified, no stripes between columns)
+      const x = w - (end - c.at) * per - ms * per;
       if (x + wide < 0) break;
       const tall = Math.max(1, c.level * (base - top));
       g.fillStyle = c.mark === "." ? ink("--dot") : c.mark === "-" ? ink("--dash") : c.down ? ink("--brass") : ink("--graphite");
@@ -334,14 +368,19 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
    *   700 Hz · sine · 18 wpm        the pitch, the tone's shape, the speed
    *   600 Hz · sine · 20/8 wpm      stretched spaces: letters at 20, spaced as 8
    *
+   *   30 fps · 12 wpm               light: the pictures a second it's
+   *                                 seen by (they're what limits the speed)
+   *
    * It stays when listening stops (it's what was heard), until the
    * next recording starts, or the tape's wiped.
    */
-  const said = ({ pitch, wave, wpm, fwpm }) => {
+  const speedOf = ({ wpm, fwpm }) => {
     const speed = Math.round(wpm), spaced = Math.round(fwpm ?? wpm);
-    return [`${pitch} Hz`, wave, `${spaced < speed * 0.85 ? `${speed}/${spaced}` : speed} wpm`].filter(Boolean).join(" · ");
+    return `${spaced < speed * 0.85 ? `${speed}/${spaced}` : speed} wpm`;
   };
+  const said = heard => [`${heard.pitch} Hz`, heard.wave, speedOf(heard)].filter(Boolean).join(" · ");
   function readout() {
+    if (seeing) { read.textContent = seeing.settled ? `${Math.round(seeing.rate)} fps · ${speedOf(seeing)}` : "watching…"; return; }
     if (!hearing) return;
     if (hearing.settled) parts.at(-1).pitch = hearing.pitch;
     read.textContent = hearing.settled ? said(hearing) : "listening…";
@@ -354,7 +393,8 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
    * exactly what they take out.
    */
   async function rec(resume = false) {
-    if (stream || starting) return;
+    if (going()) return;
+    if (medium === "light") { watch(resume); return; }
     if (!navigator.mediaDevices?.getUserMedia || !window.AudioWorkletNode) {
       toast("this browser can't listen");
       return;
@@ -377,6 +417,7 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
       await ctx.audioWorklet.addModule("/js/rx-worklet.js");
       await ctx.resume();
       begin();
+      sounded = true;
       hearing = createHearing({
         sampleRate: ctx.sampleRate,
         unit: unitNow(),          // the speed set in the tray: where it starts from;
@@ -413,7 +454,49 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
     sync();
   }
 
+  /*
+   * WATCH: rec, in light. The camera (asked for now, never before),
+   * or the video that's open, played on from where it stands; either
+   * way the eye says how bright the ring is, a picture at a time,
+   * and the seeing reads it.
+   */
+  async function watch(resume) {
+    haltPlay();
+    paused = null;
+    starting = true;
+    sync();
+    const mine = ++asked;
+    const how = await eye.start();
+    if (mine !== asked) { if (how === true) eye.halt(); return; }    // stopped while the camera was coming
+    starting = false;
+    if (how !== true) {
+      toast(how === "denied" ? "the camera wasn't allowed" : how === "none" ? "no camera here" : "this browser can't watch");
+      sync();
+      return;
+    }
+    begin();
+    seeing = createSeeing({
+      unit: unitNow(),
+      expect: (resume && learned) || fist(),
+      mark(m, how) { mark(m, how); },
+      space,
+      shortest: aim === "blink" ? BLINK : 0,
+      key(down) { logo.classList.toggle("down", down); eye.lit = down; },
+      level
+    });
+    state.record("listen", { light: true });
+    read.textContent = "watching…";
+    sync();
+  }
+
   function stopRec() {
+    asked++;
+    if (seeing) {
+      eye.halt();
+      seeing.flush();
+      if (seeing.settled) learned = seeing.learned; else read.textContent = "";
+      seeing = null;
+    } else if (starting && medium === "light") starting = false;
     for (const track of stream?.getTracks?.() ?? []) track.stop();
     try { node?.disconnect(); source?.disconnect(); } catch { }
     try { ctx?.close(); } catch { }
@@ -457,8 +540,8 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
   });
   const pitchAt = ms => parts.findLast(p => p.from <= ms)?.pitch ?? parts.find(p => p.pitch)?.pitch ?? null;
   async function play() {
-    if (tape.empty) return;
-    if (stream || starting) stopRec();
+    if (tape.empty || !sounded) return;
+    if (going()) stopRec();
     haltPlay();
     paused = null;
     if (back <= 0) back = reach();
@@ -504,16 +587,17 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
 
   /* PAUSE holds what's going, and lets it go on; STOP ends it */
   function pause() {
-    if (stream || starting) { stopRec(); paused = "rec"; }
+    if (going()) { stopRec(); paused = "rec"; }
     else if (sounding) { haltPlay(); paused = "play"; }
     else if (paused === "rec") rec(true);
     else if (paused === "play") play();
     sync();
   }
   function stop() {
-    if (stream || starting) stopRec();
+    if (going()) stopRec();
     haltPlay();
     paused = null;
+    eye?.rewind();                // (a video: stopped, it's at its start again)
     sync();
   }
 
@@ -524,7 +608,7 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
    */
   let winding = 0, resume = false, last = 0;
   function wind(way) {
-    if (stream || !columns.length) return;
+    if (going() || !columns.length) return;
     resume = haltPlay() || resume;
     winding = way;
   }
@@ -537,7 +621,7 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
     keys[key].addEventListener("pointerdown", event => { keys[key].setPointerCapture?.(event.pointerId); wind(way); });
     for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) keys[key].addEventListener(type, unwind);
     keys[key].addEventListener("click", event => {
-      if (event.detail || stream) return;           // (a pointer's click: the hold did it already)
+      if (event.detail || going()) return;          // (a pointer's click: the hold did it already)
       const going = haltPlay();
       look(span, back + way * JUMP_MS);
       if (going && back > 0) play();
@@ -575,6 +659,8 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
     stop();
     columns.length = letters.length = parts.length = 0;
     tape.wipe();
+    sounded = false;
+    eye?.close();                 // (a video that was open goes with it: rec is the camera again)
     column = null; letter = []; from = 0; back = 0; learned = null;
     read.textContent = "";
     sync();
@@ -586,7 +672,7 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
     keys.clear.querySelector(".word").textContent = "clear";
   }
 
-  keys.rec.addEventListener("click", () => { if (!stream && !starting) rec(); });
+  keys.rec.addEventListener("click", () => { if (!going()) rec(); });
   keys.play.addEventListener("click", () => { if (!sounding) play(); });
   keys.pause.addEventListener("click", pause);
   keys.stop.addEventListener("click", stop);
@@ -645,7 +731,7 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
     else if (!moved && event.type === "pointerup") tap();
   }
   function tap() {
-    if (stream || starting || sounding || paused) pause();
+    if (going() || sounding || paused) pause();
     else rec();
   }
   canvas.addEventListener("pointerup", lift);
@@ -662,21 +748,21 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
   /* the keys as they stand: paper for the one that's down, the ones
      with nothing to do greyed out */
   function sync() {
-    const recording = !!stream || starting, none = !columns.length;
+    const recording = going(), none = !columns.length, light = medium === "light";
     const down = (key, on) => keys[key].setAttribute("aria-pressed", String(on));
     down("rec", recording);
     down("play", !!sounding);
     down("pause", !!paused);
-    keys.play.disabled = none && !recording;
+    keys.play.disabled = !sounded || (none && !recording);
     keys.pause.disabled = !recording && !sounding && !paused;
     keys.rw.disabled = none || recording || back >= reach();
     keys.ff.disabled = none || recording || back <= 0;
     keys.stop.disabled = !recording && !sounding && !paused;
-    keys.clear.disabled = none && !recording;
-    saveButton.disabled = tape.empty && !recording;
+    keys.clear.disabled = none && !recording && !eye?.film;
+    saveButton.disabled = !sounded || (tape.empty && !recording);
     canvas.title = recording ? "tap to pause"
       : sounding ? "tap to pause; drag to wind the tape"
-        : "tap to listen; drag back through what was heard, pinch (or the wheel) to magnify";
+        : `tap to ${light ? "watch" : "listen"}; drag back through what was ${light ? "seen" : "heard"}, pinch (or the wheel) to magnify`;
     view.classList.toggle("on", recording);
     view.classList.toggle("paused", !recording && !none);
     dirty = true;
@@ -716,6 +802,7 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
     open(file);
   });
   async function open(file) {
+    if (medium === "light") { film(file); return; }
     stop();
     let audio;
     try {
@@ -727,6 +814,7 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
     }
     let marks = 0;
     begin();
+    sounded = true;
     tape.record(audio.getChannelData(0), audio.sampleRate);
     const heard = hear(audio.getChannelData(0), audio.sampleRate, {
       unit: unitNow(),
@@ -742,10 +830,83 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
     sync();
   }
 
+  /*
+   * A VIDEO, in light: it isn't read all at once as a sound file is,
+   * because nobody has said yet where in it the lamp is. It stands at
+   * its first picture: tap the lamp, then rec plays it and reads it
+   * (and the ring can be moved as it goes). Stop takes it back to the
+   * start for another go; clear takes it away.
+   */
+  async function film(file) {
+    stop();
+    if (!(await eye.load(file))) { toast("that file couldn't be read as pictures"); sync(); return; }
+    toast(aim === "blink" ? "tap the eye, then rec" : "tap the lamp, then rec");
+    sync();
+  }
+
+  /*
+   * SOUND OR LIGHT: two words in the suggestions' row, the one that's
+   * on in paper. Changing stops what's going; the tape, the scope and
+   * the line stay (they're what was taken in, either way). Isolate is
+   * the sound's, so in light it's put out (its place kept: the words
+   * beside it don't move).
+   */
+  const mediumButton = $("#rx-medium"), eyeBox = $("#rx-eye"), note = $("#rx-note"), MEDIUM = "dot-dash:rx-medium";
+  function setMedium(next) {
+    const light = next === "light";
+    if (going() || sounding || paused) stop();
+    if (!light) eye?.close();
+    medium = next;
+    if (light) eye ??= createEye({
+      frame(value, at) { if (seeing) { seeing.see(value, at); eye.shut = seeing.down; readout(); } },
+      ended: stop,
+      tap
+    });
+    view.classList.toggle("light", light);
+    eyeBox.hidden = !light;
+    isolateButton.classList.toggle("off", light);
+    lookButton.classList.toggle("off", !light);
+    if (light) eye.reading = aim;
+    for (const side of mediumButton.querySelectorAll(".side")) side.classList.toggle("on", side.dataset.medium === medium);
+    mediumButton.setAttribute("aria-label", light ? "reading light: switch to sound" : "reading sound: switch to light");
+    note.textContent = `${light ? "Seen" : "Heard"} here only: not kept, never sent.`;
+    keys.rec.title = light ? "record: watch (the camera, or the video that's open), read as Morse onto the line" : "record: listen (the microphone), read as Morse onto the line";
+    try { localStorage.setItem(MEDIUM, medium); } catch { }
+    sync();
+  }
+  mediumButton.addEventListener("click", () => setMedium(medium === "light" ? "sound" : "light"));
+
+  /*
+   * LAMP OR BLINK, in light: what the ring is on. A lamp is read by
+   * how bright it is; an eye by how much it has changed from rest,
+   * and a mark shorter than a fifth of a second is a blink nobody
+   * meant (js/rx-light.js). Changing stops what's going, as sound or
+   * light does.
+   */
+  const lookButton = $("#rx-look"), LOOK = "dot-dash:rx-look";
+  const BLINK = 200;            // ms: shorter, and it's a blink
+  let aim = "lamp";             // what the ring is on
+  function setLook(next) {
+    if (going()) stop();
+    aim = next;
+    if (eye) eye.reading = aim;
+    for (const side of lookButton.querySelectorAll(".side")) side.classList.toggle("on", side.dataset.look === aim);
+    lookButton.setAttribute("aria-label", aim === "blink" ? "reading blinks: switch to a lamp" : "reading a lamp: switch to blinks");
+    try { localStorage.setItem(LOOK, aim); } catch { }
+    sync();
+  }
+  lookButton.addEventListener("click", () => setLook(aim === "blink" ? "lamp" : "blink"));
+  let lookKept = null;
+  try { lookKept = localStorage.getItem(LOOK); } catch { }
+  if (lookKept === "blink") setLook("blink");
+  let kept = null;
+  try { kept = localStorage.getItem(MEDIUM); } catch { }
+  if (kept === "light") setMedium("light");
+
   sync();
   return {
     show(on) { if (!on) stop(); dirty = true; },
     stop,
-    get listening() { return !!stream; }
+    get listening() { return going(); }
   };
 }

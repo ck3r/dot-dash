@@ -162,7 +162,8 @@ export function createPlayback({
       $("#play").innerHTML = icon(playIcon);
     }
     $("#play").setAttribute("aria-label", player.playing ? "pause" : "play");
-    /* nothing loaded yet: show the length of what would play */
+    /* nothing loaded yet: show the length of what would play, from its
+       start (0.0/0.8s), as it reads while playing, so it never changes width */
     if (state.playKey === null && !player.playing) {
       const p = playable();
       const d = p ? lineOf(p.words, p.rec).duration : 0;
@@ -170,7 +171,7 @@ export function createPlayback({
       $("#seek").value = 0;
       refreshTrace();
       trace.at(0);
-      $("#time").textContent = clock(d) + unitOf(d);
+      $("#time").textContent = clock(0) + "/" + clock(d) + unitOf(d);
     }
   }
 
@@ -505,6 +506,7 @@ export function createPlayback({
       return;
     }
     if (event.target.closest?.("input, select, textarea") && event.target.id !== "seek") return;   // the scrub bar steps our way
+    if (event.target.closest?.('[role="tab"]') && /^Arrow(Left|Right)$/.test(event.key)) return;   // a tab's ← → move between tx and rx
     const active = playerActive;
     const typing = !active && state.mode === "type" && !state.inputAway;
     const inUse = active || playerInUse();
@@ -513,7 +515,7 @@ export function createPlayback({
     let act = null;
     if (event.code === "Space" && !typing && inUse) act = once(togglePlay);
     else if ((k === "k" || k === "p") && !typing) act = once(togglePlay);
-    else if (k === "m" && !typing) act = once(() => $('[data-out="sound"]').click());
+    else if (k === "m" && !typing && !state.rx) act = once(() => $('[data-out="sound"]').click());
     else if (k === "ArrowLeft" || k === "ArrowRight") act = () => step(k === "ArrowRight" ? 1 : -1, event.shiftKey);
     else if ((k === "j" || k === "l") && !typing) act = () => step(k === "l" ? 1 : -1, true);
     else if (k === "Home") act = () => seekTo(0);

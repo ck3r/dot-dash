@@ -93,10 +93,14 @@ export function createLayer({
 
   /*
    * Long-press an output, and its list opens on its own, above it,
-   * without the settings: ♪ the sound, ☼ the light, the input switch
-   * (.- ⇄ A, anywhere on it) which keyer, text among them; a tap
-   * there still just swaps keying and typing. Choosing one sets the list in the tray as if
-   * chosen there; the press itself doesn't toggle the output.
+   * without the settings: ♪ the sound, ☼ the light, ≋ vibration (on
+   * soon), the input switch (.- ⇄ A, anywhere on it) which keyer, text
+   * among them; a tap there still just swaps keying and typing. The
+   * time holds pretty play, the suggestions' corner the suggestions:
+   * a box in the tray, on or off. Each wears a tick in its corner, as
+   * the keyboard's keys that hold more do (tx.css .holds). Choosing
+   * one sets it in the tray as if chosen there; the press itself
+   * doesn't toggle the output. A right-click opens the list too.
    *
    *        ┌───────────────┐
    *        │ off  tone  …  │      the current one lit
@@ -109,7 +113,53 @@ export function createLayer({
    */
   const LONG_PRESS = 450;   // ms
   const LISTS = [['[data-out="sound"]', "#opt-sound"], ['[data-out="light"]', "#opt-light"],
-                 ['.input-mode', "#opt-key"]];
+                 ['[data-out="vibrate"]', null], ['.input-mode', "#opt-key"],
+                 ["#time", "#opt-pretty"], ["#chips-more", "#opt-suggest"]];
+
+  /*
+   * What a list offers: a select's options; a tray box's off and on
+   * (named by its word there); vibration's off, and on to come.
+   * Receiving, ♪ and ☼ hold what's read instead, chosen through rx's
+   * own switches (js/tx/main.js); ≋ holds nothing:
+   *
+   *   ♪  microphone · open a file… · isolate
+   *   ☼  lamp · blink · open a file…
+   */
+  const rxChoices = button => {
+    const out = button.dataset?.out, body = document.body.dataset;
+    if (out === "vibrate") return null;
+    const sound = body.rxMedium === "sound", isolated = $("#rx-isolate").getAttribute("aria-pressed") === "true";
+    const options = out === "sound"
+      ? [{ value: "microphone", label: "microphone", on: sound }, { value: "file", label: "open a file…" }, { value: "isolate", label: "isolate", on: isolated }]
+      : [{ value: "lamp", label: "lamp", on: !sound && body.rxLook === "lamp" }, { value: "blink", label: "blink", on: !sound && body.rxLook === "blink" }, { value: "file", label: "open a file…" }];
+    return { name: out === "sound" ? "read sound" : "read light", options,
+      choose: value => document.dispatchEvent(new CustomEvent("dot-dash:rx-choose", { detail: { out, value } })) };
+  };
+  /* the suggestions' corner: its two switches, each on or off by a tap (the list stays open) */
+  const chipChoices = () => {
+    const finish = $("#opt-suggest"), next = $("#opt-next");
+    return { name: "suggestions", stays: true,
+      options: [{ value: "finish", label: "finish", on: finish.checked }, { value: "next", label: "next", on: next.checked }],
+      choose: v => { const box = v === "finish" ? finish : next; box.checked = !box.checked; box.dispatchEvent(new Event("change", { bubbles: true })); } };
+  };
+  function choicesOf(select, button) {
+    if (button?.id === "chips-more") return chipChoices();
+    if (document.body.classList.contains("rx") && button?.closest(".outputs")) return rxChoices(button);
+    if (!select) return { name: "vibration", options: [{ value: "off", label: "off" }, { value: "on", label: "on · soon", soon: true }], value: "off", choose: () => { } };
+    if (select.type === "checkbox") {
+      const name = select.closest(".flag")?.querySelector(".flag-word")?.textContent ?? "";
+      return {
+        name, value: select.checked ? "on" : "off",
+        options: [{ value: "off", label: "off" }, { value: "on", label: name }],
+        choose: v => { select.checked = v === "on"; select.dispatchEvent(new Event("change", { bubbles: true })); }
+      };
+    }
+    return {
+      name: select.closest("label")?.firstChild?.textContent.trim() ?? "choose", value: select.value,
+      options: [...select.options].filter(o => !o.disabled && !o.hidden).map(o => ({ value: o.value, label: o.textContent })),
+      choose: v => { select.value = v; select.dispatchEvent(new Event("change", { bubbles: true })); }   // as if chosen in the tray
+    };
+  }
   let list = null;          // the open list, or null
 
   function closeList() {
@@ -119,24 +169,28 @@ export function createLayer({
 
   function openList(button, select) {
     closeList();
+    const choices = choicesOf(select, button);
+    if (!choices) return;
     list = document.createElement("div");
     list.className = "quick-list";
     list.setAttribute("role", "listbox");
-    list.setAttribute("aria-label", select.closest("label")?.firstChild?.textContent.trim() ?? "choose");
-    for (const o of select.options) {
-      if (o.disabled || o.hidden) continue;
+    const { name, options, value, choose, stays } = choices;
+    list.setAttribute("aria-label", name);
+    for (const o of options) {
       const b = document.createElement("button");
       b.type = "button";
       b.setAttribute("role", "option");
-      b.textContent = o.textContent;
-      const on = o.value === select.value;
+      b.textContent = o.label;
+      const on = o.on ?? o.value === value;
       b.setAttribute("aria-selected", String(on));
       if (on) b.classList.add("on");
+      if (o.soon) b.setAttribute("aria-disabled", "true");
       b.addEventListener("click", () => {
+        if (o.soon) return;
+        /* switches (the suggestions' two) stay open, each lit or not */
+        if (stays) { choose(o.value); b.classList.toggle("on"); b.setAttribute("aria-selected", String(b.classList.contains("on"))); return; }
         closeList();
-        if (select.value === o.value) return;
-        select.value = o.value;
-        select.dispatchEvent(new Event("change", { bubbles: true }));   // as if chosen in the tray
+        if (o.value !== value || o.on !== undefined) choose(o.value);
       });
       list.append(b);
     }
@@ -149,11 +203,11 @@ export function createLayer({
 
   const SLIDE = 8;          // px: a finger moved this far is sliding, not resting
   for (const [sel, listSel] of LISTS) {
-    const button = $(sel), select = $(listSel);
-    if (!button || !select) continue;
-    let timer = null, held = false, from = null, slid = false, pick = null;
+    const button = $(sel), select = listSel && $(listSel);
+    if (!button || (listSel && !select)) continue;
+    let timer = null, held = false, from = null, slid = false, pick = null, by = null;
     button.addEventListener("pointerdown", event => {
-      held = false; slid = false; pick = null;
+      held = false; slid = false; pick = null; by = event.pointerType;
       from = { x: event.clientX, y: event.clientY };
       button.setPointerCapture?.(event.pointerId);   // the slide stays ours, off the button too
       clearTimeout(timer);
@@ -184,7 +238,18 @@ export function createLayer({
       event.preventDefault();
       event.stopImmediatePropagation();
     }, true);
-    button.addEventListener("contextmenu", event => { if (held || timer) event.preventDefault(); });
+    /* a right-click opens it at once (a mouse has no long-press to
+       wait for); a finger's long-press, which a phone also calls a
+       context menu, has opened it already */
+    button.addEventListener("contextmenu", event => {
+      event.preventDefault();
+      if (held) return;
+      clearTimeout(timer);
+      openList(button, select);
+      if (by !== "mouse") held = true;   // a finger's release after it isn't also a tap
+    });
+    /* the suggestions' corner is only a corner: a tap opens its list too */
+    if (sel === "#chips-more") button.addEventListener("click", () => (list ? closeList() : openList(button, select)));
   }
 
   /* the timing train, tapped: what it shows */
@@ -423,6 +488,7 @@ export function createLayer({
     if (event.key !== "Escape" || event.repeat || isChord(event)) return;
     const open = sel => !$(sel).hidden;
     if (open("#notice")) return;                                    // its own handler dismisses it
+    if ($("#crumb-menu")?.hidden === false) return;                 // the bar's menu, on top: it shuts itself (js/nav.js)
     if (open("#lamp-warn")) cancelLamp();
     else if (open("#report-pop")) $("#report-cancel").click();
     else if (open("#farns-pop")) $("#farns-ok").click();

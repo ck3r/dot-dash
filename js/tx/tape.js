@@ -41,37 +41,98 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
   }
 
   /*
-   * A letter heard (RX) with a mark that fell between a dit and a
-   * dah: a guess, and shown as one, in graphite. Nothing more than
-   * that on the line (the other reading under it was too busy).
+   * A letter heard (RX) with a mark (or more) that fell between a dit
+   * and a dah: a guess, and shown as one, in graphite. A tap opens
+   * what else it could have been, the likeliest first, each with how
+   * likely: from how long each doubtful mark was against this hand's
+   * dit and dah (js/rx-decoder.js: `dah`, 0..1), the marks' chances
+   * multiplied. A tap on one takes it; the letter's sure after that.
+   * Only on the line being written (rx or tx): once sent, a message is
+   * what it says.
    *
-   *   -.-        the middle mark was long for a dit
-   *    K         graphite: K, or was it O?
-   *
-   * A tap on the letter takes the other reading, when there's just
-   * one mark in doubt; its title says which. Only on the line being
-   * written: once sent, a message is what it says.
+   *   -.-               ┌──────────────────┐
+   *    K   tapped:      │ K  -.-   62%     │   the one shown, lit
+   *                     │ O  ---   38%     │
+   *                     └──────────────────┘
    */
   function unsure(c, code, doubt, reading) {
     c.classList.add("unsure");
-    if (doubt.length !== 1) return;
-    const [d] = doubt;
-    const other = code.slice(0, d.k) + (code[d.k] === "." ? "-" : ".") + code.slice(d.k + 1);
-    const name = namesOf([other], reading)[0];
-    if (!name) return;
+    const ways = readingsOf(code, doubt, reading);
+    if (ways.length < 2) return;
     const p = c.querySelector(".p");
     p.classList.add("takes");
-    p.title = `or ${name} (${other}): tap to take it`;
+    p.title = `${ways[0].name} ${pct(ways[0].odds)}, or ${ways.filter(w => w.code !== code)[0].name}: tap for what else it could be`;
     p.addEventListener("click", event => {
       event.stopPropagation();
-      state.tokens[d.at] = state.tokens[d.at] === "." ? "-" : ".";
-      state.took[d.at] = sureOf(state.took[d.at]);
-      state.lastInput = performance.now();
-      if (state.mode === "type") setTyped(plainText(wordsOf(state.tokens)) ?? state.typed);
-      update();
+      openReadings(p, code, doubt, ways);
     });
   }
-  const sureOf = took => { if (!took) return took; const { unsure: _, ...rest } = took; return rest; };
+  const sureOf = took => { if (!took) return took; const { unsure: _, dah: __, ...rest } = took; return rest; };
+  const pct = odds => `${Math.round(odds * 100)}%`;
+
+  /* every way the doubtful marks could have gone (a few at most: four
+     marks is sixteen), those that are a character, by how likely */
+  function readingsOf(code, doubt, reading) {
+    const ways = [];
+    const marks = doubt.slice(0, 4);
+    for (let mask = 0; mask < 1 << marks.length; mask++) {
+      let odds = 1, c = [...code];
+      marks.forEach((d, i) => {
+        const dah = state.took[d.at]?.dah ?? 0.5;
+        c[d.k] = mask & (1 << i) ? "-" : ".";
+        odds *= c[d.k] === "-" ? dah : 1 - dah;
+      });
+      const alt = c.join(""), name = namesOf([alt], reading)[0];
+      if (name) ways.push({ code: alt, name, odds });
+    }
+    const all = ways.reduce((t, w) => t + w.odds, 0) || 1;
+    for (const w of ways) w.odds /= all;
+    return ways.sort((a, b) => b.odds - a.odds);
+  }
+
+  /* the readings, over the letter, as the quick lists are (tx.css) */
+  let readings = null;
+  function closeReadings() { readings?.remove(); readings = null; }
+  function openReadings(at, code, doubt, ways) {
+    closeReadings();
+    readings = el("div", "quick-list readings");
+    readings.setAttribute("role", "listbox");
+    readings.setAttribute("aria-label", "what it could be");
+    for (const w of ways) {
+      const b = el("button");
+      b.type = "button";
+      b.setAttribute("role", "option");
+      b.setAttribute("aria-selected", String(w.code === code));
+      if (w.code === code) b.classList.add("on");
+      const marks = el("span", "marks");
+      for (const s of w.code) marks.append(el("span", s === "." ? "dot" : "dash", s));
+      b.append(el("b", null, w.name), marks, el("span", "odds", pct(w.odds)));
+      b.addEventListener("click", () => {
+        closeReadings();
+        doubt.forEach(d => {
+          state.tokens[d.at] = w.code[d.k];
+          state.took[d.at] = sureOf(state.took[d.at]);
+        });
+        state.lastInput = performance.now();
+        if (state.mode === "type") setTyped(plainText(wordsOf(state.tokens)) ?? state.typed);
+        update();
+      });
+      readings.append(b);
+    }
+    document.body.append(readings);
+    const r = at.getBoundingClientRect(), w = readings.offsetWidth;
+    readings.style.left = Math.max(6, Math.min(innerWidth - w - 6, r.left + r.width / 2 - w / 2)) + "px";
+    readings.style.top = Math.max(6, r.top - readings.offsetHeight - 6) + "px";
+    readings.querySelector(".on")?.focus({ preventScroll: true });
+  }
+  /* away: a tap elsewhere, or Escape (ahead of the station's own Escape) */
+  document.addEventListener("pointerdown", event => { if (readings && !readings.contains(event.target)) closeReadings(); }, true);
+  addEventListener("keydown", event => {
+    if (!readings || event.key !== "Escape") return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    closeReadings();
+  }, true);
 
   /* the marks in doubt on the line being written, by letter:
      "word:letter" → [{ k: which mark of the letter, at: which token }] */

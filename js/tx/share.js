@@ -24,9 +24,10 @@ export function createShare({ state, keyer, shareable, choice, timingNow, setMod
    * PASTE & SHARE
    * ============================================================
    *
-   * Paste anywhere (Ctrl/⌘+V), or "paste" in the share menu on a
-   * phone: Morse if it starts with . or -, otherwise text. It's
-   * added to the end of the current message.
+   * Paste anywhere (Ctrl/⌘+V), or "paste" in the bubble a long-press
+   * (or a right-click) on the message opens: Morse if it starts with
+   * . or -, otherwise text. It's added to the end of the current
+   * message.
    *
    * The share menu works on the message the player would play:
    * the current line, or the last one sent.
@@ -272,18 +273,19 @@ export function createShare({ state, keyer, shareable, choice, timingNow, setMod
     } catch { return false; }   // no "clipboard-read" to ask about (Firefox, Safari)
   }
 
-  $("#paste").addEventListener("click", () => pasteFromClipboard());
-
   /*
    * Long-press the message (touch), like a text field's:
    *
-   *   on a line with a message     copy it:  ┌───────┬──────┐
-   *                                          │ morse │ text │
-   *                                          └───▲───┴──────┘
+   *   on a line with a message     copy it:  ┌───────┬──────┬───────┐
+   *                                          │ morse │ text │ paste │
+   *                                          └───▲───┴──────┴───────┘
    *                                              ● slide along, let go on one
    *                                (as the quick lists; let go without
-   *                                sliding and it stays, for a tap)
+   *                                sliding and it stays, for a tap;
+   *                                paste only on the line being written)
    *   on an empty line             paste
+   *
+   * With a mouse, a right-click opens the same, where it's clicked.
    *
    * Not on the marker column: the > and the eye (its hold is its own).
    * What the eye hides can't be copied, so that half is greyed.
@@ -322,9 +324,11 @@ export function createShare({ state, keyer, shareable, choice, timingNow, setMod
     const msg = messageAt(target);
     if (msg) {
       const hidden = state.hidden && !state.collapsed ? (state.mode === "type" ? "morse" : "text") : null;
+      const writing = !!target?.closest?.(".entry.current");
       for (const b of copier.querySelectorAll("button")) {
         b.classList.remove("on");
         b.disabled = b.dataset.copy === hidden;
+        b.hidden = b.dataset.copy === "paste" && !writing;
       }
       copying = { ...msg, held: true, slid: false, pick: null };
       place(copier, x, y);
@@ -342,6 +346,7 @@ export function createShare({ state, keyer, shareable, choice, timingNow, setMod
 
   async function copyAs(what) {
     if (!copying) return;
+    if (what === "paste") { hideBubble(); return pasteFromClipboard(); }
     const { words, reading } = copying;
     hideBubble();
     try {
@@ -375,7 +380,7 @@ export function createShare({ state, keyer, shareable, choice, timingNow, setMod
       /* sliding along the copy bubble */
       if (!copying.slid && Math.hypot(event.clientX - pressAt.x, event.clientY - pressAt.y) < SLIDE) return;
       copying.slid = true;
-      copying.pick = nearest([...copier.querySelectorAll("button:not(:disabled)")], event.clientX, event.clientY);
+      copying.pick = nearest([...copier.querySelectorAll("button:not(:disabled):not([hidden])")], event.clientX, event.clientY);
       for (const b of copier.querySelectorAll("button")) b.classList.toggle("on", b === copying.pick);
       return;
     }
@@ -387,9 +392,17 @@ export function createShare({ state, keyer, shareable, choice, timingNow, setMod
   }, { passive: false });
   $("#tape").addEventListener("scroll", () => { cancelPress(); hideBubble(); }, { passive: true });
 
-  /* the phone's own long-press menu (Android): ours instead */
+  /* the phone's own long-press menu (Android): ours instead; and a
+     mouse's right-click opens ours at once, nothing held */
+  let pressedBy = null;
+  $("#tape").addEventListener("pointerdown", event => { pressedBy = event.pointerType; }, { capture: true });
   $("#tape").addEventListener("contextmenu", event => {
-    if (pressAt) event.preventDefault();
+    if (pressedBy !== "mouse") { if (pressAt) event.preventDefault(); return; }
+    if (event.target.closest(".marker")) return;
+    event.preventDefault();
+    showBubble(event.clientX, event.clientY, event.target);
+    longPressed = false;            // no press to swallow: the release came before
+    if (copying) copying.held = false;
   });
 
   /* the press that opened the bubble isn't also a tap (recall, ×) */

@@ -354,20 +354,17 @@ const { keyer, trainView, logo, ctrlPaddle, isChord, setKeyMode, syncKeySelect, 
  */
 
 /*
- * Read mode: the caret beside the input modes puts the pad /
+ * Read mode: a swipe down on the input modes (.- ⇄ A) puts the pad /
  * keyboard away, so the message gets the room (to read a long
- * history, or show someone); tap it again, or either mode, to
- * bring it back. A computer keyboard still keys meanwhile.
+ * history, or show someone); a swipe up, or a tap (either mode),
+ * brings it back. A computer keyboard still keys meanwhile.
  */
 function markModeButtons() {
   syncKeySelect();
   /* (receiving, neither is on: the keys aren't there; a press brings them back) */
   for (const side of document.querySelectorAll(".input-mode .side")) side.classList.toggle("on", !state.rx && side.dataset.mode === state.mode);
   $(".input-mode").setAttribute("aria-label", state.mode === "key" ? "keying Morse: switch to typing" : "typing: switch to keying Morse");
-  const t = $("#keys-toggle");
-  t.setAttribute("aria-expanded", String(!state.inputAway));
-  t.title = state.inputAway ? "show the keys" : "hide the keys (read mode)";
-  t.setAttribute("aria-label", t.title);
+  $(".input-mode").classList.toggle("away", state.inputAway);
 }
 
 function putKeysAway(away) {
@@ -433,7 +430,30 @@ $(".input-mode").addEventListener("click", () => {
   on.classList.add("flash");
 });
 $(".input-mode").addEventListener("animationend", event => event.target.classList.remove("flash"));
-$("#keys-toggle").addEventListener("click", () => putKeysAway(!state.inputAway));
+
+/* the swipe: down puts the keys away, up brings them back; the
+   release isn't also a tap (the flip). A press that stays put is
+   the switch's own (a tap flips, a hold opens the keys' list) */
+{
+  const SWIPE = 24;   // px, mostly up or down
+  let from = null, swiped = false;
+  const sw = $(".input-mode");
+  sw.addEventListener("pointerdown", event => { from = { x: event.clientX, y: event.clientY }; swiped = false; });
+  sw.addEventListener("pointermove", event => {
+    if (!from || swiped) return;
+    const dx = event.clientX - from.x, dy = event.clientY - from.y;
+    if (Math.abs(dy) < SWIPE || Math.abs(dy) < Math.abs(dx) * 1.5) return;
+    swiped = true;
+    if (dy > 0 !== state.inputAway) putKeysAway(dy > 0);
+  });
+  for (const t of ["pointerup", "pointercancel"]) sw.addEventListener(t, () => { from = null; });
+  sw.addEventListener("click", event => {
+    if (!swiped) return;
+    swiped = false;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }, true);
+}
 
 /* one input slot: the pad, the keyboard, or (receiving) the hearing
    view; the tray takes their place while it's open */
@@ -447,34 +467,36 @@ function showInput() {
 }
 
 /*
- * TX ⇄ RX, by the name, drawn as .- ⇄ A is beside the keys: receiving,
- * (the player and the settings row are the transmitter's: they go,
- * and the slot grows up into the player's room, so the station above
- * doesn't move; tx.css body.rx)
- * the hearing view takes the keys' place in the slot (js/tx/rx.js,
- * fetched the first time). Nothing listens until its own button is
- * pressed. Either input mode brings the keys, and transmitting, back.
+ * TX and RX: tabs under the message, their content under them.
+ * Receiving, the hearing view (js/tx/rx.js, fetched the first time)
+ * has the panel to itself, the row of settings, the player and the
+ * input modes and the slot under it, so nothing above moves (tx.css
+ * body.rx). Nothing listens until its own button is pressed. Either
+ * input mode brings the keys, and transmitting, back.
  *
- *   dot-da.sh  [tx] ⇄ [rx]            paste  share  (o)
+ * The toggles in the tab row stay, and in rx they say what's read:
+ * ♪ sound (hold: the microphone, a file, isolate), ☼ light (hold: a
+ * lamp, blinks, a file); ≋ is greyed. They work rx's own switches,
+ * kept out of sight (#rx-medium, #rx-look, #rx-isolate), and show
+ * what those say (body[data-rx-medium], tx.css).
+ *
+ *   /tx\/rx\     /♪ ☼ ≋\     [R.] [W-] ⌝
  */
 let rx = null, rxLoading = null;
+function markTabs() {
+  for (const tab of document.querySelectorAll('.tabs [role="tab"]')) {
+    const on = (tab.id === "tab-rx") === state.rx;
+    tab.setAttribute("aria-selected", String(on));
+    tab.tabIndex = on ? 0 : -1;
+  }
+  $("#panel").setAttribute("aria-labelledby", state.rx ? "tab-rx" : "tab-tx");
+}
 async function setRx(on) {
   if (on === state.rx) return;
-  /* measured while the player's still there: how far up the slot
-     may grow, and how tall the row the suggestions are left in was */
-  const row = $(".control-row");
-  if (on) {
-    if (!$("#tray").hidden) openTray(false);
-    document.body.style.setProperty("--rx-extra", `${row.getBoundingClientRect().top - $(".player").getBoundingClientRect().top}px`);
-    row.style.minHeight = `${row.offsetHeight}px`;
-  } else {
-    document.body.style.removeProperty("--rx-extra");
-    row.style.minHeight = "";
-  }
+  if (on && !$("#tray").hidden) openTray(false);
   state.rx = on;
   document.body.classList.toggle("rx", on);
-  for (const side of document.querySelectorAll("#trx .side")) side.classList.toggle("on", (side.dataset.trx === "rx") === on);
-  $("#trx").setAttribute("aria-label", on ? "receiving: switch to transmitting" : "transmitting: switch to receiving");
+  markTabs();
   if (on) {
     state.inputAway = false;
     if (player.playing) togglePlay();
@@ -491,15 +513,38 @@ async function setRx(on) {
   }
   rx?.show(state.rx);
 }
-$("#trx").addEventListener("click", () => {
-  const on = !state.rx;
-  setRx(on);
-  const side = $(`#trx .side[data-trx="${on ? "rx" : "tx"}"]`);
-  side.classList.remove("flash");
-  void side.offsetWidth;         // restart the animation
-  side.classList.add("flash");
+/* what rx reads, from its switches, onto the page for ♪ ☼ to show */
+const rxSide = (sel, key) => $(`${sel} .side.on`)?.dataset[key];
+const markRx = () => {
+  document.body.dataset.rxMedium = rxSide("#rx-medium", "medium") ?? "sound";
+  document.body.dataset.rxLook = rxSide("#rx-look", "look") ?? "lamp";
+};
+markRx();
+new MutationObserver(markRx).observe($(".rx-switches"), { subtree: true, attributes: true, attributeFilter: ["class"] });
+const rxUse = medium => { if (rxSide("#rx-medium", "medium") !== medium) $("#rx-medium").click(); };
+/* ♪ or ☼ tapped while receiving (js/tx/settings.js sends it here) */
+document.addEventListener("dot-dash:rx-out", event => { if (event.detail === "sound" || event.detail === "light") rxUse(event.detail); });
+/* … or a choice from its held list (js/tx/layer.js) */
+document.addEventListener("dot-dash:rx-choose", event => {
+  const { out, value } = event.detail;
+  if (value === "microphone") rxUse("sound");
+  else if (value === "lamp" || value === "blink") {
+    rxUse("light");
+    if (rxSide("#rx-look", "look") !== value) $("#rx-look").click();
+  } else if (value === "file") { rxUse(out); $("#rx-file").click(); }
+  else if (value === "isolate") $("#rx-isolate").click();
 });
-$("#trx").addEventListener("animationend", event => event.target.classList.remove("flash"));
+
+$("#tab-tx").addEventListener("click", () => setRx(false));
+$("#tab-rx").addEventListener("click", () => setRx(true));
+/* a tab list's own keys: ← → move between them, and choose */
+$(".tabs").addEventListener("keydown", event => {
+  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+  event.preventDefault();
+  event.stopPropagation();
+  setRx(!state.rx);
+  $(state.rx ? "#tab-rx" : "#tab-tx").focus();
+});
 
 /* type mode: js/tx/typing.js */
 const { setTyped, retype, openHold, redrawKeys } = createTyping({
