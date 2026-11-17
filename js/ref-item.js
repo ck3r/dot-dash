@@ -15,12 +15,20 @@
  * A character the card mentions goes to that character's own page,
  * where it has one (ref-pages.js); anything else, to its card in the
  * reference, as the link was made.
+ *
+ * A word (a Q code: /ref/qrz/) has no one card: its letters' tiles in
+ * a row, drawn again the same way (overview.js renderWord).
  */
-import { renderCard } from "./overview.js";
+import { renderCard, renderWord } from "./overview.js";
 import { PAGES } from "./ref-pages.js";
 import { say } from "./tx/voice.js";
 
-const card = document.querySelector("#item-card");
+/* a word's page (/ref/qrz/) has its letters' tiles there instead */
+const card = document.querySelector("#item-card"), word = document.querySelector("#item-word");
+if (word) {
+  renderWord(word, word.dataset.word, { means: word.dataset.means });
+  for (const a of word.querySelectorAll("a[data-code]")) if (PAGES[a.dataset.code]) a.setAttribute("href", `/ref/${PAGES[a.dataset.code]}/`);
+}
 if (card) {
   /* the card redraws parts of itself as it plays (the little tree
      walks down a step a mark), so the links are set right whenever

@@ -47,9 +47,12 @@
  * the marks copy, so does how it sounds (di-di-dit); and, where the
  * page has them (renderCard's options), the name says itself, cut
  * and ~ open what they are.
+ *
+ * A word (a Q code, an abbreviation) has no one card: its letters'
+ * tiles in a row (renderWord, at the foot).
  */
 
-import { DECODE, TREE, cost, CUT, SHARED, NAME_CODE } from "./morse.js";
+import { DECODE, ENCODE, TREE, cost, CUT, SHARED, NAME_CODE } from "./morse.js";
 import { PHONETIC, PROSIGNS_BY_CODE, splits } from "./characters.js";
 import { STROKES, CUT_STROKES, createLetter } from "./strokes.js";
 import { STRESS, spokenOf, syllablesOf, layStair } from "./stair.js";
@@ -554,4 +557,80 @@ export function renderCard(element, code, { say: speak, openCut, openHeard, flas
   drawGlyph();
   walkTree();
   element._stop = () => { cancelAnimationFrame(frame); steps.forEach(clearTimeout); };
+}
+
+
+/*
+ * ============================================================
+ * A WORD
+ * ============================================================
+ *
+ * A Q code or an abbreviation (QRZ, CQ): several letters, sent apart,
+ * so no one place in the tree and no one card. Its letters' tiles
+ * stand in a row, one thin frame round them all; each is that
+ * letter's own tile, and a link to it.
+ *
+ *   ┌─────────────────────────┐
+ *   │ ┌char──┐┌char──┐┌char──┐│
+ *   │ │  Q   ││  R   ││  Z   ││    drawn in turn, as the marks sound
+ *   │ └──────┘└──────┘└──────┘│
+ *   └─────────────────────────┘
+ *   QRZ  you are being called by …
+ *   dah-dah-di-dah di-dah-dit dah-dah-di-dit
+ *   ███ ███ █ ███   █ ███ █   ███ ███ █ █
+ *   ‾‾‾‾‾‾Q‾‾‾‾‾‾   ‾‾‾R‾‾‾   ‾‾‾‾‾Z‾‾‾‾‾     a tap plays it again
+ *
+ *   renderWord(element, word, { means, flash })
+ *     means            what it says, beside the word
+ *     flash(part, w)   a moment's word over a part ("copied")
+ */
+export function renderWord(element, word, { means, flash } = {}) {
+  element._stop?.();
+  element.textContent = "";
+  element.classList.add("card", "word");
+  const codes = [...word].map(ch => ENCODE[ch]);
+
+  /* when each letter starts: a letter gap (three units) after the one before */
+  const tiles = make("div", "word-tiles"), drawn = [];
+  let t = 0;
+  codes.forEach((code, i) => {
+    if (i) t += 3 * UNIT;
+    const { el, letter } = renderTile(code);
+    const a = ref(code);
+    a.replaceChildren(el);
+    a.title = `${word[i]}: ${code}`;
+    tiles.append(a);
+    drawn.push({ letter, from: t });
+    t += played(code).at(-1).end;
+  });
+  const end = t;
+
+  const what = make("p", "word-means");
+  what.append(make("b", "", word));
+  if (means) what.append(` ${means}`);
+
+  const said = codes.map(spoken).join(" ");
+  const sounds = make("p", "card-sounds");
+  const sounded = tap("", `copy ${said}`, () => copy(said, sounded, flash), said);
+  sounds.append(sounded);
+  const line = timeline(codes, { labels: codes.map(c => ref(c)) });
+  const sound = make("div", "word-sound");
+  sound.append(sounds, line);
+  element.append(tiles, what, sound);
+
+  /* each letter draws itself in its turn, once (again with the line) */
+  let frame = 0;
+  function draw() {
+    cancelAnimationFrame(frame);
+    if (still()) { for (const d of drawn) d.letter?.at(Infinity); return; }
+    const t0 = performance.now();
+    const tick = now => {
+      for (const d of drawn) d.letter?.at(Math.max(0, now - t0 - d.from));
+      if (now - t0 < end + UNIT) frame = requestAnimationFrame(tick);
+    };
+    tick(t0);
+  }
+  line.addEventListener("click", event => { if (!event.target.closest("a")) draw(); });
+  draw();
+  element._stop = () => cancelAnimationFrame(frame);
 }

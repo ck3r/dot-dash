@@ -216,10 +216,11 @@ export function createDetector({ sampleRate, key = () => { }, tick = () => { }, 
  * are heard, because it may well be someone else keying. It's what a
  * lone heap is measured against, and how long a dah is to a dit.
  *
- *   mark(m, { on, gap, unit, sure, at })   "." or "-": how long it was,
- *                                      the silence before it, the dit
- *                                      then, whether it was a clear
- *                                      call, and when it ended
+ *   mark(m, { on, gap, unit, sure, dah, at })   "." or "-": how long it
+ *                                      was, the silence before it, the
+ *                                      dit then, whether it was a clear
+ *                                      call, how likely it was a dah
+ *                                      (0..1), and when it ended
  *   space(kind)                        "letter", then maybe "word"
  */
 const TWO_HEAPS = 2.2;      // longest over shortest: both a dit and a dah are in there
@@ -296,7 +297,11 @@ export function createReader({ unit = 60, mark = () => { }, space = () => { }, k
     }
     const m = on < edge() ? "." : "-";
     const sure = Math.abs(on - edge()) > edge() * 0.25;
-    mark(m, { on: Math.round(on), gap: gap === null ? null : Math.round(gap), unit: Math.round(dit * 10) / 10, sure, at });
+    /* how likely a dah: even at the line between the two, surer the
+       further from it, against how far apart this hand's dit and dah
+       are (a call that's clear, by the line above, is 80% or more) */
+    const dahOdds = 1 / (1 + Math.exp(-(on - edge()) / ((dah - dit) * 0.18)));
+    mark(m, { on: Math.round(on), gap: gap === null ? null : Math.round(gap), unit: Math.round(dit * 10) / 10, sure, dah: Math.round(dahOdds * 1000) / 1000, at });
     learn(on, m);
     given = 0;
   }
