@@ -4,7 +4,7 @@
  *
  * A notes page (design.css) with the card at its head:
  *
- *   the reference / K
+ *   dot-da.sh      REF          the bar: REF is the way back
  *   K in Morse code
  *   ┌ the letter K ───────────┐   the card, as the station's (i)
  *   │ the tree   path, depth… │   and the reference show it
@@ -16,7 +16,6 @@
  * Everything else, the frames included, is style.css's.
  */
 
-.item .crumb { color: var(--graphite); margin-bottom: 0.4rem; }
 
 /* the card is the reference's (style.css .card): a notes page's own
    list rules (design.css: bold terms, grey answers, a gap before each
@@ -25,6 +24,24 @@
 .item .card dd { color: inherit; }
 
 .item-open { margin-top: 1.25rem; }
+
+/* the pages that gather (/ref/alphabet/, /ref/chart/, made by
+   tools/ref-groups.cjs): a table, a row a character; the marks lit,
+   the rest grey. Wide ones scroll in themselves, not the page */
+.item .chart { display: block; overflow-x: auto; max-width: 100%; margin-top: 1.25rem; border-collapse: collapse; }
+.item .chart th, .item .chart td { padding: 0.3rem 1.5ch 0.3rem 0; text-align: left; vertical-align: top; font-weight: 400; }
+.item .chart thead th { color: var(--graphite); border-bottom: 1px solid var(--wire); }
+.item .chart tbody th { color: var(--paper); font-weight: 700; white-space: nowrap; }
+.item .chart td { color: var(--graphite); }
+.item .chart td.code { color: var(--paper); font-weight: 700; white-space: nowrap; }
+.item .frame .chart { margin-top: 0; }
+/* phrases: long marks wrap (between letters); under them, to play it, and a note */
+.item .chart.wrap td.code { white-space: normal; }
+.item .chart.wrap tbody th { white-space: normal; }
+.item .chart .marks i { font-style: normal; white-space: nowrap; }   /* a letter's marks never break in two */
+.item .chart small { display: block; margin-top: 0.2rem; font-size: 0.85em; font-weight: 400; color: var(--graphite); }
+.item .chart small b { white-space: nowrap; }
+.item-more { margin-top: 2rem; color: var(--graphite); }
 .item-jump { margin-top: 1.25rem; color: var(--graphite); }
 .item .na { color: var(--graphite); }
 
@@ -41,3 +58,7 @@
   .item-keep a:hover { background: transparent; }
   .item-keep a:hover img { border-color: var(--brass); }
 }
+
+/* marks in a sentence (--.- .-. --.. ..--..) stay on one line: a
+   break inside them reads as two codes */
+.item .frame > p b { white-space: nowrap; }
