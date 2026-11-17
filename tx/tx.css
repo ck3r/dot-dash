@@ -62,6 +62,7 @@
   --icon-box: 1.9rem;
   --edge-w: 6.5ch;
   --pad-cols: 1.7fr 2.4fr var(--edge-w);
+  --row-h: 2.2rem;      /* the row under the tabs (settings, the player, the input modes) */
   --ui-glow: 0.5;
   --key-lit: color-mix(in srgb, var(--paper) calc(var(--ui-glow) * 100%), var(--bakelite));
   --bar: color-mix(in srgb, var(--paper) 80%, var(--bakelite));
@@ -111,7 +112,7 @@ body.tx {
 .share-menu .close,
 .player button,
 .outputs button,
-.keys-toggle,
+.tray-toggle,
 .profile {
   display: inline-flex;
   align-items: center;
@@ -135,21 +136,13 @@ body.tx {
  * The name, paste and share.
  */
 
+/* the bar is every page's (style.css .top, js/nav.js); here it sits
+   in the station's column, with no room under it but the gap */
 .tx-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.tx-top .home {
-  font-size: var(--fs-m);
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.tx-top .home span {
-  color: var(--graphite);
-  font-weight: 400;
+  margin-bottom: 0;
 }
 
 .top-right {
@@ -196,40 +189,6 @@ body.tx {
   text-decoration: underline;
   text-underline-offset: 4px;
 }
-
-/*
- * Transmit ⇄ receive: one switch, drawn as the input modes' (.- ⇄ A)
- * is, a size down. It sits at the left, by the name (the header
- * spreads its parts apart: the auto margin keeps it there). The side
- * that's on is paper; a press anywhere flips it.
- */
-.trx {
-  margin: 0 auto 0 1.6ch;
-  display: flex;
-  align-items: center;
-  gap: 0.4ch;
-  padding: 0;
-  border: 0;
-  color: var(--graphite);
-  background: transparent;
-  font-size: var(--fs-xs);
-  cursor: pointer;
-}
-
-.trx .side {
-  padding: 0.1rem 0.35rem;
-  border: 1px solid var(--wire);
-  color: var(--graphite);
-  text-align: center;
-}
-
-.trx .side.on {
-  border-color: var(--paper);
-  color: var(--paper);
-}
-
-.trx .side.flash { animation: mode-flash 0.45s ease-out; }
-.trx .swap { user-select: none; }
 
 
 /*
@@ -1267,41 +1226,216 @@ body.reading .caret { visibility: hidden; }
   color: var(--graphite);
 }
 
-/* under the player: settings ⌃ on the left, the suggestions, the actions on the right */
-.control-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/*
+ * The tab row, under the message: tx and rx at the left, tabs whose
+ * content is under them; the outputs in the middle, under the switch
+ * on the box's edge (what the message comes out as); the suggestions
+ * at the right, for either tab. A rule runs under it all but the tab
+ * that's open, which opens into what's below.
+ *
+ *    ____  ____        _________
+ *   / tx \/ rx \      / ♪  ☼  ≋ \       [R.] [W-] ⌝
+ *  ─┘    └─────────────┴─────────┴──────────────────
+ *
+ * Three columns, the outer two alike, so the middle is the middle.
+ */
+.tab-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: end;
   gap: 1ch;
+  height: 2.1rem;
+  border-bottom: 1px solid var(--wire);
 }
 
-.control-row .actions {
+.tabs {
   display: flex;
-  align-items: center;
-  gap: 0.8ch;
+  align-items: end;
+  align-self: stretch;
+  padding-left: 0.6ch;
 }
 
 /*
- * Suggestions, between settings and the outputs: the edge of a rotor
- * dial, seen side on. One chip faces you in the middle; the others
- * turn away into the shade at both ends, under their neighbours, and
- * come round as it scrolls. The row never gets taller, so nothing
- * moves when they come and go (js/tx/suggest.js).
+ * A tab, or the outputs' frame: a trapezoid, its top narrower than its
+ * foot. Its two halves are skewed apart, each with its own side and
+ * half the top, so the lines stay one pixel and crisp.
+ */
+.tab,
+.outputs {
+  position: relative;
+  isolation: isolate;
+}
+.tab::before,
+.tab::after,
+.outputs::before,
+.outputs::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  bottom: -1px;
+  border-top: 1px solid var(--wire);
+  pointer-events: none;
+}
+.tab::before,
+.outputs::before {
+  left: 0;
+  right: 50%;
+  border-left: 1px solid var(--wire);
+  transform: skewX(-18deg);
+  transform-origin: bottom left;
+}
+.tab::after,
+.outputs::after {
+  left: 50%;
+  right: 0;
+  border-right: 1px solid var(--wire);
+  transform: skewX(18deg);
+  transform-origin: bottom right;
+}
+
+.tab {
+  height: 100%;
+  min-width: 6.2ch;
+  margin-right: -0.2ch;
+  padding: 0.2rem 1.4ch 0;
+  border: 0;
+  background: transparent;
+  color: var(--graphite);
+  font-size: var(--fs-m);
+}
+
+/* the open tab: paper, and the rule under it gone (its foot, in the
+   page's colour, lies over the row's) */
+.tab[aria-selected="true"] {
+  z-index: 1;
+  color: var(--paper);
+}
+.tab[aria-selected="true"]::before,
+.tab[aria-selected="true"]::after {
+  border-top-color: var(--graphite);
+  border-left-color: var(--graphite);
+  border-right-color: var(--graphite);
+  border-bottom: 1px solid var(--bakelite);
+  background: var(--bakelite);
+}
+
+/* the outputs, framed as the open tab is and open below as it is, so
+   they read as part of what's open (whichever tab), not a third tab */
+.outputs {
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  gap: 0.15rem;
+  padding: 0.15rem 1.6ch 0;
+}
+.outputs::before,
+.outputs::after {
+  border-top-color: var(--graphite);
+  border-left-color: var(--graphite);
+  border-right-color: var(--graphite);
+  border-bottom: 1px solid var(--bakelite);
+  background: var(--bakelite);
+}
+
+.tiles {
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3ch;
+  padding-bottom: 2px;
+}
+
+/* the suggestions' own corner: on or off (js/tx/layer.js) */
+.chips-more {
+  flex: none;
+  align-self: start;
+  width: 1.2rem;
+  height: 1.2rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+/*
+ * Holds a list (a long-press): a tick in the top right corner, as the
+ * keyboard's keys that hold more have (.kbd .more).
+ */
+.holds {
+  position: relative;
+}
+.holds::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 4px;
+  height: 4px;
+  border-top: 1px solid var(--graphite);
+  border-right: 1px solid var(--graphite);
+  pointer-events: none;
+}
+.chips-more::after { top: 4px; right: 4px; width: 6px; height: 6px; }
+/* the switch's tick is in the side that's on (below), not outside it */
+.input-mode.holds::after { content: none; }
+.input-mode .side { position: relative; }
+.input-mode .side.on::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 4px;
+  height: 4px;
+  border-top: 1px solid var(--graphite);
+  border-right: 1px solid var(--graphite);
+  pointer-events: none;
+}
+/* the time's tick follows its words, wherever they end */
+.player .time.holds::after { position: static; display: inline-block; vertical-align: top; margin-left: 2px; }
+
+/*
+ * Under the tabs, the panel: a row (tx: settings, the player, the
+ * input modes; rx: its own switches), then the slot.
  *
- *              ░▒▓        ▓▒░
- *   ⌃ settings ░▒▓ [QSL]  ▓▒░ ♪ ☼ ≋
- *              ░▒▓        ▓▒░
+ *   ⚙  ▷ 0.0s ──●─────────────── ⟲    [.-│A]
+ */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+/* one height, whatever is in it (the switch is the tallest); rx's
+   view takes it over whole (body.rx below) */
+.control-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8ch;
+  height: var(--row-h);
+  margin-top: 0.15rem;
+}
+
+/*
+ * Suggestions, at the right of the tab row: a row of chips from the
+ * left, solid, the first where it can be seen first. A shade at the
+ * right while there are more that way, until the last is in view;
+ * they scroll sideways (a drag, or a wheel), and once they have, a
+ * shade at the left too, where the ones that went are. The row never
+ * gets taller, so nothing moves when they come and go
+ * (js/tx/suggest.js).
  *
- * It lets go on a chip, centred, every time (the snap), and a space
- * half the strip wide at each end lets the first and last reach the
- * middle. The shade is a mask, so it falls to whatever is behind it,
- * in either theme; its steps follow a curve, as a drum's edge does.
+ *   at rest       [R.] [W-] [L..] │ [AGN] [AN▓▒░     more to the right
+ *   scrolled    ░▒▓[L..] │ [AGN] [ANT] │ [<▓▒░     more either way
+ *   at the end  ░▒▓[ANT] │ [<AA>] [<AR>]           the last in view
+ *
+ * The shade is a mask, so it falls to whatever is behind it, in
+ * either theme.
  */
 .chips {
-  --edge: 24%;          /* how far in the shade reaches, each side */
-  --shade: linear-gradient(to right,
-    transparent, rgb(0 0 0 / 0.3) calc(var(--edge) / 3), rgb(0 0 0 / 0.75) calc(var(--edge) * 2 / 3), #000 var(--edge),
-    #000 calc(100% - var(--edge)), rgb(0 0 0 / 0.75) calc(100% - var(--edge) * 2 / 3), rgb(0 0 0 / 0.3) calc(100% - var(--edge) / 3), transparent);
   flex: 1;
   min-width: 0;
   align-self: stretch;
@@ -1311,21 +1445,20 @@ body.reading .caret { visibility: hidden; }
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-x: contain;
-  scroll-snap-type: x mandatory;
+  scroll-snap-type: x proximity;
   scrollbar-width: none;
-  -webkit-mask-image: var(--shade);
-  mask-image: var(--shade);
 }
 .chips::-webkit-scrollbar { display: none; }
 
-.chips::before,
-.chips::after {
-  content: "";
-  flex: none;
-  width: 50%;
+/* the shades: how far each reaches, 0 where there's nothing that way */
+.chips {
+  --shade-l: 0px;
+  --shade-r: 0px;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--shade-l), #000 calc(100% - var(--shade-r)), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 var(--shade-l), #000 calc(100% - var(--shade-r)), transparent);
 }
-.chips:empty::before,
-.chips:empty::after { content: none; }
+.chips.scrolled { --shade-l: 2.2rem; }
+.chips.more { --shade-r: 2.2rem; }
 
 .chip {
   flex: none;
@@ -1341,11 +1474,12 @@ body.reading .caret { visibility: hidden; }
   font-size: var(--fs-xs);
   line-height: 1;
   white-space: nowrap;
-  scroll-snap-align: center;
-  scroll-snap-stop: always;
+  scroll-snap-align: start;
   touch-action: pan-x;
 }
 .chip .chip-name { font-weight: 700; }
+/* rx, nothing heard yet: an empty box where a chip will be */
+.chip.blank { width: 3.4ch; pointer-events: none; }
 .chip .marks { letter-spacing: 0.1ch; font-weight: 700; }
 
 /* between the groups: letters │ words │ prosigns */
@@ -1357,19 +1491,21 @@ body.reading .caret { visibility: hidden; }
  * pointer, and the side that comes on flashes brass once, then
  * settles to paper. Each side is drawn as the framed buttons were.
  */
+/*
+ * Joined: the two sides in one frame, a rule between, the one that's
+ * on drawn round in paper (inside the frame, so nothing moves). No ⇄:
+ * one frame with two halves already says one or the other.
+ *
+ *   [ .- │ A ]
+ */
 .input-mode {
   display: flex;
-  align-items: center;
-  gap: 0.4ch;
+  align-items: stretch;
   padding: 0;
-  border: 0;
+  border: 1px solid var(--wire);
+  border-radius: 0.6rem;   /* the player's */
   color: var(--graphite);
   cursor: pointer;
-}
-
-.input-mode .swap {
-  padding: 0.15rem 0;
-  user-select: none;
 }
 
 .input-mode .side.flash {
@@ -1377,19 +1513,26 @@ body.reading .caret { visibility: hidden; }
 }
 
 @keyframes mode-flash {
-  from, 40% { border-color: var(--brass); }
+  from, 40% { box-shadow: inset 0 0 0 1px var(--brass); }
 }
 
 .input-mode .side {
   min-width: 3.2ch;
   padding: 0.15rem 0.5rem;
-  border: 1px solid var(--wire);
   color: var(--graphite);
   text-align: center;
 }
 
+.input-mode .side + .side { border-left: 1px solid var(--wire); }
+/* the line round the one that's on follows the frame's corners */
+.input-mode .side:first-child { border-radius: calc(0.6rem - 1px) 0 0 calc(0.6rem - 1px); }
+.input-mode .side:last-child { border-radius: 0 calc(0.6rem - 1px) calc(0.6rem - 1px) 0; }
+/* in the rounded side, the tick comes in off the curve, to sit as far
+   inside it as the square side's does */
+.input-mode .side.on:last-child::after { top: 5px; right: 6px; }
+
 .input-mode .side.on {
-  border-color: var(--paper);
+  box-shadow: inset 0 0 0 1px var(--paper);
   color: var(--paper);
 }
 
@@ -1408,52 +1551,28 @@ body.reading .caret { visibility: hidden; }
   color: var(--paper);
 }
 
-/* settings and keys: a chevron that points the way it'll go */
+/* settings: the gear (its tray takes the slot) */
 .tray-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4ch;
-  border: 0;
-  padding: 0;
-  font-size: var(--fs-s);
+  flex: none;
   color: var(--graphite);
 }
+.tray-toggle[aria-expanded="true"] { color: var(--paper); }
 
-.tray-toggle .chev { display: inline-block; }
+/* the keys put away (a swipe down on the switch): neither side lit */
+.input-mode { flex: none; touch-action: none; }
+.input-mode.away .side.on { box-shadow: none; color: var(--graphite); }
 
-/* on the small phones (below) the gear stands in for the word */
-.tray-toggle .gear { display: none; }
-
-.tray-toggle .chev,
-.keys-toggle .chev {
-  transition: transform 0.15s;
-}
-
-.tray-toggle[aria-expanded="true"] .chev,
-.keys-toggle[aria-expanded="true"] .chev {
-  transform: rotate(180deg);
-}
-
-.keys-toggle {
-  color: var(--graphite);
-}
-
-/* phones: the gear for the word, and the row's own icons closer, so
-   the dial gets a chip or two (the player above keeps its size) */
+/* phones: the row's own icons closer, so the scrub bar keeps its length */
 @media (max-width: 479px) {
-  .tray-toggle .gear { display: inline-block; }
-  .tray-toggle .word { display: none; }
-  .control-row { --icon-box: 1.6rem; gap: 0.6ch; }
+  .control-row { --icon-box: 1.6rem; gap: 0.5ch; }
   .control-row .input-mode .side { padding: 0.15rem 0.35rem; }
-  .control-row .actions { gap: 0.2ch; }
-  .outputs { gap: 0; }
+  .outputs { gap: 0; padding: 0.15rem 1.2ch 0; }
+  .tab { min-width: 5.4ch; padding: 0.2rem 1.1ch 0; }
 }
 
 /* the narrowest phones: a tighter row of controls */
 @media (max-width: 359px) {
   .tx { --icon-box: 1.6rem; }
-  /* room for one chip: a thinner shade, so it isn't dimmed */
-  .chips { --edge: 12%; }
 }
 
 
@@ -1467,12 +1586,11 @@ body.reading .caret { visibility: hidden; }
 
 .player {
   position: relative;
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 0.6ch;
-  /* its frame (active, below) as far from the row under it as from
-     the station's edge above, where the switch takes the room */
-  margin-bottom: 0.65rem;
 }
 
 .player .play {
@@ -1494,15 +1612,19 @@ body.reading .caret { visibility: hidden; }
 .player button { flex: none; }
 .player .repeat { color: var(--wire); position: relative; }
 
-/* ×3 / ∞: a small badge over the symbol (no change in width; just
-   inside the row's edge, clear of the active player's frame) */
+/* ×3 / ∞: in the middle of the arrow's circle, small, in brass (no
+   change in width; the circle is round the icon's middle) */
 .player .repeat::after {
   position: absolute;
-  right: 0.15ch;
-  top: -0.35em;
-  font-size: var(--fs-xs);
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
   font-weight: 700;
+  line-height: 1;
   color: var(--brass);
+  pointer-events: none;
 }
 
 .player .repeat[data-repeat="three"]::after { content: "3"; }
@@ -1597,23 +1719,35 @@ body.reading .caret { visibility: hidden; }
    a minute, "9:59/9:59"), so the scrub bar never moves or changes
    length, whatever the message or the playhead */
 .player .time {
+  position: relative;
   flex: none;
-  width: 10ch;
+  /* the widest it reads, and its tick: past it, a little room to the
+     scrub bar, as much as the other gaps in a short message's
+     "0.0/0.8s"; none, in the widest */
+  width: calc(10ch + 6px);
   font-size: var(--fs-xs);
   color: var(--graphite);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-/* the player, active (clicked or tabbed into): the keys are its own.
-   The frame keeps to the row's own width, the same as the field above
-   and the keys below; only above and below does it stand off a little
-   (an outline would stand off all round, wider than both) */
+/* the player's frame: a thin rounded line round play, the time, the
+   scrub bar and repeat, so they read as one thing between settings and
+   the input modes. Within the row's height; brass while the player is
+   active (clicked or tabbed into: the keys are its own)
+
+     ⚙  ╭ ▷ 4.9s ──●─────────── ⟲ ╮  [.-]⇄[A]
+        ╰─────────────────────────╯                  */
+.player {
+  align-self: stretch;   /* the row's height, so the frame is too */
+  padding: 0 0.5ch;
+}
 .player::before {
   content: "";
   position: absolute;
-  inset: -6px 0;
-  border: 1px solid transparent;
+  inset: 0;
+  border: 1px solid var(--wire);
+  border-radius: 0.6rem;
   pointer-events: none;
   transition: border-color 0.15s;
 }
@@ -2178,12 +2312,11 @@ body.reading .caret { visibility: hidden; }
 body.reading .slot { display: none; }
 
 /*
- * Receiving (rx): the hearing view, a tape recorder (js/tx/rx.js).
- * It has the bottom of the station to itself: the player and the
- * settings row are the transmitter's, so they go, and the slot
- * grows up into the player's room (--rx-extra, measured by
- * js/tx/main.js setRx) while the station above stays where it is.
- * The suggestions stay, in their row, right over the scope.
+ * Receiving (rx, its tab): the hearing view, a tape recorder
+ * (js/tx/rx.js), in the slot where the keys were. The row over it is
+ * rx's own: sound or light at the left, isolate at the right, where
+ * tx has settings, the player and the input modes. The suggestions
+ * stay, in the tab row, for either tab.
  *
  *   ┌──────────────────────────────────────┐
  *   │          C     Q         D    X      │
@@ -2193,31 +2326,37 @@ body.reading .slot { display: none; }
  *   [ ● ][ ▶ ][ ❚❚ ][ ◀◀ ][ ▶▶ ][ ■ ][ × ]     the deck
  *   Heard on this device only …   open a file…  save a .wav
  *
- * and over it all, in the suggestions' row at the right: isolate.
- *
  * The scope is a control too: a tap is rec, then pause; not
  * recording, a drag winds the tape (touch-action: none, so a drag
  * and a pinch are the scope's, not the page's).
  */
-body.rx .player,
-body.rx .control-row > :not(.chips, .rx-isolate) { display: none; }
-body:not(.rx) .rx-isolate { display: none; }
+/*
+ * The row over the slot is the open tab's: settings first either way,
+ * then tx's player and input modes, or rx's line (the note, open a
+ * file…, save a .wav). The slot keeps its height, so nothing above or
+ * below moves; settings opens in it, over rx's view as over the keys.
+ *
+ *   tx   ⚙  ╭ ▷ 0.0/4.9s ──●──── ⟲ ╮  [.-│A]
+ *   rx   ⚙  Heard on this device only: …   open a file…  save a .wav
+ *
+ * The toggles stay, and say what's read: ♪ or ☼ in paper, whichever
+ * rx's switch (out of sight) has on; ≋ greyed, nothing to read there.
+ */
+body.rx .control-row > :not(.tray-toggle, .rx-row) { display: none; }
+body:not(.rx) .rx-row { display: none; }
 
-/* isolate, at the right of the suggestions' row: paper while the
-   tape plays isolated (only the tone that was read), grey for raw */
-.rx-isolate {
-  flex: none;
-  padding: 0.3rem 0;
-  border: 0;
-  background: transparent;
-  color: var(--graphite);
-  font-size: var(--fs-xs);
-  white-space: nowrap;
-  text-decoration: underline dotted;
-  text-underline-offset: 0.25em;
+.rx-row {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 1.4ch;
 }
-.rx-isolate[aria-pressed="true"] { color: var(--paper); text-decoration-style: solid; }
-body.rx .slot { height: calc(var(--input-h) + var(--rx-extra, 0px)); }
+body.rx .outputs button { color: var(--wire); }
+body.rx[data-rx-medium="sound"] .outputs [data-out="sound"],
+body.rx[data-rx-medium="light"] .outputs [data-out="light"] { color: var(--paper); }
+body.rx .outputs [data-out="vibrate"] { opacity: 0.45; pointer-events: none; }
+body.rx .outputs [data-out="vibrate"]::after { content: none; }
 
 .rx {
   display: flex;
@@ -2243,6 +2382,57 @@ body.rx .slot { height: calc(var(--input-h) + var(--rx-extra, 0px)); }
   cursor: pointer;
   touch-action: none;
 }
+
+/*
+ * Light: the camera's picture over the scope, the bigger share of
+ * the screen (it's what's aimed by).
+ *
+ *   ┌─────────────────────────────┐ [+]
+ *   │         ┌ ┐                 │ 2×    the picture, and the ring;
+ *   │         └ ┘                 │ [−]   the zoom beside it, never
+ *   └─────────────────────────────┘       over it (the lamp may be
+ *   ┌────────────────────────────────┐    anywhere in the picture)
+ *   │  ▄ ▄▄▄ ▄    ▄▄▄ ▄▄▄ ▄          │   the scope, as ever
+ *   └────────────────────────────────┘
+ */
+.rx.light .rx-screen { flex-direction: column; gap: 0.45rem; }
+.rx.light .rx-scope { flex: 2; }
+.rx-eye {
+  position: relative;
+  flex: 3;
+  min-height: 0;
+  display: flex;
+  gap: 0.45rem;
+}
+.rx-eye[hidden] { display: none; }
+.rx-picture {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--wire);
+  background: color-mix(in srgb, var(--paper) 4%, var(--bakelite));
+  cursor: crosshair;
+  touch-action: none;
+}
+.rx.on .rx-picture { border-color: var(--graphite); }
+/* (there, so the browser keeps it playing, and not to be seen) */
+.rx-video {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2px;
+  height: 2px;
+  opacity: 0;
+  pointer-events: none;
+}
+/* the zoom: a fader as the settings' are (.fader), beside the
+   picture, as tall as it: how far at the top, "zoom" at the foot */
+.rx-zoom {
+  flex: none;
+  width: 4ch;
+  line-height: 1;
+}
+.rx-zoom output { width: 4ch; text-align: center; font-size: var(--fs-xs); }
 
 .rx.on .rx-scope { border-color: var(--graphite); }
 .rx.drop .rx-scope { border-color: var(--brass); }      /* a file held over it: let go, and it's read */
@@ -2300,15 +2490,10 @@ body.rx .slot { height: calc(var(--input-h) + var(--rx-extra, 0px)); }
 .deck #rx-rec[aria-pressed="true"] .ico { color: var(--brass); }
 .deck #rx-clear.armed { color: var(--brass); }
 
-.rx-foot {
-  flex: none;
-  display: flex;
-  align-items: baseline;
-  gap: 1.4ch;
-}
-
 .rx-note {
   flex: 1;
+  min-width: 0;
+  line-height: 1.25;   /* two lines, on a phone, in the row's height */
   margin: 0;
   color: var(--graphite);
   font-size: var(--fs-xs);
@@ -2547,6 +2732,20 @@ body:has(#train:not([hidden])) .pad {
   background: var(--paper);
   color: var(--bakelite);
 }
+
+/* an unsure letter's readings (tx/tape.js): a column, the likeliest
+   first, each its letter, its marks and how likely */
+.quick-list.readings { flex-direction: column; flex-wrap: nowrap; }
+.readings button {
+  display: grid;
+  grid-template-columns: 2ch auto 4ch;
+  gap: 1.2ch;
+  align-items: baseline;
+  text-align: left;
+}
+.readings .marks { letter-spacing: 0.1ch; font-weight: 700; }
+.readings button.on .marks span { color: inherit; }
+.readings .odds { text-align: right; font-size: var(--fs-xs); }
 
 /* the long-press fan */
 .fan {
@@ -3097,7 +3296,12 @@ body:has(#train:not([hidden])) .pad {
   gap: 0.6rem;
 }
 
-.aux-page .tx-top .home { color: var(--paper); }
+.aux-page .tx-top .home {
+  color: var(--paper);
+  font-size: var(--fs-m);
+  font-weight: 700;
+  text-decoration: none;
+}
 .aux-page .profile { cursor: default; }
 
 /* the box: no tree column, the message in the middle */
@@ -3468,8 +3672,8 @@ a.switch { text-decoration: none; }
  */
 @media (hover: hover) {
   /* text and icons: brass, never a fill */
-  :root .tx :is(#paste, #share-toggle, #profile, .tx-top .home, .tray-toggle, .keys-toggle, .outputs button, .chip, .flag-word,
-                .input-mode, .trx, .deck button, .rx-link, .rx-isolate, .edge-toggle, #local button, .about a, .about button,
+  :root .tx :is(#paste, #share-toggle, #profile, .tray-toggle, .tab, #chips-more, .outputs button, .chip, .flag-word,
+                .input-mode, .deck button, .rx-link, .rx-isolate, .rx-medium, .edge-toggle, #local button, .about a, .about button,
                 .marker .eye, .entry .x, .tape-head button, .player button,
                 .share-menu button, .popup .close, .popup .actions button, .quiet, .paste-bubble,
                 .about-pop .about-card a, .about-pop .about-more a, .stats:not(:empty), .quick-list button:not(.on)):not(:disabled):not(.secret):hover {
@@ -3477,18 +3681,18 @@ a.switch { text-decoration: none; }
     background: transparent;
   }
   /* and the parts inside them with a colour of their own */
-  :root .tx .tx-top .home:hover span,
   :root .tx .about a:hover b,
   :root .tx .about button:hover :is(b, .stress) { color: var(--brass); }
   :root .tx .about .about-marks:hover i { background: var(--brass); }
 
-  :root .tx .input-mode:hover .swap { color: var(--brass); }
   :root .tx .station .switch:hover svg { color: var(--brass); }
 
   /* framed: the frame too */
   /* the input switch: the side a press would turn on */
-  :root .tx .input-mode:hover .side:not(.on) { border-color: var(--brass); color: var(--brass); }
-  :root .tx .trx:hover .side:not(.on) { border-color: var(--brass); color: var(--brass); }
+  :root .tx .input-mode:hover .side:not(.on) { color: var(--brass); }
+  :root .tx .tab:not([aria-selected="true"]):hover::before,
+  :root .tx .tab:not([aria-selected="true"]):hover::after,
+  :root .tx .holds:hover::after { border-color: var(--brass); }
   :root .tx .line .c.unsure .p.takes:hover { color: var(--brass); }
   :root .tx .chip:hover { border-color: var(--brass); }
   :root .tx .chip:hover .chip-name { color: var(--brass); }

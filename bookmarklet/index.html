@@ -16,6 +16,7 @@
   <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/design/design.css">
+  <script type="module" src="/js/nav.js"></script>
   <link rel="stylesheet" href="/bookmarklet/bookmarklet.css">
 
   <meta property="og:type" content="article">
@@ -26,12 +27,18 @@
 </head>
 
 <body class="notes">
+  <!-- the bar (js/nav.js): home, and this page's name, its heading -->
   <header class="top">
-    <a href="/" class="home">dot-da.sh</a>
+    <nav class="crumbs" aria-label="where you are">
+      <ol>
+        <li><a href="/" class="home">dot-da.sh</a></li>
+        <li><h1 data-crumb="top"><span class="crumb-name">BOOKMARKLET</span></h1></li>
+      </ol>
+    </nav>
+    <div class="top-right"><span class="profile" title="profiles: coming soon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3.2"/><path d="M6.4 18.6c1.3-2.2 3.3-3.4 5.6-3.4s4.3 1.2 5.6 3.4"/></svg></span></div>
   </header>
 
   <main>
-    <h1>a bookmarklet</h1>
     <p class="lead">Select some text on any page, tap a bookmark, and it's on the station's line as Morse. A bookmark that runs a few lines instead of opening a page: nothing to install, and nothing runs until you tap it.</p>
 
     <section class="frame" id="keep" aria-labelledby="l-keep">

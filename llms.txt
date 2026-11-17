@@ -24,12 +24,16 @@ The same message forms work after `/og/`. Each answer is made from the address a
 - `https://dot-da.sh/og/hi+k.wav`: the message as sound, a 600 Hz tone at 20 words per minute. `?wpm=5` to `40` and `?hz=300` to `1000` change the speed and pitch. Up to 60 seconds; longer messages stop at the last whole word that fits.
 - `https://dot-da.sh/og/hi+k.json`: the parts, as JSON: `text` (HI K), `morse` (`.... .. / -.-`), `link`, `gif`, `wav`, `units` (the length in Morse units) and `seconds` at 20 wpm.
 
-To answer "what is X in Morse": fetch the .json and give the `morse`, with the `link` so they can hear it.
+To answer "what is X in Morse": fetch the .json and give the `morse`, with the `link` so they can hear it. For a single character, a prosign, a Q code or an abbreviation, there is a page to cite instead (below).
 
 ## Pages
 
 - [The station](https://dot-da.sh/): key with one button, two paddles or a keyboard; type text and see its Morse; play, share, save.
 - [The reference](https://dot-da.sh/ref/): every character, the Morse tree, prosigns, Q codes.
+- A page for each character and word, plain HTML with its marks, how it's said, what it means, its sound and pictures: `https://dot-da.sh/ref/k/` (a letter or number), `/ref/question-mark/` (a symbol, by its name), `/ref/sos/` (a prosign), `/ref/qrz/` (a Q code; its question, QRZ?, is on the same page), `/ref/cq/` and `/ref/73/` (an abbreviation). The sitemap lists them all.
+- [The whole chart](https://dot-da.sh/ref/chart/) on one page, and its parts: [alphabet](https://dot-da.sh/ref/alphabet/), [numbers](https://dot-da.sh/ref/numbers/), [symbols](https://dot-da.sh/ref/symbols/), [prosigns](https://dot-da.sh/ref/prosigns/), [Q codes](https://dot-da.sh/ref/q-codes/), [abbreviations](https://dot-da.sh/ref/abbreviations/).
+- [How Morse code works](https://dot-da.sh/ref/how-it-works/): short answers on units and gaps, speed, prosigns, Q codes, cut numbers, learning.
+- [Common phrases](https://dot-da.sh/ref/phrases/): I love you, hello, help and others, as Morse, with sound.
 - [Key hero](https://dot-da.sh/hero/): a game for the sending hand: Morse comes down a road, key each mark in time. `https://dot-da.sh/hero/?/hi+k` opens it with that text (the same forms as a message link).
 - [Design notes](https://dot-da.sh/design/): why it looks and behaves as it does.
 - [Bookmarklet](https://dot-da.sh/bookmarklet/): send a selection from any page to the station.

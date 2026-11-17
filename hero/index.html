@@ -29,12 +29,17 @@
   <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/hero/hero.css">
+  <script type="module" src="/js/nav.js"></script>
 </head>
 
 <body class="hero" data-state="ready">
-  <header class="hero-top">
-    <a href="/" class="home">dot-da.sh</a>
-    <h1>KEY HERO</h1>
+  <header class="top hero-top">
+    <nav class="crumbs" aria-label="where you are">
+      <ol>
+        <li><a href="/" class="home">dot-da.sh</a></li>
+        <li><h1 data-crumb="top"><span class="crumb-name">KEY HERO</span><span class="visually-hidden">: a Morse code game for the sending hand</span></h1></li>
+      </ol>
+    </nav>
     <!-- share where the station's is; and its profile, to come here
          too: a placeholder for now -->
     <div class="top-right">

@@ -25,6 +25,7 @@
   try { if (Date.now() - Number(localStorage.getItem("dot-dash:tx-noticed") || 0) < 30 * 864e5) document.documentElement.classList.add("noticed"); } catch { }</script>
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/tx/tx.css">
+  <script type="module" src="/js/nav.js"></script>
   <!-- Primary Meta Tags -->
 <meta name="title" content="dot-da.sh · Morse code station: key, type, play and share" />
 <meta name="description" content="A Morse code station on the web: key it, type it, hear it, and share any message as a link. Free, no account, nothing to install." />
@@ -69,7 +70,7 @@
   TX — transmit (step 1: layout, tap keying, history, tree)
   ============================================================
 
-   o⁄ tx                          [.-] [A]
+   dot-da.sh / STATION ▾                share (◯)
   ┌──┬──────────────────────────────────┐
   │><│  .... . .-.. .-.. ---           │  history (tape)
   │A │> .-- --- .-.                    │  current line
@@ -77,8 +78,8 @@
   │R │  5 chars          11 dits · 5 dahs│
   │  │  1 word                     2.1 s│
   └──┴───────────────(↑)────────────────┘
-    ▷ ──●──────────────────  ⟲   ♪ ☼ ≋
-  ⌃ settings
+   /tx\/rx\     /♪ ☼ ≋\     [R.] [W-] ⌝
+  ⚙ ▷ ──●──────────────── ⟲   [.-│A]
   ┌──┬────────┬─────────────────┐
   │˽ │   .    │        -        │  keyer pad
   │/ │  dit   │       dah       │
@@ -98,7 +99,7 @@
     <defs>
       <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-play" viewBox="0 0 24 24"><path d="M7 4.5 19 12 7 19.5Z"/></symbol>
       <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-pause" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M6.5 5h3.5v14H6.5zM14 5h3.5v14H14z"/></symbol>
-      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-repeat" viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.05-4.95"/><path d="M19.5 4v4.5H15"/></symbol>
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-repeat" viewBox="0 0 24 24"><!-- drawn a size up about its middle, its circle as tall as ▷ beside it (15 of 24); the line as thick as the others' --><g transform="translate(12 12) scale(1.07) translate(-12 -12)"><path vector-effect="non-scaling-stroke" d="M19 12a7 7 0 1 1-2.05-4.95"/><path vector-effect="non-scaling-stroke" d="M19.5 4v4.5H15"/></g></symbol>
       <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-sound" viewBox="0 0 24 24"><path d="M14 17.5V4.5c1.5 1.5 4.5 2.5 4.5 6"/><ellipse fill="currentColor" stroke="none" cx="10.5" cy="17.5" rx="3.5" ry="2.8" transform="rotate(-20 10.5 17.5)"/></symbol>
       <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-light" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.8"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></symbol>
       <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-vibrate" viewBox="0 0 24 24"><path d="M3 7.5c3-2.6 6 2.6 9 0s6 2.6 9 0M3 12c3-2.6 6 2.6 9 0s6 2.6 9 0M3 16.5c3-2.6 6 2.6 9 0s6 2.6 9 0"/></symbol>
@@ -111,21 +112,17 @@
     </defs>
   </svg>
 
-  <header class="tx-top">
-    <a href="/" class="home" aria-label="dot-da.sh home">dot-da.sh</a>
-
-    <!-- transmit ⇄ receive: one switch, as .- ⇄ A is (js/tx/main.js
-         setRx); at the left, by the name: what the station is doing,
-         apart from what to do with the message -->
-    <button type="button" id="trx" class="trx" aria-label="transmitting: switch to receiving" title="transmit ⇄ receive (hear Morse)">
-      <span class="side on" data-trx="tx">tx</span>
-      <span class="swap" aria-hidden="true">⇄</span>
-      <span class="side" data-trx="rx">rx</span>
-    </button>
+  <!-- the bar (js/nav.js): home, and STATION, the page's heading -->
+  <header class="top tx-top">
+    <nav class="crumbs" aria-label="where you are">
+      <ol>
+        <li><a href="/" class="home">dot-da.sh</a></li>
+        <li><h1 data-crumb="top"><span class="crumb-name">STATION</span><span class="visually-hidden">: a Morse code station and translator</span></h1></li>
+      </ol>
+    </nav>
 
     <!-- what to do with the message; at the far right, the profile -->
     <div class="top-right">
-      <button type="button" id="paste" class="share-toggle" title="paste into the message (or long-press the message)">paste</button>
       <button type="button" id="share-toggle" class="share-toggle" aria-expanded="false" aria-controls="share">share</button>
       <button type="button" id="profile" class="profile" title="profile" aria-label="profile" aria-expanded="false" aria-controls="profile-pop"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg><span class="initial" aria-hidden="true"></span></button>
     </div>
@@ -206,18 +203,20 @@
 
   <!-- long-press the message: a paste bubble, like a text field's -->
   <button type="button" id="paste-bubble" class="paste-bubble" hidden>paste</button>
-  <!-- a long-press on a message: copy it, as Morse or as text -->
+  <!-- a long-press (or a right-click) on a message: copy it, as Morse or
+       as text; on the line being written, paste into it too -->
   <div id="copy-bubble" class="copy-bubble" role="menu" aria-label="copy" hidden>
     <button type="button" role="menuitem" data-copy="morse">copy morse</button>
     <button type="button" role="menuitem" data-copy="text">copy text</button>
+    <button type="button" role="menuitem" data-copy="paste">paste</button>
   </div>
   <p id="toast" class="toast" aria-live="polite" hidden></p>
 
 
   <main class="station">
-    <!-- headings nobody sees: a screen reader's way around the station
-         (its parts are told apart by frames and place, not by titles) -->
-    <h1 class="visually-hidden">dot-da.sh: a Morse code station</h1>
+    <!-- what it does, in a sentence: the station shows it rather than says it, so this is
+         for a screen reader, and for a search engine asked for a Morse code translator -->
+    <p class="visually-hidden">Type text to see and hear it as Morse code, or key Morse code and read it as text. Play it, share it as a link, save it as sound or as a picture.</p>
 
     <!-- the switch sits ON the box's bottom edge, like the preview card:
          open, the lever lifts and leaves a gap; closed, it drops into the line -->
@@ -392,9 +391,9 @@
   <!-- "suggest" in the tray, tapped: what the chips are, and why a
        timed keyer's words go when the word space comes (farnsworth) -->
   <section id="suggest-pop" class="popup" role="dialog" aria-labelledby="suggest-title" hidden>
-    <span class="frame-label" id="suggest-title">suggest</span>
+    <span class="frame-label" id="suggest-title">finish</span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
-    <p>Chips beside settings finish what you've started:
+    <p>Chips at the right of the tabs finish what you've started:
     <b>letters</b> the one you're keying could still become, then
     <b>words</b>, then <b>prosigns</b> (with prosigns on). A tap
     keys it.</p>
@@ -408,6 +407,9 @@
     <p>Tap keying waits for you, so they stay until you go on.</p>
     <p>They help, but they work against practice: leave them off to
     learn.</p>
+    <p><b>next</b>, the other switch in the chips' corner, is a few to
+    start a message with (CQ, PARIS, SOS, 73) and a few between words
+    (DE, K, TU, 73). It can stay on while you practise.</p>
   </section>
 
   <!-- a checkbox's word, tapped: what it does (js/tx/layer.js FLAG_NOTES) -->
@@ -512,54 +514,75 @@
       </p>
     </div>
 
-    <!-- playback: the current line (or, if it's empty, the last message sent) -->
-    <div class="player">
-      <button type="button" id="play" class="play" aria-label="play" title="play / pause (K; Space while playing)"><svg class="ico" aria-hidden="true"><use href="#i-play"/></svg></button>
-      <span id="time" class="time">0.0s</span>
-      <!-- the scrub bar draws the message's signal (js/tx-trace.js);
-           hold it for a magnified pop-out around the playhead -->
-      <span class="seek-wrap">
-        <canvas class="trace" aria-hidden="true"></canvas>
-        <input type="range" id="seek" class="seek" min="0" max="0" step="1" value="0" aria-label="position" title="← → a letter, Shift or J L a word, Home End, 0–9 while playing">
+    <!--
+      the tab row, under the message: transmit and receive are tabs,
+      their content under them (the panel); in the middle what the
+      message comes out as, under the switch on the box's edge; at
+      the right the suggestions, for either tab. A mark in a corner
+      (as the keyboard's keys have) holds a list: long-press it.
+
+         /tx\/rx\    /♪⌝ ☼⌝ ≋⌝\   [R.] [W-] [L..] ⌝
+        ─┘    └──────┴─────────┴──────────────────
+         ⚙  ▷ 0.0s⌝ ──●─────────── ⟲    [.-│A]
+        [ the slot: the pad, the keyboard, the settings, or rx ]
+    -->
+    <div class="tab-row">
+      <div class="tabs" role="tablist" aria-label="transmit or receive">
+        <button type="button" role="tab" id="tab-tx" class="tab" aria-selected="true" aria-controls="panel" title="transmit: key or type Morse">tx</button>
+        <button type="button" role="tab" id="tab-rx" class="tab" aria-selected="false" aria-controls="panel" tabindex="-1" title="receive: hear or see Morse">rx</button>
+      </div>
+      <span class="outputs" role="group" aria-label="outputs">
+        <button type="button" data-out="sound" class="holds" aria-pressed="true" title="sound (hold: which sound)"><svg class="ico" aria-hidden="true"><use href="#i-sound"/></svg></button>
+        <button type="button" data-out="light" class="holds" aria-pressed="false" title="light (hold: which light)"><svg class="ico" aria-hidden="true"><use href="#i-light"/></svg></button>
+        <button type="button" data-out="vibrate" class="holds" aria-pressed="false" title="vibration (soon)"><svg class="ico" aria-hidden="true"><use href="#i-vibrate"/></svg></button>
       </span>
-      <div class="seek-pop" hidden aria-hidden="true"><canvas></canvas></div>
-      <button type="button" id="repeat" class="repeat" aria-pressed="false" aria-label="repeat" title="repeat"><svg class="ico" aria-hidden="true"><use href="#i-repeat"/></svg></button>
+      <div class="tiles">
+        <!-- suggestions (js/tx/suggest.js): a tap keys it -->
+        <div id="chips" class="chips" aria-label="suggestions"></div>
+        <!-- their own corner: two switches, finish (what you've begun:
+             the tray's box too) and next (a few to start with, or to
+             carry on); next is kept here, out of sight -->
+        <button type="button" id="chips-more" class="holds chips-more" aria-label="suggestions: finish, next" title="suggestions: finish what's begun, or what's next"></button>
+        <input type="checkbox" id="opt-next" checked hidden>
+      </div>
     </div>
 
-    <!--
-      under the player, in thumb's reach:
-
-        ⌃ settings  ░[QTH] [QSL] [QSO]░  ♪ ☼ ≋ [.-] ⇄ [A]
-
-      the suggestions in the middle, on the edge of a dial (they turn
-      sideways, never taller); the outputs sit by the settings they
-      grey out; the input mode (key Morse / type text) right above the
-      pad or keyboard it swaps
-    -->
+    <!-- the panel under the tabs: a row, settings first, then the
+         tab's own (tx: the player and the input modes; rx: the note,
+         open a file…, save a .wav), over the slot -->
+    <div id="panel" class="panel" role="tabpanel" aria-labelledby="tab-tx">
     <div class="control-row">
-      <button type="button" id="tray-toggle" class="tray-toggle" aria-expanded="false" aria-controls="tray" aria-label="settings">
-        <svg class="ico chev" aria-hidden="true"><use href="#i-chev"/></svg> <svg class="ico gear" aria-hidden="true"><use href="#i-gear"/></svg><span class="word">settings</span>
+      <button type="button" id="tray-toggle" class="tray-toggle" aria-expanded="false" aria-controls="tray" aria-label="settings" title="settings">
+        <svg class="ico gear" aria-hidden="true"><use href="#i-gear"/></svg>
       </button>
-      <!-- suggestions (js/tx/suggest.js): a tap keys it -->
-      <div id="chips" class="chips" aria-label="suggestions"></div>
-      <!-- receiving only (js/tx/rx.js): how the tape plays, the tone that
-           was read alone (isolated), or the sound as it was (raw) -->
-      <button type="button" id="rx-isolate" class="rx-isolate" aria-pressed="true" title="play the tape isolated (only the tone that was read) or raw (the sound as it was)">isolate</button>
-      <div class="actions">
-        <span class="outputs" role="group" aria-label="outputs">
-          <button type="button" data-out="sound" aria-pressed="true" title="sound"><svg class="ico" aria-hidden="true"><use href="#i-sound"/></svg></button>
-          <button type="button" data-out="light" aria-pressed="false" title="light"><svg class="ico" aria-hidden="true"><use href="#i-light"/></svg></button>
-          <button type="button" data-out="vibrate" aria-pressed="false" title="vibration"><svg class="ico" aria-hidden="true"><use href="#i-vibrate"/></svg></button>
-        </span>
-        <!-- the input modes: one switch, a press anywhere on it flips
-             (hold the .- side for the list of keys) -->
-        <button type="button" class="input-mode" aria-label="keying Morse: switch to typing" title="key Morse ⇄ type text">
-          <span class="side on" data-mode="key">.-</span>
-          <span class="swap" aria-hidden="true">⇄</span>
-          <span class="side" data-mode="type">A</span>
-        </button>
-        <button type="button" id="keys-toggle" class="keys-toggle" aria-expanded="true" aria-controls="pad type" title="hide the keys (read mode)"><svg class="ico chev" aria-hidden="true"><use href="#i-chev"/></svg></button>
+      <!-- receiving only, in the player's place (js/tx/rx.js): what's
+           heard stays here; a recording to read; the tape, kept -->
+      <div class="rx-row">
+        <p id="rx-note" class="rx-note">Heard here only: not kept, never sent.</p>
+        <button type="button" id="rx-file" class="rx-link" title="a recording of Morse, read onto the line (sound, or a video's sound; in light, a video's pictures); or drop one here">open a file…</button>
+        <input type="file" id="rx-file-input" accept="audio/*,video/*" hidden>
+        <!-- the one way the sound is kept, and only when asked -->
+        <button type="button" id="rx-save" class="rx-link" title="the tape, as a .wav file on this device" disabled>save a .wav</button>
       </div>
+      <!-- playback: the current line (or, if it's empty, the last message sent) -->
+      <div class="player">
+        <button type="button" id="play" class="play" aria-label="play" title="play / pause (K; Space while playing)"><svg class="ico" aria-hidden="true"><use href="#i-play"/></svg></button>
+        <span id="time" class="time holds" title="the time (hold: pretty play)">0.0s</span>
+        <!-- the scrub bar draws the message's signal (js/tx-trace.js);
+             hold it for a magnified pop-out around the playhead -->
+        <span class="seek-wrap">
+          <canvas class="trace" aria-hidden="true"></canvas>
+          <input type="range" id="seek" class="seek" min="0" max="0" step="1" value="0" aria-label="position" title="← → a letter, Shift or J L a word, Home End, 0–9 while playing">
+        </span>
+        <div class="seek-pop" hidden aria-hidden="true"><canvas></canvas></div>
+        <button type="button" id="repeat" class="repeat" aria-pressed="false" aria-label="repeat" title="repeat"><svg class="ico" aria-hidden="true"><use href="#i-repeat"/></svg></button>
+      </div>
+      <!-- the input modes: one switch, a press anywhere on it flips
+           (hold for the list of keys; swipe it down to put the keys
+           away, up or a tap to bring them back) -->
+      <button type="button" class="input-mode holds" aria-label="keying Morse: switch to typing" title="key Morse ⇄ type text (hold: which key; swipe down: put the keys away)">
+        <span class="side on" data-mode="key">.-</span><span class="side" data-mode="type">A</span>
+      </button>
     </div>
 
     <!-- the slot: settings, or the timing bar and the pad, or the
@@ -663,7 +686,7 @@
         </span>
         <span class="flag">
           <label class="check"><input type="checkbox" id="opt-suggest" checked><span class="visually-hidden">suggestions</span></label>
-          <button type="button" id="suggest-info" class="flag-word" aria-haspopup="dialog" aria-controls="suggest-pop" title="what the suggestions are, and how long they stay">suggest</button>
+          <button type="button" id="suggest-info" class="flag-word" aria-haspopup="dialog" aria-controls="suggest-pop" title="what the suggestions are, and how long they stay">finish</button>
         </span>
         <span class="flag">
           <label class="check"><input type="checkbox" id="opt-about" checked><span class="visually-hidden">the about column</span></label>
@@ -733,10 +756,42 @@
         └──────────────────────────────────────────┘
         [ ● ][ ▶ ][ ❚❚ ][ ◀◀ ][ ▶▶ ][ ■ ][ × ]
          rec  play pause  rw    ff   stop clear
-        Heard on this device only …  open a file…  save a .wav
+
+      (its line, the note, open a file… and save a .wav, is in the row
+      over the slot, after settings: .control-row .rx-row)
     -->
     <div id="rx" class="rx" hidden>
+      <!-- rx's switches, out of sight: ♪ and ☼ in the tab row work them,
+           a tap for sound or light, a hold for the rest (js/tx/main.js,
+           js/tx/layer.js); rx.js keeps its state in them -->
+      <div class="rx-switches" hidden>
+        <!-- receiving only (js/tx/rx.js): what rec takes in, sound (the
+             microphone) or light (the camera, watching a lamp) -->
+        <button type="button" id="rx-medium" class="rx-medium" aria-label="reading sound: switch to light" title="read sound (the microphone) or light (the camera, pointed at a lamp)">
+          <span class="side on" data-medium="sound">sound</span>
+          <span class="side" data-medium="light">light</span>
+        </button>
+        <!-- receiving only (js/tx/rx.js): how the tape plays, the tone that
+             was read alone (isolated), or the sound as it was (raw) -->
+        <button type="button" id="rx-isolate" class="rx-isolate" aria-pressed="true" title="play the tape isolated (only the tone that was read) or raw (the sound as it was)">isolate</button>
+        <!-- receiving light only (js/tx/rx.js), in isolate's place: what the
+             ring is on, a lamp (how bright) or an eye (a blink: how changed) -->
+        <button type="button" id="rx-look" class="rx-medium rx-look off" aria-label="reading a lamp: switch to blinks" title="read a lamp (how bright the ring is) or blinks (how much the ring has changed: keep the camera still)">
+          <span class="side on" data-look="lamp">lamp</span>
+          <span class="side" data-look="blink">blink</span>
+        </button>
+      </div>
       <div class="rx-screen">
+        <!-- light (js/tx/rx-eye.js): the camera's picture (or a video's),
+             the ring that's watched, the zoom. The video itself is out
+             of sight: its pictures are drawn onto the canvas -->
+        <div id="rx-eye" class="rx-eye" hidden>
+          <canvas id="rx-picture" class="rx-picture" title="tap the lamp: the ring is what's watched (drag it; pinch or the wheel to zoom)"></canvas>
+          <video id="rx-video" class="rx-video" playsinline muted aria-hidden="true"></video>
+          <!-- a fader, as the settings' are: how far, the slider, its name -->
+          <label class="fader rx-zoom"><output id="rx-zoom-now" for="rx-zoom">1×</output>
+            <input type="range" id="rx-zoom" min="0" max="1000" step="1" value="0" disabled aria-label="zoom" title="zoom (or pinch, or the wheel)"><span>zoom</span></label>
+        </div>
         <canvas id="rx-scope" class="rx-scope" aria-hidden="true" title="tap to listen"></canvas>
         <span id="rx-span" class="rx-span" aria-hidden="true"></span>
         <!-- the sender, as heard: pitch, the tone's shape, speed (20/8: stretched spaces) -->
@@ -750,13 +805,6 @@
         <button type="button" id="rx-ff" title="fast forward (hold)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l8.5 6L3 18zM12.5 6 21 12l-8.5 6z" fill="currentColor"/></svg><span class="word">ff</span></button>
         <button type="button" id="rx-stop" title="stop"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5h11v11h-11z" fill="currentColor"/></svg><span class="word">stop</span></button>
         <button type="button" id="rx-clear" title="wipe the tape (the message on the line stays)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg><span class="word">clear</span></button>
-      </div>
-      <div class="rx-foot">
-        <p id="rx-note" class="rx-note">Heard on this device only: not kept, never sent.</p>
-        <button type="button" id="rx-file" class="rx-link" title="a recording of Morse (sound, or a video's sound), read onto the line; or drop one here">open a file…</button>
-        <input type="file" id="rx-file-input" accept="audio/*,video/*" hidden>
-        <!-- the one way the sound is kept, and only when asked -->
-        <button type="button" id="rx-save" class="rx-link" title="the tape, as a .wav file on this device" disabled>save a .wav</button>
       </div>
     </div>
 
@@ -805,6 +853,7 @@
       <div id="kbd" class="kbd" aria-label="keyboard"></div>
     </div>
     </div><!-- /slot -->
+    </div><!-- /panel -->
 
   </div>
 
@@ -819,8 +868,8 @@
   -->
   <div id="waiting" class="waiting signal" aria-hidden="true">
   <div class="aux-page aux-wait">
-    <header class="tx-top">
-      <span class="home">dot-da.sh</span>
+    <header class="top tx-top">
+      <nav class="crumbs"><ol><li><span class="home">dot-da.sh</span></li><li><span class="crumb-name">STATION</span></li></ol></nav>
       <div class="top-right"><span class="profile" title="profiles: coming soon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3.2"/><path d="M6.4 18.6c1.3-2.2 3.3-3.4 5.6-3.4s4.3 1.2 5.6 3.4"/></svg></span></div>
     </header>
     <main class="station aux-station">

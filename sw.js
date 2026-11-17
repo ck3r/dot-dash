@@ -22,20 +22,20 @@
  * Bump VERSION to clear the old cache after a big change.
  */
 
-const VERSION = "dot-dash-14";
+const VERSION = "dot-dash-16";
 
 /* fetched on install, so the first offline open works too */
 const CORE = [
   "/", "/ref/", "/design/", "/bookmarklet/", "/privacy/",
   "/style.css", "/tx/tx.css", "/design/design.css", "/bookmarklet/bookmarklet.css", "/bookmarklet/bookmarklet.js", "/switch.svg", "/manifest.webmanifest",
   "/icons/icon-192.png", "/icons/icon-512.png",
-  "/js/main.js", "/js/morse.js", "/js/tree.js", "/js/overview.js", "/js/keyer.js", "/js/logo.js",
+  "/js/main.js", "/js/nav.js", "/js/nav-ref.js", "/js/morse.js", "/js/tree.js", "/js/overview.js", "/js/keyer.js", "/js/logo.js",
   "/js/tx-keyer.js", "/js/tx-sound.js", "/js/tx-player.js", "/js/tx-share.js", "/js/tx-files.js", "/js/tx-outputs.js", "/js/tx-trace.js",
   "/js/tx/main.js", "/js/tx/dom.js", "/js/tx/state.js", "/js/tx/keyboard.js", "/js/tx/about.js",
   "/js/tx/player.js", "/js/tx/share.js", "/js/tx/settings.js", "/js/tx/tree.js", "/js/tx/layer.js", "/js/tx/tape.js", "/js/tx/keys.js", "/js/tx/typing.js", "/js/tx/suggest.js", "/js/tx/undo.js", "/js/tx/media.js", "/js/tx/tab.js", "/js/tx/stats.js", "/js/tx/profile.js", "/js/tx/practice.js", "/js/tx/wear.js",
   "/js/characters.js", "/js/voice-times.js", "/js/tx/voice.js", "/js/strokes.js", "/js/stair.js",
   /* hearing (RX): fetched the first time rx is chosen, kept here so that works offline too */
-  "/js/tx/rx.js", "/js/rx-decoder.js", "/js/rx-worklet.js",
+  "/js/tx/rx.js", "/js/rx-decoder.js", "/js/rx-worklet.js", "/js/rx-light.js", "/js/tx/rx-eye.js",
   /* key hero (/hero), and what it shares with the station */
   "/hero/", "/hero/hero.css", "/js/hero/main.js", "/js/hero/road.js", "/js/hero/message.js", "/js/judge.js", "/js/keymap.js",
   "/js/game/store.js", "/js/game/clock.js", "/js/game/speed.js", "/js/game/look.js", "/js/game/paddles.js", "/js/game/strikes.js", "/js/game/texts.js", "/js/game/typing.js", "/js/game/chart.js", "/js/game/share.js",

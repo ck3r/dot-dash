@@ -133,20 +133,342 @@ a {
  * HEADER
  * ============================================================ */
 
-/* the global header (as the station's): home at the left, profiles
-   (soon) at the right, across the page's width */
-.top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2.5rem;
+/*
+ * The bar, on every page (js/nav.js): the name and the trail to here,
+ * the last crumb the page's heading; share and the profile at the right.
+ *
+ *   dot-da.sh / REF / ALPHABET / K ▾                  share  (◯)
+ *
+ * The name is paper and bold; the crumbs on the way grey, brass to the
+ * pointer, paper while their menu is open; where you are is paper, on
+ * a dotted line, with a chevron: it opens the pages beside it.
+ */
+/*
+ * One bar for every page, whatever the page's own width, and it's the
+ * station's: the station is the home page, so its bar lines up with
+ * its box, and every other page keeps that bar where it was. Key hero
+ * is a little wider, the reading pages 880px; the bar stays the
+ * station's width, centred on the screen (body is, so its middle is
+ * the screen's), as far from the top. Going from page to page, the
+ * name, the crumbs, share and the profile stay put.
+ *
+ *   phone     │▏dot-da.sh / REF ▾       share (◯)▕│     0.75rem in, as the station
+ *   desktop   │   ┌ dot-da.sh / REF ▾ … share (◯) ┐   │  496px, the station's box
+ *             │ the reading page, 880px, under it   │
+ */
+:root {
+  /* the page's width, less a gutter each side: cqw, not vw, so a
+     desktop's scrollbar isn't counted as room (vw includes it) */
+  container-type: inline-size;
+  --bar-w: min(496px, calc(100cqw - 1.5rem));
+  --bar-top: 0.75rem;   /* from the top of the screen (the station's and Key hero's own padding) */
+  /* (not scrollbar-gutter: it narrows the page where scrollbars float;
+     so where they don't, a desktop's, a page that scrolls has its
+     middle half a scrollbar to the left of the station's) */
 }
 
-.top .home {
+.top {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5ch;
+  width: var(--bar-w);
+  height: 2rem;
+  margin-left: calc(50% - var(--bar-w) / 2);
+  margin-right: calc(50% - var(--bar-w) / 2);
+  margin-bottom: 2.5rem;
+  flex: none;
+  /* its own type, not the page's (the station's is a size up) */
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* the reading pages start as high as the station, so the bar does too */
+body:not(.tx, .hero):has(> .top) { padding-top: var(--bar-top); }
+
+/*
+ * And there it stays as they scroll (the station and Key hero don't
+ * scroll): where it sits at rest, so it never moves, over the page's
+ * colour across the whole screen, so what scrolls slides under it.
+ * Once the page has moved, a rule under it (js/nav.js .stuck).
+ *
+ *   ┌───────────────────────────────────────┐
+ *   │   dot-da.sh / REF / K ▾     share (◯)  │  stuck
+ *   ├───────────────────────────────────────┤  the rule, once scrolled
+ *   │   … the page, going under it …         │
+ */
+body:not(.tx, .hero) > .top {
+  position: sticky;
+  top: var(--bar-top);
+  z-index: 20;
+}
+body:not(.tx, .hero) > .top::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: calc(-1 * var(--bar-top));
+  bottom: -0.6rem;
+  left: calc(50% - 50vw);
+  right: calc(50% - 50vw);
+  border-bottom: 1px solid transparent;
+  background: var(--bakelite);
+  transition: border-color 0.15s;
+}
+body:not(.tx, .hero) > .top.stuck::before { border-bottom-color: var(--wire); }
+
+/* (.top first: a page's own nav and h1 rules, design.css's, stay out) */
+.top .crumbs {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: inherit;
+}
+
+.top .crumbs ol {
+  display: flex;
+  flex-wrap: nowrap;   /* one line: what doesn't fit folds (js/nav.js) */
+  gap: 0;
+  align-items: baseline;   /* the name and the crumbs on one line of type, sizes apart */
+  list-style: none;
+  white-space: nowrap;
+}
+
+.crumbs li {
+  display: flex;
+  align-items: baseline;
+  margin: 0;   /* (design.css .notes li + li spacing isn't the bar's: see below) */
+  min-width: 0;
+  flex: none;
+}
+
+/* where you are gives way last: a long name ends in … */
+.crumbs li:last-child { flex: 0 1 auto; }
+
+.top .crumbs li + li { margin: 0; }
+
+.crumbs li.folded,
+.crumbs li[hidden] { display: none; }
+
+/* the separator: a thin slash, a little taller than the letters */
+.crumbs li + li::before {
+  content: "";
+  flex: none;
+  width: 1px;
+  height: 1.35em;
+  align-self: center;
+  margin: 0 1.1ch;
+  background: var(--graphite);
+  transform: rotate(20deg);
+}
+
+.crumbs .home {
   font-size: 1.05rem;
   font-weight: 700;
   text-decoration: none;
   color: var(--paper);
+}
+
+.top .crumbs h1 {
+  min-width: 0;
+  margin: 0;
+  font: inherit;
+}
+
+/* a crumb: a link with no script, a button with it (js/nav.js) */
+.crumb,
+.crumbs a[data-crumb],
+.top .crumbs h1 {
+  font-size: 0.95rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+}
+
+.crumb,
+.crumbs a[data-crumb] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6ch;
+  min-width: 0;
+  padding: 0.15rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--graphite);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.crumb[aria-expanded="true"] { color: var(--paper); }
+
+/* where you are: paper, on a dotted line */
+.crumbs h1,
+.crumbs h1 .crumb { color: var(--paper); }
+.crumbs h1 .crumb-name,
+.crumbs h1 > .crumb-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-bottom: 1px dotted var(--graphite);
+  padding-bottom: 1px;
+}
+.crumbs h1 .crumb { max-width: 100%; }
+
+.crumb-chev {
+  flex: none;
+  width: 0.7em;
+  height: 0.5em;
+  color: var(--graphite);
+}
+
+@media (hover: hover) {
+  .crumbs .home:hover,
+  .crumb:hover,
+  .crumb:hover .crumb-chev,
+  .crumbs a[data-crumb]:hover { color: var(--brass); background: transparent; }
+  .crumbs h1 .crumb:hover .crumb-name { border-bottom-color: var(--brass); }
+}
+
+/* the menu under a crumb (or share): the pages beside it, the one
+   you're on paper; short names in a grid, long ones a column */
+.crumb-menu {
+  position: absolute;
+  z-index: 30;
+  /* one width for every menu, whatever's open in it (the widest, the
+     abbreviations' grid, fits), so it never changes shape under you */
+  width: min(16rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 5rem);   /* (js/nav.js sets it to the room under the bar) */
+  scrollbar-width: thin;
+  scrollbar-color: var(--wire) transparent;
+  overflow-y: auto;
+  padding: 0.35rem 0;
+  border: 1px solid var(--graphite);
+  background: var(--bakelite);
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-align: left;
+}
+
+.crumb-list { list-style: none; }
+
+/* a page's own list look (design.css: a dot before each) isn't the menu's */
+.top .crumb-menu li {
+  display: block;
+  margin: 0;
+  padding: 0;
+  text-indent: 0;
+}
+.top .crumb-menu li::before { content: none; }
+
+.crumb-list a,
+.crumb-list button {
+  display: flex;
+  justify-content: space-between;
+  gap: 2ch;
+  width: 100%;
+  padding: 0.26rem 0.9rem;
+  border: 0;
+  background: transparent;
+  color: var(--graphite);
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.crumb-list [aria-current] {
+  color: var(--paper);
+  text-decoration: underline dotted;
+  text-underline-offset: 4px;
+}
+
+.crumb-list .rule {
+  height: 0;
+  margin: 0.4rem 0.9rem;
+  border-top: 1px solid var(--wire);
+}
+
+.crumb-list.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.6ch, 1fr));
+  width: auto;
+  padding: 0 0.45rem;
+}
+
+.crumb-list.grid a {
+  justify-content: center;
+  padding: 0.26rem 0.2rem;
+}
+
+/* a page with pages under it: its link, then a chevron that opens them,
+   in place and indented; it points right, and down while they're open */
+.top .crumb-menu li.has-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.crumb-list .sub-toggle { align-items: center; }
+.crumb-list .sub-toggle[aria-current] { color: var(--paper); }
+.crumb-sub {
+  width: 0.5em;
+  height: 0.75em;
+  transition: transform 0.15s;
+}
+.sub-toggle[aria-expanded="true"] { color: var(--paper); }
+.sub-toggle[aria-expanded="true"] .crumb-sub { transform: rotate(90deg); }
+.crumb-menu ul.sub {
+  flex-basis: 100%;
+  margin: 0 0 0.3rem 0.9rem;
+  border-left: 1px solid var(--wire);
+}
+.crumb-menu ul.sub[hidden] { display: none; }
+.crumb-list .peek {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+  color: var(--wire);
+}
+
+.crumb-note {
+  min-height: 0;
+  padding: 0 0.9rem;
+  color: var(--graphite);
+  font-size: 0.72rem;
+}
+.crumb-note:empty { display: none; }
+
+@media (hover: hover) {
+  .crumb-list a:hover,
+  .crumb-list button:hover { color: var(--brass); background: transparent; }
+}
+
+/* share and the profile, at the right of every bar */
+.top .top-right {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 1.2ch;
+}
+
+.top .share-toggle {
+  padding: 0.15rem 0.2rem;
+  border: 0;
+  background: transparent;
+  color: var(--graphite);
+  font-size: 0.85rem;
+}
+
+.top .share-toggle[aria-expanded="true"] {
+  color: var(--paper);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+@media (hover: hover) {
+  .top .share-toggle:hover { color: var(--brass); background: transparent; }
 }
 
 .top .profile {
@@ -162,10 +484,6 @@ a {
 .top .profile svg {
   width: 1.2rem;
   height: 1.2rem;
-}
-
-@media (hover: hover) {
-  .top .home:hover { color: var(--brass); background: transparent; }
 }
 
 .logo {
@@ -254,6 +572,7 @@ a {
   color: var(--graphite);
 }
 .pages p { margin: 0.25rem 0 0; max-width: none; }
+.pages p.gathered { margin-top: 0.75rem; }   /* the pages that gather them (/ref/chart/ …) */
 .pages a {
   display: inline-block;
   min-width: 1.5em;
@@ -642,6 +961,21 @@ body.tree-expanded { overflow: hidden; }
 .card-note b { color: var(--paper); font-weight: 400; }   /* the key words, lit; the rest grey */
 .card-note:empty { display: none; }
 .card-note p + p { margin-top: 0.5rem; }
+
+/* a word (a Q code, an abbreviation; overview.js renderWord): its
+   letters' tiles in a row, one thin frame round them all. The tiles
+   shrink with a narrow page, so three always stand side by side */
+.card.word { display: block; }
+.word-tiles { display: inline-flex; gap: 0.5rem; padding: 0.5rem; border: 1px solid var(--wire); }
+.word-tiles a { display: block; }
+.word-tiles a:hover { background: transparent; }
+.word-tiles .card-tile { font-size: clamp(0.4rem, 2vw, 0.75rem); }
+.word-means { margin: 0.9rem 0 1rem; color: var(--graphite); }
+.word-means b { color: var(--paper); margin-right: 0.5em; }
+.word-sound { container-type: inline-size; }
+@media (hover: hover) {
+  .word-tiles a:hover .card-tile { border-color: var(--brass); }
+}
 
 /* the name as a stair, as in the column (js/stair.js) */
 .card-name { color: var(--graphite); font-size: 1.3rem; }
