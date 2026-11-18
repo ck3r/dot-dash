@@ -652,8 +652,8 @@ body[data-input="text"] .incoming { outline-color: var(--brass); }
  * ---------- the settings ----------
  *
  * Down the right, beside the road (which has drawn in and left
- * room). At the foot, always: pause, nearest the thumb, the strikes,
- * the run, and the gear. The settings themselves open upward from
+ * room). At the foot, always: pause, nearest the thumb, restart, the
+ * strikes, the run, and the gear. The settings themselves open upward from
  * the gear (the text, the boxes, the speed), and are shut while a
  * song is played unless they're wanted:
  *
@@ -663,13 +663,14 @@ body[data-input="text"] .incoming { outline-color: var(--brass); }
  *     ⚙ ^
  *     ×4
  *    ▭ ▭ ▭
+ *   restart
  *    pause
  */
 /* the foot is as wide as the road's own margin there (the lanes'
    edge is --inset in from the side: .plane), so nothing on the road
    goes under pause */
 .settings {
-  --foot: 7.6rem;             /* its height, about: the gear, the run, the strikes, pause */
+  --foot: 9.6rem;             /* its height, about: the gear, the run, the strikes, restart, pause */
   position: absolute;
   right: 0;
   bottom: 0.4rem;
@@ -762,15 +763,19 @@ body[data-input="text"] .incoming { outline-color: var(--brass); }
 
 .settings .group { flex: 0 1 8.5rem; min-height: 4.5rem; }
 
-.settings #pause {
+.settings #pause,
+.settings #restart {
   padding: 0.35rem 0;
   white-space: nowrap;
   border: 1px solid var(--wire);
   font-size: var(--fs-s);
 }
 
+/* restart: smaller than pause, the one the thumb finds first */
+.settings #restart { padding: 0.2rem 0; font-size: var(--fs-xs); }
+
 @media (hover: hover) {
-  .settings #pause:not(:disabled):hover { border-color: var(--brass); }
+  .settings :is(#pause, #restart):not(:disabled):hover { border-color: var(--brass); }
 }
 
 .settings .flags {

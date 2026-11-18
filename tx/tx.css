@@ -74,9 +74,12 @@ body.tx {
      pad + timing bar, keyboard, or settings), so switching between
      them never squeezes the message above. A third of the screen,
      190 to 300px; on a short screen it gives way (down to 6rem) so
-     the message keeps a line: 17.5rem is everything else, the
-     header, the player, the control row, the gaps and one line */
-  --input-h: max(6rem, min(300px, max(190px, 32dvh), 100dvh - 17.5rem - env(safe-area-inset-bottom)));
+     the message keeps a line: --rest is everything else, the
+     header, the tabs, the player, the control row, the gaps and
+     one line (measured: 285px of a 470px screen; SHORT SCREENS
+     at the end takes some back) */
+  --rest: 18rem;
+  --input-h: max(6rem, min(300px, max(190px, 32dvh), 100dvh - var(--rest) - env(safe-area-inset-bottom)));
   max-width: 520px;
   height: 100dvh;
   padding: 0.75rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom));
@@ -2312,6 +2315,22 @@ body.reading .caret { visibility: hidden; }
 body.reading .slot { display: none; }
 
 /*
+ * Put away, the row over the slot keeps only what's still wanted.
+ * Transmitting, the player has the row to itself, full width (no
+ * settings, no input modes: a tap in the message, the open tab, or
+ * Esc, brings the keys back). Receiving, the recorder's deck alone
+ * stays, under the tabs: no row (settings, the note, open, save), no
+ * scope. A tap on the open tab puts either away, too.
+ *
+ *   tx   ╭ ▷ 0.0/4.9s ──●──────────────── ⟲ ╮
+ *   rx   [ ● ][ ▶ ][ ❚❚ ][ ◀◀ ][ ▶▶ ][ ■ ][ × ]
+ */
+body.reading:not(.rx) .control-row > :is(.tray-toggle, .input-mode) { display: none; }
+body.rx.reading .control-row { display: none; }
+body.rx.reading .slot { display: flex; height: auto; }
+body.rx.reading .rx > :not(.deck) { display: none; }
+
+/*
  * Receiving (rx, its tab): the hearing view, a tape recorder
  * (js/tx/rx.js), in the slot where the keys were. The row over it is
  * rx's own: sound or light at the left, isolate at the right, where
@@ -2425,6 +2444,23 @@ body.rx .outputs [data-out="vibrate"]::after { content: none; }
   opacity: 0;
   pointer-events: none;
 }
+/* the other camera, in the picture's top corner: grey, brass to the touch */
+.rx-flip {
+  position: absolute;
+  left: 0.35rem;
+  top: 0.35rem;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--wire);
+  background: var(--bakelite);
+  color: var(--graphite);
+  font-size: var(--fs-s);
+  line-height: 1.2;
+}
+.rx-flip[hidden] { display: none; }
+@media (hover: hover) {
+  .rx-flip:hover { border-color: var(--brass); color: var(--brass); }
+}
+
 /* the zoom: a fader as the settings' are (.fader), beside the
    picture, as tall as it: how far at the top, "zoom" at the foot */
 .rx-zoom {
@@ -2512,6 +2548,7 @@ body.rx .outputs [data-out="vibrate"]::after { content: none; }
   text-underline-offset: 0.25em;
 }
 .rx-link:disabled { opacity: 0.4; cursor: default; text-decoration: none; }
+.rx-link[hidden] { display: none; }
 
 .pad {
   display: grid;
@@ -3395,14 +3432,19 @@ a.switch { text-decoration: none; }
 @keyframes as-4 { 0% { opacity: 0.25; } 40% { opacity: 1; } }
 @keyframes as-5 { 0% { opacity: 0.25; } 48% { opacity: 1; } }
 
-.aux-wait .line .p {
+.aux-wait .line .p { animation: as-sent 1.5s step-end infinite; }
+.aux-wait .line .p .n {   /* the name, not the space before it (as .landed's) */
   text-decoration: underline;
   text-underline-offset: 4px;
-  animation: as-sent 1.5s step-end infinite;
+  animation: as-under 1.5s step-end infinite;
 }
 @keyframes as-sent {
-  0%  { opacity: 0.25; text-decoration-color: transparent; }
-  52% { opacity: 1; text-decoration-color: currentColor; }
+  0%  { opacity: 0.25; }
+  52% { opacity: 1; }
+}
+@keyframes as-under {
+  0%  { text-decoration-color: transparent; }
+  52% { text-decoration-color: currentColor; }
 }
 
 .aux-wait .aux-station { animation: as-lit 1.5s step-end infinite; }
@@ -3428,6 +3470,7 @@ a.switch { text-decoration: none; }
 @media (prefers-reduced-motion: reduce) {
   .aux-wait .line .m span,
   .aux-wait .line .p,
+  .aux-wait .line .p .n,
   .aux-wait .aux-station,
   .aux-wait .switch .arm,
   .aux-wait .switch .led { animation: none; }
@@ -3725,4 +3768,36 @@ a.switch { text-decoration: none; }
 .tx .key.pressed,
 .tx .kbd .pressed {
   border-color: color-mix(in srgb, var(--brass) calc(var(--ui-glow) * 100%), var(--wire));
+}
+
+
+
+/*
+ * ============================================================
+ * SHORT SCREENS
+ * ============================================================
+ *
+ * Half a phone in split screen, or a phone on its side: 440px tall
+ * or less. The keys are what you touch, so they keep what room
+ * there is: the margins and gaps around everything else tighten,
+ * and the input area has the difference (--rest, at the top).
+ * Picked by the height alone, so dragging the split's divider
+ * resizes things where they are; nothing trades places.
+ *
+ * Shorter than everything at its least (about 365px: a third of a
+ * phone, or less), the page scrolls rather than cut the keys off below.
+ */
+@media (max-height: 440px) {
+  body.tx {
+    --rest: 16.75rem;
+    padding-top: 0.5rem;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+    gap: 0.4rem;
+  }
+  .controls { margin-top: 0.4rem; }
+  .panel, .slot { gap: 0.3rem; }
+}
+
+@media (max-height: 365px) {
+  body.tx { overflow-y: auto; }
 }

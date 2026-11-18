@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>watch faces · dot-da.sh</title>
+  <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
+
+  <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
+  <link rel="stylesheet" href="/style.css">
+
+  <style>
+    /*
+     * A sheet for the Garmin faces (docs/garmin.md, faces.js beside
+     * this): every face runs from one clock, which can be sped up,
+     * stopped or set, so a minute's turn can be watched without
+     * waiting for it. Not linked from anywhere yet.
+     */
+    .sheet { padding: 1.5rem 16px; max-width: 84rem; margin: 0 auto; }
+    .sheet h1 { font-size: 1.05rem; font-weight: 700; }
+    .sheet > p { margin-top: 0.5rem; color: var(--graphite); }
+
+    /* the panel: the options in labelled groups. On a phone, above the
+       faces; with room, a column beside them that stays put as they
+       scroll by */
+    .controls {
+      background: var(--bakelite); padding: 0.5rem 0;
+      display: flex; flex-wrap: wrap; align-items: stretch; gap: 0.5rem 0.75rem; margin-top: 0.75rem;
+    }
+    @media (min-width: 60rem) {
+      .sheet { display: grid; grid-template-columns: 17rem 1fr; column-gap: 1.5rem; align-items: start; }
+      .sheet > :is(h1, p) { grid-column: 1 / -1; }
+      .controls { flex-direction: column; position: sticky; top: 0; max-height: 100vh; overflow-y: auto; }
+      #faces { grid-column: 2; }
+    }
+    .controls fieldset {
+      border: 1px solid var(--wire); padding: 0.25rem 0.75rem 0.6rem; margin: 0; min-width: 0;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1ch;
+    }
+    .controls legend { color: var(--graphite); font-size: 0.8rem; padding: 0 0.5ch; }
+    .controls button, .controls select, .controls input {
+      font: inherit; color: var(--graphite); background: none;
+      border: 1px solid var(--wire); padding: 0.25rem 1ch; cursor: pointer;
+    }
+    .controls input[type="time"] { color-scheme: inherit; }
+    .controls select option { background: var(--bakelite); }
+    .controls [aria-pressed="true"] { color: var(--paper); border-color: var(--paper); }
+    .controls :is(button, select, input):focus-visible { color: var(--brass); border-color: var(--brass); outline: none; }
+    @media (hover: hover) {
+      .controls :is(button, select, input):hover { color: var(--brass); border-color: var(--brass); }
+    }
+
+    .group { margin-top: 1.75rem; }
+    .group h2 { font-size: 0.95rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+    .group > p { margin-top: 0.25rem; color: var(--graphite); }
+    .group .faces { margin-top: 0.75rem; }
+    .faces { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 1rem; margin-top: 1.25rem; }
+    .faces figure { border: 1px solid var(--wire); padding: 0.75rem; }
+    .faces svg.face { display: block; width: 100%; max-width: 18rem; margin: 0 auto; }
+    .faces figcaption { margin-top: 0.5rem; }
+    .faces figcaption b { font-weight: 700; }
+    .faces figcaption span { display: block; color: var(--graphite); margin-top: 0.25rem; }
+
+    /* the screen */
+    .face .glass { fill: var(--bakelite); }
+    .face .bezel { fill: none; stroke: var(--wire); stroke-width: 2; }
+
+    /* lines: the box, the rules, the rings; brass for the minute gone */
+    .face .track, .face .rule { fill: none; stroke: var(--wire); stroke-width: 2; }
+    /* the lit part is paper; brass at once as it grows with the key
+       down, fading back to paper as the key comes up */
+    .face .lit { fill: none; stroke: var(--paper); stroke-width: 2; transition: stroke 700ms; }
+    .face .lit.pulse { stroke: var(--brass); transition: none; }
+    .face .faint { stroke-opacity: 0.5; }
+    .face .channel { fill: none; stroke: var(--bakelite); }   /* the screen's colour: a gap cut out of the marks */
+    .face .thin { stroke-width: 1; }
+    .face .lit.thin { stroke-width: 1.5; }
+
+    /* marks: rects (m) are filled, arcs and segments (a, seg) stroked */
+    .face .m.dot { fill: var(--dot); }
+    .face .m.dash { fill: var(--dash); }
+    .face .m.ghost { fill: var(--wire); }
+    .face .m { transition: fill 120ms; }
+    .face .a { fill: none; }
+    .face .a.dot { stroke: var(--dot); }
+    .face .a.dash { stroke: var(--dash); }
+    .face .seg { fill: none; stroke-width: 7; }
+    .face .seg.off { stroke: var(--wire); stroke-width: 3; }
+    .face .seg.dot { stroke: var(--dot); }
+    .face .seg.dash { stroke: var(--dash); }
+    .mono .face :is(.m.dot, .m.dash) { fill: var(--paper); }
+    .mono .face :is(.a, .seg):is(.dot, .dash) { stroke: var(--paper); }
+    /* full, cut lit: the marks the cut leaves out, grey and quieter
+       than a mark not yet written (.sheet: over monochrome too) */
+    .sheet .face .m.spare { fill: var(--wire); fill-opacity: 0.6; }
+    .sheet .face :is(.a, .seg).spare { stroke: var(--wire); stroke-opacity: 0.6; }
+    /* the grid tree: the shown digits' places bright */
+    .face .numeral.on { fill: var(--paper); font-weight: 700; }
+    .face .numeral.time { fill: var(--paper); }
+
+    /* the round tape: the pen line in paper, the pen brass */
+    .face .trace { fill: none; stroke: var(--paper); stroke-width: 1.2; stroke-linejoin: round; }
+    .face .pen { fill: var(--brass); }
+
+    /* the grid tree: a lit route's line in paper, the faint tree's
+       marks in wire */
+    .face .route-line { fill: none; stroke: var(--paper); stroke-width: 2; }
+    .face .step.spare .route-line { stroke: var(--wire); }
+    .face .glyph { fill: var(--wire); }
+
+    /* the spiral: what's still to be sent dim, the mark going out brass */
+    .face .ahead { opacity: 0.5; }
+    .sheet .face .m.now { fill: var(--brass); }
+    .sheet .face .a.now { stroke: var(--brass); }
+
+    /* halftone: the solid lines, the disc they make */
+    .face .solid { fill: var(--graphite); }
+
+    /* lamp: the screen behind the marks brass while a mark is sent */
+    .face .lampfill { fill: var(--brass); opacity: 0; }
+    .face .lampfill.on { opacity: 1; }
+
+    /* the radar's hand, brass, and its wake, fading out behind it */
+    .face .sweep .beam { stroke: var(--brass); stroke-width: 1.5; }
+    .face .sweep .wake { fill: var(--brass); }
+
+    /* low power: drawn once a minute and left lit, so as few pixels on
+       as can be: marks in outline, lines thin, nothing that moves */
+    .sheet.low .face :is(.m, .bar, .gore) { fill: none; stroke-width: 1; }
+    .sheet.low .face .m.dot { stroke: var(--dot); }
+    .sheet.low .face .m.dash { stroke: var(--dash); }
+    .sheet.low .face :is(.m.ghost, .m.spare, .bar, .gore) { stroke: var(--wire); }
+    .sheet.low.mono .face :is(.m.dot, .m.dash) { stroke: var(--paper); }
+    .sheet.low .face :is(.a, .seg, .route-line) { stroke-width: 1.5; }
+    .sheet.low .face :is(.lit, .sweep, .lampfill, .pen) { display: none; }
+
+    /* the beam that moved: brass at once at the turn, fading back */
+    .face .hand :is(.m, .rule) { transition: fill 700ms, stroke 700ms; }
+    .sheet .face .hand.flash .m:not(.spare) { fill: var(--brass); transition: none; }
+    .face .hand.flash .rule { stroke: var(--brass); stroke-opacity: 1; transition: none; }
+
+    .face .numeral { fill: var(--graphite); font-family: var(--mono); }
+    /* letters over the parachute's marks: paper, edged in the screen's colour */
+    .face .numeral.over { fill: var(--paper); stroke: var(--bakelite); stroke-width: 2.5; paint-order: stroke; font-weight: 700; }
+
+    /* the parachute's plain gores; the seconds' lit ones as the lit line */
+    .face .gore { fill: var(--wire); fill-opacity: 0.45; }
+    .face .gore.on { fill: var(--paper); fill-opacity: 1; transition: fill 700ms; }
+    .face .gore.on.pulse { fill: var(--brass); transition: none; }
+    .face .bar { fill: var(--wire); }
+    .face .bar.today { fill: var(--graphite); }
+
+    /* the key: up at rest, down (its colours flipped) on the beat */
+    .face .key .down { display: none; }
+    .face .key.beat .down { display: inline; }
+    .face .key.beat .up { display: none; }
+    .face .key-rim { fill: none; stroke: var(--wire); stroke-width: 1.5; }
+
+    /* the switch in the line: paper, brass while it's down */
+    .face .switch .ring { fill: none; stroke: var(--paper); }
+    .face .switch .lever { fill: var(--paper); }
+    .face .switch.beat .ring { stroke: var(--brass); }
+    .face .switch.beat .lever { fill: var(--brass); }
+    @media (prefers-reduced-motion: reduce) { .face :is(.m, .lit) { transition: none; } }
+
+    /* the stroke letters' three layers, as on /design/strokes/ */
+    .stroked path { fill: none; }
+    .stroked .scaffold path { stroke: var(--graphite); stroke-width: 1.5; }
+    .stroked.keyed .scaffold path { stroke: var(--paper); }
+    .stroked .ink path { fill: none; stroke: var(--paper); stroke-width: 1.5; }
+    .stroked .grey path { stroke: var(--wire); }
+    .stroked .fill .dot { stroke: var(--dot); }
+    .stroked .fill .dash { stroke: var(--dash); }
+    .mono .stroked .fill path { stroke: var(--paper); }
+  </style>
+</head>
+
+<body>
+  <main class="sheet">
+    <h1>watch faces</h1>
+    <p>The time in marks, for Garmin, drawn here first. H H M M; the clock can be sped up or set.</p>
+
+    <div class="controls">
+      <fieldset title="the sheet's clock: run it fast, stop it, set it; raise the wrist">
+        <legend>clock</legend>
+        <button id="play">pause</button>
+        <select id="rate" aria-label="speed">
+          <option value="1" selected>1×</option>
+          <option value="10">10×</option>
+          <option value="60">60×</option>
+        </select>
+        <input id="time" type="time" aria-label="set the time">
+        <button id="now">now</button>
+        <button id="raise">raise</button>
+      </fieldset>
+      <fieldset title="how the time is written">
+        <legend>digits</legend>
+        <select id="digits" aria-label="full or cut digits">
+          <option value="full" selected>full</option>
+          <option value="cut">cut</option>
+          <option value="keep">full, cut lit</option>
+        </select>
+        <button id="h12" aria-pressed="false">12 hour</button>
+        <button id="numerals" aria-pressed="true">numerals</button>
+      </fieldset>
+      <fieldset title="the key and what moves with it">
+        <legend>key</legend>
+        <select id="key" aria-label="the key">
+          <option value="disc" selected>icon</option>
+          <option value="inline">switch</option>
+        </select>
+        <select id="every" aria-label="the key beats">
+          <option value="1">beat 1 s</option>
+          <option value="5" selected>beat 5 s</option>
+        </select>
+        <select id="lamp" aria-label="lamp">
+          <option value="off" selected>lamp: off</option>
+          <option value="on">lamp: on</option>
+        </select>
+        <select id="radar" aria-label="radar">
+          <option value="off" selected>radar: off</option>
+          <option value="on">radar: on</option>
+        </select>
+      </fieldset>
+      <fieldset title="where things go, for the faces read round">
+        <legend>layout</legend>
+        <select id="origin" aria-label="where the first quarter is">
+          <option value="9" selected>from 9</option>
+          <option value="12">from 12</option>
+        </select>
+        <select id="order" aria-label="the quarters' order">
+          <option value="lines" selected>by lines</option>
+          <option value="clockwise">clockwise</option>
+        </select>
+        <select id="seconds" aria-label="the seconds, for the faces read round">
+          <option value="outside" selected>seconds: outside</option>
+          <option value="inside">seconds: inside</option>
+        </select>
+        <select id="dots" aria-label="the dots' shape">
+          <option value="square" selected>dots: square</option>
+          <option value="squircle">dots: squircle</option>
+          <option value="circle">dots: circle</option>
+        </select>
+      </fieldset>
+      <fieldset title="the watch">
+        <legend>screen</legend>
+        <button id="square" aria-pressed="false">square screen</button>
+        <button id="low" aria-pressed="false">low power</button>
+        <button id="mono" aria-pressed="false">monochrome</button>
+        <button id="theme">invert</button>
+      </fieldset>
+    </div>
+
+    <div id="faces"></div>
+  </main>
+
+  <script type="module">
+    import { square, quadrant, radial, quadrantRadial, beams, border, strokes, parachute, tapeRound, lit, treeGrid, spiral, wordBeams, halftone } from "./faces.js";
+
+    /* the groups, in order, each with a line under its heading */
+    const GROUPS = {
+      "rows": "The time in rows, as it's written: a box, H H M M down it.",
+      "quarters": "A digit to a quarter, the key in the middle.",
+      "rings": "Read round: rings, arcs and spirals.",
+      "beams": "Rays from the key, the marks along them.",
+      "the edge": "The marks round the border; the middle free.",
+      "drawn": "The time as a picture: pen strokes, the tree, a halftone.",
+    };
+
+    const FACES = [
+      /* rows: the time in rows, as it's written: a box, h h m m down it */
+      { group: "rows", make: square, name: "square", about: "True to the brand. The border fills from the key, clockwise, a chunk each beat; at 60 the time rewrites." },
+      { group: "rows", make: square, name: "square, alt", about: "No key, no box: a mark painted every 3 s, twenty marks to the minute.", alt: true },
+      { group: "rows", make: square, name: "square, upright", about: "The marks stood on end, a dash a bar, as a barcode reads: narrower rows, bigger marks.", upright: true },
+      { group: "rows", make: square, name: "rectangle", about: "The square's rows close together, a unit apart, in a box in the top half; the key in the middle of the screen, the bottom half for stats.", wide: true },
+      { group: "rows", make: square, name: "rectangle, upright", about: "The marks stood on end, the rows close, in a tall box in the left half, the key in its bottom edge; the right half for stats.", wide: true, upright: true },
+      /* quarters: a digit to a quarter, the key in the middle */
+      { group: "quarters", make: quadrant, name: "quadrant", about: "The cut digits, one to a quarter, the key in the middle. Always cut." },
+      { group: "quarters", make: quadrant, name: "barcode", about: "The quadrant with the marks stood on end. Always cut.", upright: true },
+      { group: "quarters", make: quadrant, name: "barcode, full", about: "Full digits, five bars a quarter; a dash as tall as the quarter allows, a dot its middle third.", tall: true },
+      /* rings: read round: rings, arcs and spirals */
+      { group: "rings", make: radial, name: "radial", about: "Rings read from out in, from the origin, clockwise. The seconds from the origin too, outside or in (the menu)." },
+      { group: "rings", make: quadrantRadial, name: "quadrant radial", about: "A quarter each, H H M M; in each, the marks one to a ring, from out in." },
+      { group: "rings", make: quadrantRadial, name: "quadrant radial, scaled", about: "The same rings, the marks to the quarter: a dash spans it, a dot its middle third; a unit's channel along the quarters' lines.", scaled: true },
+      { group: "rings", make: parachute, name: "parachute", about: "The time in words, a ring each from the inside out, a unit to a gore. The seconds round the edge. Always twelve hour." },
+      { group: "rings", make: spiral, name: "spiral", about: "The time in words along a spiral from the key outward, the turns close as on a disc, the groove running on bare; sent over the minute, what's to come dim." },
+      { group: "rings", make: spiral, name: "spiral, inward", about: "The same, the other way: from the rim at the origin winding in to the key, as a record plays.", inward: true },
+      /* beams: rays from the key, the marks along them */
+      { group: "beams", make: beams, name: "beams", about: "From the inside out, in line: a beam through each quarter, the marks along it as they'd sound." },
+      { group: "beams", make: beams, name: "beams, hands", about: "A beam for each value a digit can take, spread evenly in its quarter; the digit's beam carries the marks.", hands: "justified" },
+      { group: "beams", make: beams, name: "beams, hands right", about: "The beams a tenth of a quarter apart everywhere; short quarters pack theirs against a full one, so the room they leave is one space, for stats.", hands: "right" },
+      { group: "beams", make: wordBeams, name: "beams, words", about: "A beam to a letter of the time in words, all round; a bare beam between words." },
+      { group: "beams", make: wordBeams, name: "beams, words, inward", about: "Each letter read from the outside in, its first mark at the beam's outer end.", inward: true },
+      { group: "beams", make: wordBeams, name: "beams, words, ring", about: "Outward round a wide middle: its radius is the rim's less a Y (13 units), so the longest letters just reach the rim; the letters round the inside.", ring: true },
+      /* the edge: the marks round the border; the middle free */
+      { group: "the edge", make: border, name: "border", about: "22 segments a quarter, each digit centred in its own. The middle for stats (made up here)." },
+      { group: "the edge", make: tapeRound, name: "tape, round", about: "The siphon recorder's way: the pen line round the border from twelve, clockwise, spread to go once round in the minute; at the turn it's wiped and the next written from the top. The key keys the tape." },
+      { group: "the edge", make: tapeRound, name: "tape, round, register", about: "The Morse register's way: no line, the marks alone, laid out as the border face (22 cells a quarter) with the empty cells not drawn, inked as the stylus goes round. The key keys it.", register: true },
+      /* drawn: the time as a picture: pen strokes, the tree, a halftone */
+      { group: "drawn", make: strokes, name: "stroke numbers", about: "One to a quarter; the pen goes through all four in the minute." },
+      { group: "drawn", make: treeGrid, name: "tree, grid", about: "The tree as on a panel or a coin: dots along to the right, dashes to the left, the other mark turning down; the root, the key, in the middle, the top half for stats." },
+      { group: "drawn", make: halftone, name: "halftone", about: "A disc of level lines: the left halves solid, the right a letter each of the time in words, run on solid to the edge. Sent top to bottom over the minute." },
+    ];
+
+    /* made up, for the border's middle */
+    const STATS = { week: [0.55, 0.8, 0.4, 0.95, 0.7, 0.6, 0.3], steps: "6412 steps", heart: "72 bpm", temp: "18°" };
+
+    const $ = id => document.getElementById(id);
+    const pressed = id => $(id).getAttribute("aria-pressed") === "true";
+    const toggle = id => $(id).setAttribute("aria-pressed", String(!pressed(id)));
+    const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    /* the sheet's clock: the real time, or one set, at a chosen speed */
+    let base = Date.now(), from = performance.now(), rate = 1, playing = true;
+    const now = () => playing ? base + (performance.now() - from) * rate : base;
+    const rebase = () => { base = now(); from = performance.now(); };
+
+    const grids = {};
+    for (const [group, about] of Object.entries(GROUPS)) {
+      const section = document.createElement("section");
+      section.className = "group";
+      section.innerHTML = `<h2>${group}</h2><p>${about}</p>`;
+      const grid = document.createElement("div");
+      grid.className = "faces";
+      section.append(grid);
+      $("faces").append(section);
+      grids[group] = grid;
+    }
+
+    const faces = FACES.map(({ name, about, group }) => {
+      const figure = document.createElement("figure");
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("class", "face");
+      svg.setAttribute("role", "img");
+      svg.setAttribute("aria-label", `${name} face`);
+      const caption = document.createElement("figcaption");
+      caption.innerHTML = `<b>${name}</b><span>${about}</span>`;
+      figure.append(svg, caption);
+      grids[group].append(figure);
+      return { svg };
+    });
+
+    let options = null, shown = null, updates = [], raisedAt = null;
+    function build() {
+      options = { round: !pressed("square"), cut: $("digits").value === "cut", keep: $("digits").value === "keep", numerals: pressed("numerals"), still: still || pressed("low"),
+        inline: $("key").value === "inline", every: +$("every").value,
+        origin: +$("origin").value, order: $("order").value, dots: $("dots").value, seconds: $("seconds").value, radar: $("radar").value === "on" && !pressed("low"), lamp: $("lamp").value === "on" && !pressed("low"), low: pressed("low"), h12: pressed("h12") };
+      shown = null;
+    }
+
+    function digitsOf(date) {
+      let h = date.getHours();
+      if (pressed("h12")) h = h % 12 || 12;
+      return String(h).padStart(2, "0") + String(date.getMinutes()).padStart(2, "0");
+    }
+
+    function frame() {
+      const t = now(), date = new Date(t);
+      const digits = digitsOf(date);
+      if (digits !== shown) {
+        const day = date.toLocaleDateString("en", { weekday: "short", day: "numeric" }).toUpperCase();
+        updates = FACES.map(({ make, alt, scaled, upright, tall, hands, wide, inward, ring, register }, i) => {
+          const svg = faces[i].svg;
+          const update = make(svg, { ...options, alt, scaled, upright, tall, hands, wide, inward, ring, register }, { stats: { ...STATS, day } })(digits);
+          /* the lamp, for any face */
+          return options.lamp ? lit(svg, digits, options, update) : update;
+        });
+        shown = digits;
+      }
+      const ms = date.getSeconds() * 1000 + date.getMilliseconds();
+      /* the key goes down for a moment on each beat. Low power: what a
+         face shows when it's drawn once a minute and left, so nothing
+         moving, the minute's fills as at its end (and hidden) */
+      const state = options.low
+        ? { digits, ms: 59999, sec: 59.999, beat: false }
+        : { digits, ms, sec: ms / 1000, beat: ms % (options.every * 1000) < 160, raised: raisedAt === null ? Infinity : t - raisedAt };
+      for (const update of updates) update(state);
+      requestAnimationFrame(frame);
+    }
+
+    const setPlaying = on => { rebase(); playing = on; $("play").textContent = on ? "pause" : "play"; };
+    $("play").addEventListener("click", () => setPlaying(!playing));
+    $("rate").addEventListener("change", e => { rebase(); rate = +e.target.value; });
+    $("time").addEventListener("change", e => {
+      const [h, m] = e.target.value.split(":").map(Number);
+      if (Number.isNaN(h)) return;
+      const d = new Date(now());
+      d.setHours(h, m, 0, 0);
+      base = d.getTime(); from = performance.now();
+    });
+    $("now").addEventListener("click", () => { base = Date.now(); from = performance.now(); rate = 1; $("rate").value = "1"; });
+    for (const id of ["every", "key", "origin", "order", "dots", "seconds", "digits", "radar", "lamp"]) $(id).addEventListener("change", build);
+    for (const id of ["square", "h12", "numerals"]) $(id).addEventListener("click", () => { toggle(id); build(); });
+    /* a raise of the wrist, for the lamp: it plays from now */
+    $("raise").addEventListener("click", () => { raisedAt = now(); });
+    $("low").addEventListener("click", () => { toggle("low"); document.querySelector(".sheet").classList.toggle("low", pressed("low")); build(); });
+    $("mono").addEventListener("click", () => { toggle("mono"); document.querySelector(".sheet").classList.toggle("mono"); });
+    $("theme").addEventListener("click", () => document.documentElement.classList.toggle("light"));
+
+    build();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>

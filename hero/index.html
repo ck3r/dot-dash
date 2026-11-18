@@ -121,7 +121,7 @@
       <p id="note"></p>
 
       <!-- down the right, from the foot up: pause, nearest the thumb,
-           the strikes and the run of notes keyed, and the gear -->
+           restart, the strikes and the run of notes keyed, and the gear -->
       <aside class="settings" aria-label="settings">
         <!-- the settings open upward from the gear, and are out of
              the way while a song is played -->
@@ -151,6 +151,8 @@
         <p id="streak" aria-hidden="true"></p>
         <!-- three strikes and the run is over: each box fills by thirds -->
         <p id="strikes" role="img" aria-label="0 of 3 strikes"><i></i><i></i><i></i></p>
+        <!-- from the top, as R is: there always, grey until there's a run to start over -->
+        <button type="button" id="restart" disabled title="start over, from the top: r">restart</button>
         <button type="button" id="pause" disabled title="pause, and go on: esc, p or the space bar; r starts over">pause</button>
       </aside>
     </div>

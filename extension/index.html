@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#1c1916">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <title>extension · dot-da.sh</title>
+  <link rel="canonical" href="https://dot-da.sh/extension/">
+  <meta name="description" content="Text on any page as Morse: see it, play it, copy it, or send it to the dot-da.sh station. A browser extension for Chrome, Edge and Firefox.">
+
+  <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
+
+  <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/design/design.css">
+  <script type="module" src="/js/nav.js"></script>
+
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://dot-da.sh/extension/">
+  <meta property="og:title" content="extension · dot-da.sh">
+  <meta property="og:description" content="Text on any page as Morse: see it, play it, copy it, or send it to the station.">
+  <meta property="og:image" content="https://dot-da.sh/preview.png">
+</head>
+
+<body class="notes">
+  <!-- the bar (js/nav.js): home, and this page's name, its heading.
+       The extension's card says the same at its top: dot-da.sh / EXTENSION -->
+  <header class="top">
+    <nav class="crumbs" aria-label="where you are">
+      <ol>
+        <li><a href="/" class="home">dot-da.sh</a></li>
+        <li><h1 data-crumb="top"><span class="crumb-name">EXTENSION</span></h1></li>
+      </ol>
+    </nav>
+    <div class="top-right"><span class="profile" title="profiles: coming soon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3.2"/><path d="M6.4 18.6c1.3-2.2 3.3-3.4 5.6-3.4s4.3 1.2 5.6 3.4"/></svg></span></div>
+  </header>
+
+  <main>
+    <p class="lead">Text on any page as Morse: see it, play it, copy it, or send it to the station. Morse on a page (a puzzle, a post) reads back as text. It does nothing until you ask, and keeps nothing.</p>
+
+    <!-- one item per store; a store not yet live says so, with no link
+         (add its href when it is) -->
+    <section class="frame" id="get" aria-labelledby="l-get">
+      <h2 class="frame-label" id="l-get">get it</h2>
+      <ul class="stores">
+        <li><a href="https://chromewebstore.google.com/detail/dot-dash/dikfbgcnfcogepodhfbmclbbdklhjbdp">Chrome Web Store</a>: Chrome, and browsers built on it</li>
+        <li>Edge Add-ons: in review</li>
+        <li>Firefox Add-ons: in review</li>
+      </ul>
+    </section>
+
+    <section class="frame" id="use" aria-labelledby="l-use">
+      <h2 class="frame-label" id="l-use">use it</h2>
+      <ul>
+        <li><strong>Right-click a selection</strong>, then “Morse in dot-da.sh”: a card by the selection, with each character under its code. Play it, pause it, drag along it; click the Morse to copy it. Esc stops it.</li>
+        <li><strong>The toolbar button</strong> (Alt+Shift+M): the selection, or with nothing selected the page's main text, on the station's line in a new tab. While something plays, it stops it.</li>
+        <li><strong>Ctrl+M</strong> (Control+M on a Mac): copy the selection as Morse.</li>
+        <li><strong>The address bar</strong>: type <code>morse</code>, a space, then text or Morse, and Enter.</li>
+      </ul>
+    </section>
+
+    <section class="frame" id="card" aria-labelledby="l-card">
+      <h2 class="frame-label" id="l-card">the card</h2>
+      <pre class="sketch" aria-label="a sketch of the card">  dot-da.sh / EXTENSION         share  ×
+┌──────────────────────────────────────┐
+│ -- --- .-. ... .  /  -.-             │
+│ M   O   R   S  E     K               │
+│                     10 dits, 5 dahs  │
+└─────────────────o/───────────────────┘
+  ⚙  ( ▷ 00:00/00:04  ━━━━┃─────── )</pre>
+      <p>The station's look, cut down to one message. The switch keys along as it plays, and it (or the name) opens the message at the station; <strong>share</strong> copies its link; the gear sets the speed and pitch. Drag the top line to move the card out of the way. For a long one (over 15 s), the button at the player's end pops it out into a small window that stays on top while you work in another (Chrome and Edge). To have it pop out by itself when you switch tabs, turn that on in the settings (the gear); it's off to start, because Chrome then asks each site's leave. <a href="/privacy/#extension">Why.</a></p>
+    </section>
+
+    <section class="frame" id="privacy" aria-labelledby="l-privacy">
+      <h2 class="frame-label" id="l-privacy">what it sees</h2>
+      <p>Only what you point it at, only when you do: no access to any site until you click, and nothing of it running in your pages. What it sends to the station goes after the <code>#</code> in the address, which a browser never sends to a server. It collects nothing. All of it, and why it asks for each permission: <a href="/privacy/#extension">privacy</a>.</p>
+    </section>
+
+    <section class="frame" id="lite" aria-labelledby="l-lite">
+      <h2 class="frame-label" id="l-lite">nothing to install</h2>
+      <p>On a phone, or a browser that won't take extensions: the <a href="/bookmarklet/">bookmarklet</a> sends a selection to the station, and that's all.</p>
+    </section>
+
+    <footer>
+      <p><a href="/">the station</a> · <a href="/ref/">the reference</a> · made by ck3r</p>
+    </footer>
+  </main>
+</body>
+</html>

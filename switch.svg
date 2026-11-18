@@ -3,6 +3,6 @@
   <circle cx="64" cy="64" r="64" fill="#1c1916"/>
   <g transform="translate(64 64) scale(1.42) translate(-35.1 -39.4)">
     <circle cx="13.6603" cy="52.8063" r="7" stroke="#e9e3d5" stroke-width="6" fill="none"/>
-    <rect x="16.0214" y="47.2164" width="56" height="7" rx="3.5" transform="rotate(-30 16.0214 47.2164)" fill="#e9e3d5"/>
+    <rect x="18.5003" y="49.3063" width="56" height="7" rx="3.5" transform="rotate(-30 13.6603 52.8063)" fill="#e9e3d5"/>
   </g>
 </svg>

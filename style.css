@@ -917,6 +917,8 @@ body.tree-expanded { overflow: hidden; }
 .card-marks i.dash { width: 1.3em; }
 .signal .card-marks i.dot  { background: var(--dot); }
 .signal .card-marks i.dash { background: var(--dash); }
+/* tapped, they sound (js/tone.js): each mark paper while it's on, over hover's brass */
+.card-marks i.sounding, .about-marks i.sounding { background: var(--paper) !important; }
 
 /* the card, like a periodic table's: type and code at the top, the
    glyph, its weight in units and its dots and dashes at the foot */

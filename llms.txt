@@ -36,6 +36,7 @@ To answer "what is X in Morse": fetch the .json and give the `morse`, with the `
 - [Common phrases](https://dot-da.sh/ref/phrases/): I love you, hello, help and others, as Morse, with sound.
 - [Key hero](https://dot-da.sh/hero/): a game for the sending hand: Morse comes down a road, key each mark in time. `https://dot-da.sh/hero/?/hi+k` opens it with that text (the same forms as a message link).
 - [Design notes](https://dot-da.sh/design/): why it looks and behaves as it does.
+- [Browser extension](https://dot-da.sh/extension/): text on any page as Morse, played and copied there, or sent to the station; for Chrome, Edge and Firefox.
 - [Bookmarklet](https://dot-da.sh/bookmarklet/): send a selection from any page to the station.
 
 ## Privacy

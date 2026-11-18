@@ -11,6 +11,17 @@
   <!-- every path from the root: 404.html is served for any address -->
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/tx/tx.css">
+  <!-- /ref/romeo, /ref/%24, /ref/_.-._: another name for a page of the reference
+       (js/ref-alias.js). The Worker answers those with a 301 before Pages is asked;
+       without it (Pages alone, npm run serve) the page moves on here, unseen while it looks.
+       Morse at the root (/_.-._) too: its page, or the station playing it -->
+  <script>if (/^\/ref\/|^\/[._\-\/]*[.-][._\-\/]*$/.test(location.pathname)) document.documentElement.style.visibility = "hidden";</script>
+  <script type="module">
+    import { refAlias, rootAlias } from "/js/ref-alias.js";
+    const to = refAlias(location.pathname) ?? rootAlias(location.pathname);
+    if (to) location.replace(to);
+    else document.documentElement.style.visibility = "";
+  </script>
   <script type="module" src="/js/skeleton.js"></script>
 </head>
 <body class="tx signal">

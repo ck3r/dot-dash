@@ -563,6 +563,9 @@
         <input type="file" id="rx-file-input" accept="audio/*,video/*" hidden>
         <!-- the one way the sound is kept, and only when asked -->
         <button type="button" id="rx-save" class="rx-link" title="the tape, as a .wav file on this device" disabled>save a .wav</button>
+        <!-- what's heard, in a small window on top of the others (where
+             the browser has one: Chrome, Edge) -->
+        <button type="button" id="rx-pop" class="rx-link" title="pop out: what's heard, in a small window on top of the others" hidden>pop out</button>
       </div>
       <!-- playback: the current line (or, if it's empty, the last message sent) -->
       <div class="player">
@@ -579,7 +582,8 @@
       </div>
       <!-- the input modes: one switch, a press anywhere on it flips
            (hold for the list of keys; swipe it down to put the keys
-           away, up or a tap to bring them back) -->
+           away, and it goes with them: the message, or the open tab,
+           brings them back) -->
       <button type="button" class="input-mode holds" aria-label="keying Morse: switch to typing" title="key Morse ⇄ type text (hold: which key; swipe down: put the keys away)">
         <span class="side on" data-mode="key">.-</span><span class="side" data-mode="type">A</span>
       </button>
@@ -788,6 +792,8 @@
         <div id="rx-eye" class="rx-eye" hidden>
           <canvas id="rx-picture" class="rx-picture" title="tap the lamp: the ring is what's watched (drag it; pinch or the wheel to zoom)"></canvas>
           <video id="rx-video" class="rx-video" playsinline muted aria-hidden="true"></video>
+          <!-- the other camera: only where there are two (the back one first) -->
+          <button type="button" id="rx-flip" class="rx-flip" hidden title="the front camera" aria-label="the front camera">&#8644;</button>
           <!-- a fader, as the settings' are: how far, the slider, its name -->
           <label class="fader rx-zoom"><output id="rx-zoom-now" for="rx-zoom">1×</output>
             <input type="range" id="rx-zoom" min="0" max="1000" step="1" value="0" disabled aria-label="zoom" title="zoom (or pinch, or the wheel)"><span>zoom</span></label>
@@ -880,7 +886,7 @@
           <circle class="led" cx="13.66" cy="52.81" r="3.6"/>
         </svg>
       </span>
-      <div class="aux-field"><span class="line live"><span class="w"><span class="c"><span class="m"><span class="dot">.</span><span class="dash">-</span><span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></span><span class="p"> &lt;AS&gt;</span></span></span></span></div>
+      <div class="aux-field"><span class="line live"><span class="w"><span class="c"><span class="m"><span class="dot">.</span><span class="dash">-</span><span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></span><span class="p"> <span class="n">&lt;AS&gt;</span></span></span></span></span></div>
     </main>
     <section class="aux-note"></section>
   </div>

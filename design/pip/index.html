@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <meta name="color-scheme" content="dark">
+  <title>pip · dot-da.sh</title>
+  <link rel="icon" type="image/svg+xml" href="/switch.svg">
+  <link rel="stylesheet" href="/style.css">
+  <!--
+    A try-out, not linked: the extension card's "pop out", as a
+    Document Picture-in-Picture window (Chrome and Edge 116+; not
+    Firefox). A window of our own HTML that stays on top of every
+    other window, even when you switch tabs or apps.
+
+      ╭──────────────────────────╮
+      │          -.-.            │   the code going out
+      │           C              │   its character, large
+      │  o/  ▷ 00:05/00:31 ━━┃── │   the switch, the player
+      ╰──────────────────────────╯
+
+    The sound plays here, in the page that opened it; the window is
+    only what you see. It opens from a click (the button shows only
+    for a message over 15 s), or by itself when you leave the tab
+    while it plays: Chrome's automatic picture-in-picture, which asks
+    for more. The tab must be playing sound itself, through a media
+    element (an <audio>, not the Web Audio the extension uses), and
+    Chrome must think the site has earned it: enough time spent with
+    its media, or the person's say-so, the first time it asks. So
+    here the message is rendered to a WAV and played by an <audio>,
+    and it asks (mediaSession, "enterpictureinpicture") while it
+    plays. Testing: chrome://flags/#auto-picture-in-picture-for-
+    video-playback, or allow it under the site's settings.
+  -->
+  <style>
+    main { max-width: 40rem; margin: 2rem auto; padding: 0 16px; }
+    textarea { width: 100%; height: 6rem; background: var(--bakelite); color: var(--paper); border: 1px solid var(--wire); font: inherit; padding: 8px; box-sizing: border-box; }
+    .row { display: flex; gap: 12px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+    button { font: inherit; color: var(--graphite); background: none; border: 1px solid var(--wire); padding: 4px 12px; cursor: pointer; }
+    @media (hover: hover) { button:hover { color: var(--brass); border-color: var(--brass); } }
+    button[hidden] { display: none; }
+    .note { color: var(--graphite); margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <main>
+    <p>The card's pop-out, tried here: a window that stays on top. Type or paste a message; past 15 s, "pop out" appears. Or play it here and switch to another tab: Chrome may open it by itself (it may ask first).</p>
+    <textarea id="text">The station keeps the message on the line while you work in another window; the small one stays on top and keys along.</textarea>
+    <div class="row">
+      <label>wpm <input id="wpm" type="number" min="5" max="40" value="20" style="width:4em"></label>
+      <span id="len" class="note"></span>
+      <button id="pop" type="button">pop out ↗</button>
+      <button id="play" type="button">▷ play here</button>
+    </div>
+    <p id="why" class="note"></p>
+    <p id="auto" class="note"></p>
+  </main>
+
+  <script type="module">
+    import { wordsFrom, decode } from "/js/morse.js";
+
+    const $ = s => document.querySelector(s);
+    const unitMs = () => 1200 / Number($("#wpm").value || 20);
+
+    /* the timeline, as the extension's tone plays it: 1 inside a
+       letter, 3 between letters, 7 between words */
+    function timeline() {
+      const words = wordsFrom($("#text").value);
+      const marks = [], cells = [];
+      let t = 0;
+      words.forEach((word, w) => {
+        if (w) t += 7;
+        word.forEach((code, c) => {
+          if (c) t += 3;
+          const start = t;
+          [...code].forEach((m, i) => { if (i) t += 1; const len = m === "-" ? 3 : 1; marks.push([t, len]); t += len; });
+          cells.push({ code, ch: decode([[code]]), start, end: t });
+        });
+      });
+      return { marks, cells, total: t };
+    }
+    const mmss = ms => { const s = Math.round(ms / 1000); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
+
+    /* over 15 s, the button shows */
+    function update() {
+      const ms = timeline().total * unitMs();
+      $("#len").textContent = mmss(ms);
+      $("#pop").hidden = ms <= 15000;
+    }
+    $("#text").oninput = update; $("#wpm").oninput = update; update();
+    if (!("documentPictureInPicture" in window)) {
+      $("#why").textContent = "This browser has no Document Picture-in-Picture (Chrome or Edge 116+ has); play here still works.";
+      $("#pop").disabled = true;
+    }
+
+    /* the message as a WAV, played by an <audio>: a media element,
+       so the tab is playing sound as Chrome counts it (a sine at
+       600 Hz, each mark with a 5 ms edge, 16 kHz, 16 bit) */
+    function wav(line) {
+      const rate = 16000, unit = unitMs() / 1000, n = Math.ceil((line.total * unit + 0.1) * rate);
+      const data = new Int16Array(n), edge = 0.005 * rate;
+      for (const [at, len] of line.marks) {
+        const a = Math.floor(at * unit * rate), b = Math.floor((at + len) * unit * rate);
+        for (let i = a; i < b && i < n; i++) {
+          const k = Math.min(1, (i - a) / edge, (b - i) / edge);
+          data[i] = Math.sin(2 * Math.PI * 600 * i / rate) * 9000 * k;
+        }
+      }
+      const h = new DataView(new ArrayBuffer(44)), w = (o, t) => [...t].forEach((c, i) => h.setUint8(o + i, c.charCodeAt(0)));
+      w(0, "RIFF"); h.setUint32(4, 36 + n * 2, true); w(8, "WAVEfmt "); h.setUint32(16, 16, true); h.setUint16(20, 1, true); h.setUint16(22, 1, true);
+      h.setUint32(24, rate, true); h.setUint32(28, rate * 2, true); h.setUint16(32, 2, true); h.setUint16(34, 16, true); w(36, "data"); h.setUint32(40, n * 2, true);
+      return URL.createObjectURL(new Blob([h, data], { type: "audio/wav" }));
+    }
+
+    /* the clock is the <audio>'s own; frames come from the pop-out
+       while it's open (a tab you've left gets none) */
+    const audio = new Audio();
+    let line = null, raf = 0, pip = null;
+    const frameWin = () => pip ?? window;
+    const now = () => line ? audio.currentTime * 1000 / unitMs() : 0;
+    const playing = () => !!line && !audio.paused && !audio.ended;
+    const views = new Set();
+    function play() {
+      if (audio.src) URL.revokeObjectURL(audio.src);
+      line = timeline();
+      audio.src = wav(line);
+      audio.play();
+    }
+    function toggle() {
+      if (!line || audio.ended) return play();
+      audio.paused ? audio.play() : audio.pause();
+    }
+    function loop() {
+      cancelAnimationFrame(raf); pip?.cancelAnimationFrame(raf);
+      draw(line ? now() : null);
+      raf = playing() ? frameWin().requestAnimationFrame(loop) : 0;
+    }
+    audio.onplay = audio.onpause = loop;
+    audio.onended = () => { line = null; loop(); };
+    function draw(u) {
+      const lit = u !== null && line;
+      const cell = lit ? line.cells.find(c => u < c.end + 3) : null;
+      const down = lit && line.marks.some(([at, len]) => u >= at && u < at + len);
+      for (const v of views) v(cell, down, u ?? 0, line?.total ?? timeline().total, playing());
+      $("#play").textContent = playing() ? "‖ pause" : "▷ play here";
+    }
+    $("#play").onclick = toggle;
+
+    /* the pop-out: from the button, or by itself on leaving the tab */
+    async function openPip(how) {
+      if (pip) return;
+      pip = await documentPictureInPicture.requestWindow({ width: 340, height: 190 });
+      const d = pip.document;
+      d.head.innerHTML = `<style>
+        body { margin: 0; background: #1c1916; color: #e9e3d5; font: 13px ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+          display: grid; grid-template-rows: 1fr auto; height: 100vh; box-sizing: border-box; border: 1px solid #4a443c; }
+        body.down { border-color: #d6a650; box-shadow: inset 0 0 22px rgba(214,166,80,.18); }
+        .now { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+        .code { font-size: 22px; letter-spacing: 2px; min-height: 1.3em; }
+        .code .dot { color: #e2604f; } .code .dash { color: #6ea8e0; }
+        .ch { font-size: 54px; font-weight: 700; line-height: 1; min-height: 1em; }
+        .bar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; }
+        svg.sw { width: 26px; height: 28px; flex: none; }
+        .arm { transform-box: view-box; transform-origin: 16.02px 47.22px; transform: rotate(-30deg); }
+        .down .arm { transform: none; } .led { fill: transparent; } .down .led { fill: #d6a650; }
+        button { font: inherit; font-size: 16px; color: #e9e3d5; background: none; border: 0; cursor: pointer; width: 1.5em; }
+        .time { color: #8c857a; font-variant-numeric: tabular-nums; }
+        .track { flex: 1; height: 2px; background: #4a443c; position: relative; }
+        .fill { position: absolute; left: 0; top: 0; bottom: 0; background: #e9e3d5; }
+        .head { position: absolute; top: -8px; width: 4px; height: 18px; border-radius: 2px; background: #d6a650; margin-left: -2px; }
+      </style>`;
+      d.body.innerHTML = `
+        <div class="now"><div class="code"></div><div class="ch"></div></div>
+        <div class="bar">
+          <svg class="sw" viewBox="0 0 73 79" fill="none" aria-hidden="true">
+            <circle cx="13.66" cy="52.81" r="7" stroke="#e9e3d5" stroke-width="6"/>
+            <rect class="arm" x="16.02" y="47.22" width="56" height="7" rx="3.5" fill="#e9e3d5"/>
+            <circle class="led" cx="13.66" cy="52.81" r="3.6"/>
+          </svg>
+          <button class="play" aria-label="play">▷</button>
+          <span class="time"></span>
+          <span class="track"><span class="fill"></span><span class="head"></span></span>
+        </div>`;
+      const q = s => d.querySelector(s);
+      q(".play").onclick = toggle;
+      const view = (cell, down, u, total, on) => {
+        d.body.classList.toggle("down", !!down);
+        q(".code").innerHTML = cell ? cell.code.replace(/\.+|-+/g, r => `<span class="${r[0] === "." ? "dot" : "dash"}">${r}</span>`) : "";
+        q(".ch").textContent = cell ? cell.ch : "";
+        q(".play").textContent = on ? "‖" : "▷";
+        q(".time").textContent = mmss(u * unitMs()) + "/" + mmss(total * unitMs());
+        const pct = total ? Math.min(100, u / total * 100) : 0;
+        q(".fill").style.width = pct + "%"; q(".head").style.left = pct + "%";
+      };
+      views.add(view);
+      pip.addEventListener("pagehide", () => { views.delete(view); pip = null; loop(); });
+      $("#auto").textContent = how === "auto" ? "Opened by itself, on leaving the tab." : "";
+      if (!playing()) play(); else loop();
+    }
+    $("#pop").onclick = () => openPip("button");
+    try {
+      navigator.mediaSession.setActionHandler("enterpictureinpicture", () => openPip("auto"));
+      $("#auto").textContent = "Leave the tab while it plays to try the automatic one.";
+    } catch {
+      $("#auto").textContent = "This browser has no automatic picture-in-picture.";
+    }
+  </script>
+</body>
+</html>
