@@ -38,7 +38,7 @@ import { GROUPS } from "./nav-ref.js";
 
 /* the site's top level: what you came for first, a rule, then the small pages */
 const TOP = [["/", "STATION"], ["/hero/", "KEY HERO"], ["/ref/", "REF"], null,
-  ["/design/", "DESIGN NOTES"], ["/privacy/", "PRIVACY"], ["/bookmarklet/", "BOOKMARKLET"]];
+  ["/design/", "DESIGN NOTES"], ["/privacy/", "PRIVACY"], ["/extension/", "EXTENSION"], ["/bookmarklet/", "BOOKMARKLET"]];
 
 /* the reference: its six tables in its own order, a rule, then the pages that gather */
 const REF = [["alphabet", "ALPHABET"], ["numbers", "NUMBERS"], ["symbols", "SYMBOLS"], ["prosigns", "PROSIGNS"],

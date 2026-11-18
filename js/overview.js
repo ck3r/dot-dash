@@ -44,7 +44,8 @@
  * show that character's card).
  *
  * The parts of the column do what they do in the station's column:
- * the marks copy, so does how it sounds (di-di-dit); and, where the
+ * the marks sound themselves at the station's speed (js/tone.js),
+ * how it sounds (di-di-dit) copies; and, where the
  * page has them (renderCard's options), the name says itself, cut
  * and ~ open what they are.
  *
@@ -57,6 +58,7 @@ import { PHONETIC, PROSIGNS_BY_CODE, splits } from "./characters.js";
 import { STROKES, CUT_STROKES, createLetter } from "./strokes.js";
 import { STRESS, spokenOf, syllablesOf, layStair } from "./stair.js";
 import { symbolWord, codeSaid } from "./tx/voice.js";
+import { playMarks } from "./tone.js";
 export { PHONETIC, PROSIGNS_BY_CODE, splits };   // (they used to live here)
 
 
@@ -433,7 +435,7 @@ export function renderCard(element, code, { say: speak, openCut, openHeard, flas
   row("r-tree", tree, place);
 
   /* ---- the marks, and the card: what it is, what it costs ---- */
-  const marks = tap("card-marks", `copy ${code}`, () => copy(code, marks, flash));
+  const marks = tap("card-marks", `play ${code}`, () => playMarks(code, { lights: [...marks.children] }));
   for (const m of code) marks.append(make("i", m === "." ? "dot" : "dash"));
 
   /* the tile, tapped: the whole card plays again */

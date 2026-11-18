@@ -4,7 +4,9 @@
  * can always be paused or stopped from outside the page.
  *
  *   createMediaControls() → {
- *     follow(playing, words)   in step with the player, after any change
+ *     follow(playing, words, { position, duration })
+ *                              in step with the player, after any change
+ *                              (ms: where it is, and the whole message)
  *   }
  *
  * Chrome only shows them for a playing <audio> element; the message
@@ -18,7 +20,17 @@
  *                                                 controls)
  *
  * The buttons there (play, pause, stop) are the media session's
- * handlers, set in js/tx/player.js.
+ * handlers, set in js/tx/player.js, and so is seekto: the panel's bar,
+ * dragged, moves through the message.
+ *
+ * THE BAR is the message's, not the silence's: left to itself the
+ * system draws the playing <audio>'s place, and that's the six-second
+ * loop going round and round. So the message's length and place are
+ * handed over (setPositionState) at every change; between changes the
+ * system moves it along by itself, at the rate it's told.
+ *
+ *   silence  ┄┄┄┄┄┄↺┄┄┄┄┄┄↺┄┄┄┄┄┄↺     what the bar showed
+ *   message  ━━━━━━━━━━━●┄┄┄┄┄┄┄┄┄     what it shows
  */
 import { format } from "../morse.js";
 import { plainText } from "./state.js";
@@ -44,9 +56,10 @@ export function createMediaControls() {
   let track = null;     // made on the first play (inside a tap, as play() needs)
   let title = null;
 
-  function follow(playing, words) {
+  function follow(playing, words, { position = 0, duration = 0 } = {}) {
     const session = navigator.mediaSession;
     if (session) session.playbackState = playing ? "playing" : "paused";
+    place(session, position, duration);
     if (!playing) {
       track?.pause();
       return;
@@ -63,6 +76,17 @@ export function createMediaControls() {
                   { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" }]
       });
     }
+  }
+
+  /* (a message of no length clears it; the system's own clamps are
+     strict, so the place is kept inside the length) */
+  function place(session, position, duration) {
+    if (!session?.setPositionState) return;
+    try {
+      if (!(duration > 0)) return session.setPositionState();
+      const d = duration / 1000;
+      session.setPositionState({ duration: d, position: Math.max(0, Math.min(d, position / 1000)), playbackRate: 1 });
+    } catch { /* not offered here */ }
   }
 
   return { follow };

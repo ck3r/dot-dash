@@ -161,6 +161,7 @@ function setState(next) {
   document.body.dataset.state = next;
   $("#pause").textContent = next === "paused" ? "go on" : "pause";
   $("#pause").disabled = next === "ready" || next === "done";
+  $("#restart").disabled = next === "ready";
   $("#card").hidden = next !== "done";
   $("#note").textContent = typing.on() ? "type your text" : { ready: "press either key to start", paused: "paused" }[next] ?? "";
 }
@@ -412,6 +413,7 @@ $("#pause").addEventListener("click", event => {
   $("#pause").blur();        // or the space bar would press it, as well as pause
   return state === "running" ? pause() : start(event.timeStamp);
 });
+$("#restart").addEventListener("click", () => { $("#restart").blur(); load(); });
 $("#again").addEventListener("click", load);
 $("#card-close").addEventListener("click", load);
 

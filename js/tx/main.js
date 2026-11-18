@@ -356,8 +356,10 @@ const { keyer, trainView, logo, ctrlPaddle, isChord, setKeyMode, syncKeySelect, 
 /*
  * Read mode: a swipe down on the input modes (.- ⇄ A) puts the pad /
  * keyboard away, so the message gets the room (to read a long
- * history, or show someone); a swipe up, or a tap (either mode),
- * brings it back. A computer keyboard still keys meanwhile.
+ * history, or show someone). The switch goes with them (and settings:
+ * the player has the row, tx.css body.reading), so a tap in the
+ * message, the open tab, or Esc brings them back. A computer
+ * keyboard still keys meanwhile.
  */
 function markModeButtons() {
   syncKeySelect();
@@ -459,7 +461,8 @@ $(".input-mode").addEventListener("animationend", event => event.target.classLis
    view; the tray takes their place while it's open */
 function showInput() {
   const off = !$("#tray").hidden || state.inputAway;   // the tray in their place, or put away
-  $("#rx").hidden = off || !state.rx;
+  /* rx put away keeps its deck (tx.css body.rx.reading): only the tray takes its place */
+  $("#rx").hidden = !$("#tray").hidden || !state.rx;
   $("#pad").hidden = off || state.rx || state.mode !== "key";
   $("#type").hidden = off || state.rx || state.mode !== "type";
   $("#train").hidden = off || state.rx || state.mode !== "key" || state.keyMode === "tap";
@@ -535,8 +538,25 @@ document.addEventListener("dot-dash:rx-choose", event => {
   else if (value === "isolate") $("#rx-isolate").click();
 });
 
-$("#tab-tx").addEventListener("click", () => setRx(false));
-$("#tab-rx").addEventListener("click", () => setRx(true));
+/* on the press, not the release: a tab is chosen as the finger lands
+   (the click still comes, for a keyboard; setRx doesn't do it twice).
+   The tab that's open puts its keys (or rx's view) away, and brings
+   them back: once, on the press, or on a keyboard's click (detail 0) */
+for (const [id, on] of [["#tab-tx", false], ["#tab-rx", true]]) {
+  const choose = () => {
+    if (on === state.rx) putKeysAway(!state.inputAway);
+    else setRx(on);
+  };
+  $(id).addEventListener("pointerdown", event => { if (event.button === 0) choose(); });
+  $(id).addEventListener("click", event => { if (event.detail === 0) choose(); else setRx(on); });
+}
+/* rx's code, fetched while nothing's happening, so the first rx
+   doesn't wait on the network (only fetched: nothing listens) */
+const idle = window.requestIdleCallback ?? (fn => setTimeout(fn, 1500));
+addEventListener("load", () => idle(() => {
+  rxLoading ??= import("./rx.js").catch(err => { rxLoading = null; throw err; });   // failed: rx tries again itself
+  rxLoading.catch(() => { });
+}, { timeout: 4000 }), { once: true });
 /* a tab list's own keys: ← → move between them, and choose */
 $(".tabs").addEventListener("keydown", event => {
   if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;

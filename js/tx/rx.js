@@ -59,6 +59,19 @@
  * What's seen is drawn on the same scope and goes onto the same
  * line; nothing of the picture is kept at all.
  *
+ * POP OUT ("pop out", after save a .wav; where the browser has it):
+ * what's heard, in a small window that stays on top of every other,
+ * for listening to a radio or a video while you're in another window.
+ *
+ *   ╭──────────────────────────────────╮
+ *   │                   CQ CQ DE K1ABC │   the line, its newest end
+ *   │ ▁▁█▁███▁▁▁███▁█▁▁▁▁▁███▁█▁▁███▁█ │   the scope
+ *   │ o/  ● ‖        700 Hz · 18 wpm   │   the switch, rec, pause, the sender
+ *   ╰──────────────────────────────────╯
+ *
+ * A tab you've left gets no frames of its own, so while it's open the
+ * window's frames draw the scope, and it's copied across.
+ *
  *   createRx({ state, press, unitNow, fist, logo, playing }) → {
  *     show(on)     the view came or went (it stops when it goes)
  *     stop()       stop listening, and playing
@@ -903,9 +916,96 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
   try { kept = localStorage.getItem(MEDIUM); } catch { }
   if (kept === "light") setMedium("light");
 
+  /*
+   * THE POP-OUT. Its window is the page's own (a blank one, on top):
+   * the look goes in as a constructed sheet, in the station's colours
+   * as they stand (dark or light), and everything in it is drawn from
+   * here.
+   */
+  const popButton = $("#rx-pop");
+  let pip = null, pipRaf = 0;
+  if ("documentPictureInPicture" in window) popButton.hidden = false;
+  popButton.addEventListener("click", () => pip ? pip.close() : popOut());
+  const textOf = () => wordsOf(state.tokens).map(w => w.map(c => DECODE[c] ?? "?").join("")).join(" ");
+  async function popOut() {
+    try { pip = await documentPictureInPicture.requestWindow({ width: 420, height: 170 }); }
+    catch { pip = null; return; }
+    const d = pip.document, css = getComputedStyle(document.documentElement);
+    const v = name => css.getPropertyValue(name).trim();
+    d.title = "dot-da.sh: heard";
+    const look = `
+      body { margin: 0; background: ${v("--bakelite")}; color: ${v("--paper")}; font: 13px ${css.fontFamily};
+        display: grid; grid-template-rows: auto 1fr auto; height: 100vh; box-sizing: border-box; border: 1px solid ${v("--wire")}; overflow: hidden; }
+      body.down { border-color: ${v("--brass")}; }
+      .line { font-size: 22px; letter-spacing: 1px; padding: 10px 12px 2px; white-space: nowrap; overflow: hidden; direction: rtl; text-align: right; min-height: 1.3em; }
+      .line span { direction: ltr; unicode-bidi: plaintext; }
+      canvas { display: block; width: 100%; height: 100%; min-height: 0; }
+      .bar { display: flex; align-items: center; gap: 10px; padding: 6px 12px 8px; }
+      svg.sw { width: 24px; height: 26px; flex: none; overflow: visible; color: ${v("--paper")}; }
+      .arm { transform-box: view-box; transform-origin: 16.02px 47.22px; transform: rotate(-30deg); }
+      .down .arm { transform: none; } .led { fill: transparent; } .down .led { fill: ${v("--brass")}; }
+      button { font: inherit; color: ${v("--graphite")}; background: none; border: 1px solid ${v("--wire")}; border-radius: 4px; padding: 1px 10px; cursor: pointer; }
+      button[aria-pressed="true"] { color: ${v("--paper")}; border-color: ${v("--paper")}; }
+      button:disabled { opacity: .4; cursor: default; }
+      .read { margin-left: auto; color: ${v("--graphite")}; font-size: 12px; white-space: nowrap; }`;
+    try {
+      const sheet = new pip.CSSStyleSheet();
+      sheet.replaceSync(look);
+      d.adoptedStyleSheets = [sheet];
+    } catch {
+      const style = d.createElement("style");
+      style.textContent = look;
+      d.head.append(style);
+    }
+    d.body.innerHTML = `
+      <div class="line"><span></span></div>
+      <canvas></canvas>
+      <div class="bar">
+        <svg class="sw" viewBox="0 0 73 79" fill="none" aria-hidden="true">
+          <circle cx="13.66" cy="52.81" r="7" stroke="currentColor" stroke-width="6"/>
+          <rect class="arm" x="16.02" y="47.22" width="56" height="7" rx="3.5" fill="currentColor"/>
+          <circle class="led" cx="13.66" cy="52.81" r="3.6"/>
+        </svg>
+        <button class="rec" type="button">● listen</button>
+        <button class="pause" type="button">‖ pause</button>
+        <span class="read"></span>
+      </div>`;
+    const q = s => d.querySelector(s);
+    q(".rec").onclick = () => keys.rec.click();
+    q(".pause").onclick = () => keys.pause.click();
+    pip.addEventListener("pagehide", () => { pip = null; pipRaf = 0; popButton.textContent = "pop out"; });
+    popButton.textContent = "pop back";
+    pipRaf = pip.requestAnimationFrame(pipFrame);
+  }
+  function pipFrame() {
+    if (!pip) return;
+    const d = pip.document;
+    /* the station's own frame may not be coming (a tab you've left):
+       what it does, done here */
+    follow();
+    dirty = true;
+    draw();
+    const out = d.querySelector("canvas"), g = out.getContext("2d");
+    const w = out.clientWidth, h = out.clientHeight, ratio = pip.devicePixelRatio || 1;
+    if (out.width !== Math.round(w * ratio)) out.width = Math.round(w * ratio);
+    if (out.height !== Math.round(h * ratio)) out.height = Math.round(h * ratio);
+    g.clearRect(0, 0, out.width, out.height);
+    if (canvas.width && canvas.height) g.drawImage(canvas, 0, 0, out.width, out.height);
+    d.querySelector(".line span").textContent = textOf().slice(-60);
+    const down = going() && !!columns.at(-1)?.down;
+    d.body.classList.toggle("down", down);
+    const rec = d.querySelector(".rec"), hold = d.querySelector(".pause");
+    rec.setAttribute("aria-pressed", String(going()));
+    rec.disabled = keys.rec.disabled;
+    hold.setAttribute("aria-pressed", keys.pause.getAttribute("aria-pressed"));
+    hold.disabled = keys.pause.disabled;
+    d.querySelector(".read").textContent = read.textContent;
+    pipRaf = pip.requestAnimationFrame(pipFrame);
+  }
+
   sync();
   return {
-    show(on) { if (!on) stop(); dirty = true; },
+    show(on) { if (!on) { stop(); pip?.close(); } dirty = true; },
     stop,
     get listening() { return going(); }
   };

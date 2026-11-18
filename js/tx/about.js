@@ -19,6 +19,7 @@ import { PROSIGNS_BY_CODE, TERMS, splits } from "../characters.js";
 import { STRESS, spokenOf, syllablesOf, layStair } from "../stair.js";
 import { $, el, flash } from "./dom.js";
 import { say, symbolWord, codeSaid } from "./voice.js";
+import { playMarks } from "../tone.js";
 
 export const aboutHref = code => `/ref/?/_${code}_`;
 
@@ -66,7 +67,7 @@ export function createAbout({ hiding, redact, openHeard, openCut, openWord, gree
    *     ▫  to come       ▪        ▪
    *     alfa (grey)      alfa     alfa (bright)
    *
-   * Each part does its own thing: the marks copy, the name says
+   * Each part does its own thing: the marks sound, the name says
    * itself (voice.js), the cut opens the reference tree in
    * cut numbers, and ~ explains mishearing. Only (i) goes to the
    * character's page (a new tab, so the message stays put).
@@ -131,13 +132,12 @@ export function createAbout({ hiding, redact, openHeard, openCut, openWord, gree
     const main = el("span", "about-main");
     const marks = el("button", "about-marks");
     marks.type = "button";
-    marks.title = `copy ${code}`;
-    marks.setAttribute("aria-label", `copy the marks, ${code}`);
+    marks.title = `play ${code}`;
+    marks.setAttribute("aria-label", `play the marks, ${code}`);
     [...code].forEach((m, i) => marks.append(el("i", (m === "." ? "dot" : "dash") + (sent !== null && i >= sent ? " todo" : ""))));
-    marks.addEventListener("click", async () => {
-      try { await navigator.clipboard.writeText(code); flashWord(marks, "copied"); }
-      catch { flashWord(marks, "can't copy"); }
-    });
+    /* a tap sounds them, at the station's speed and pitch (copying is
+       the tape's and share's: here it only said the marks again) */
+    marks.addEventListener("click", () => playMarks(code, { lights: [...marks.children] }));
     main.append(marks);
     /* the site's own marks (· − − · −, empty in the tree): its name,
        stepped like the others; a tap keys it in the tab */

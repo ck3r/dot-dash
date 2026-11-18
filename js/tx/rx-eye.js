@@ -34,6 +34,8 @@
  *                  picture stays)
  *     load(file)   a video, shown at its first picture → true / false
  *     rewind()     the video, back to its start
+ *     flip()       the other camera, front or back (the back first):
+ *                  kept, and swapped now if it's running → as start()
  *     close()      all of it away
  *     film         is a video loaded?
  *     reading      "lamp" or "blink": what the ring is on
@@ -51,6 +53,7 @@ import { $, toast } from "./dom.js";
 const RING = 22;              // the ring, from its middle to its side, as the finger sees it (px)
 const PATCH = 24;             // and as it's looked at: this many pixels a side
 const ZOOM_MAX = 8;           // magnified here: this far
+const FACING_KEY = "dot-dash:rx-facing";   // "user" once flipped to the front
 
 export function createEye({ frame, ended = () => { }, tap = () => { } }) {
   const canvas = $("#rx-picture"), video = $("#rx-video");
@@ -60,6 +63,26 @@ export function createEye({ frame, ended = () => { }, tap = () => { } }) {
   const eyes = patch.getContext("2d", { willReadFrequently: true });
 
   let stream = null, track = null, film = null, run = 0;
+  /* which camera: the back one, unless flipped (and kept) */
+  let facing = "environment";
+  try { if (localStorage.getItem(FACING_KEY) === "user") facing = "user"; } catch { }
+  /* the flip (⇄, the picture's corner): only where there are two
+     cameras to choose from, known once one has been allowed */
+  const flipper = $("#rx-flip");
+  async function showFlip() {
+    if (!flipper) return;
+    try {
+      const cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput");
+      flipper.hidden = cams.length < 2;
+    } catch { flipper.hidden = true; }
+    flipper.title = facing === "environment" ? "the front camera" : "the back camera";
+    flipper.setAttribute("aria-label", flipper.title);
+  }
+  flipper?.addEventListener("click", event => {
+    event.stopPropagation();
+    flipper.blur();
+    api.flip().then(ok => { if (ok !== true) toast("can't open that camera"); });
+  });
   let lens = null;              // the camera's own zoom: { min, max }
   let zoom = 1;                 // 1: as the camera gives it
   /* where the ring is and where the middle of what's shown is, both
@@ -348,16 +371,24 @@ export function createEye({ frame, ended = () => { }, tap = () => { } }) {
         return true;
       }
       if (!navigator.mediaDevices?.getUserMedia) return "cant";
+      /* the back of a phone, where the lamp is, for certain ("ideal"
+         alone, some phones give the front); and as many pictures a
+         second as it will give (each one is a look at the lamp). No
+         camera that way (a laptop's one): whichever there is */
+      const ask = facingMode => navigator.mediaDevices.getUserMedia({
+        video: { facingMode, frameRate: { ideal: 60 }, width: { ideal: 1280 } }, audio: false
+      });
       try {
-        /* the back of a phone, where the lamp is; and as many pictures
-           a second as it will give (each one is a look at the lamp) */
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" }, frameRate: { ideal: 60 }, width: { ideal: 1280 } }, audio: false
-        });
+        try { stream = await ask({ exact: facing }); }
+        catch (e) {
+          if (e?.name !== "OverconstrainedError" && e?.name !== "NotFoundError") throw e;
+          stream = await ask({ ideal: facing });
+        }
       } catch (e) {
         stream = null;
         return e?.name === "NotAllowedError" ? "denied" : "none";
       }
+      showFlip();
       track = stream.getVideoTracks()[0] ?? null;
       const can = track?.getCapabilities?.().zoom;
       lens = can && can.max > can.min && can.min > 0 ? { min: can.min, max: can.max } : null;
@@ -385,6 +416,15 @@ export function createEye({ frame, ended = () => { }, tap = () => { } }) {
       return true;
     },
     rewind() { if (film) video.currentTime = 0; },
+    /* the other camera (front or back), kept for next time; running,
+       it's swapped there and then */
+    async flip() {
+      facing = facing === "environment" ? "user" : "environment";
+      try { localStorage.setItem(FACING_KEY, facing); } catch { }
+      if (!stream) return true;
+      halt();
+      return api.start();
+    },
     close() {
       halt();
       if (film) {

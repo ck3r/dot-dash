@@ -150,7 +150,8 @@ export function createPlayback({
     /* playing, or paused part-way: the lit letter is where you are,
        so the caret (where typing goes) steps out until it's over */
     document.body.classList.toggle("playback", player.playing || (state.playKey !== null && player.position < player.duration));
-    media.follow(player.playing, playable()?.words);   // the system's controls (js/tx/media.js)
+    media.follow(player.playing, playable()?.words,   // the system's controls (js/tx/media.js)
+      { position: player.position, duration: playable() ? player.duration : 0 });
     tab.playing(player.playing);                        // the tab's icon lit (js/tx/tab.js)
     const can = !!playable();
     $("#play").disabled = !can;
@@ -575,7 +576,9 @@ export function createPlayback({
     });
     const session = navigator.mediaSession;
     if (session) {
-      for (const [name, fn] of [["play", play], ["pause", pause], ["stop", stopPlayback]]) {
+      /* seekto: the panel's bar, dragged (seconds) */
+      const seekto = details => seekTo((details.seekTime ?? 0) * 1000);
+      for (const [name, fn] of [["play", play], ["pause", pause], ["stop", stopPlayback], ["seekto", seekto]]) {
         try { session.setActionHandler(name, fn); } catch { /* not offered here */ }
       }
     }

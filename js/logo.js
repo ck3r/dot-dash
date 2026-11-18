@@ -31,10 +31,17 @@
 export const BAKELITE = "#1c1916";
 export const PAPER = "#e9e3d5";
 
-const RING = { cx: 13.6603, cy: 52.8063, r: 7, width: 6 };
-const LEVER = { x: 16.0214, y: 47.2164, w: 56, h: 7, r: 3.5 };
+/* The lever turns on the ring's centre, and the middle of its stem
+   runs through that centre, up or down:
+
+          ╱            the stem's middle line, through the ring's
+        ╱              centre at any angle: it starts `from` along
+     ◯╱                that line (inside the ring's stroke, so they
+                       join) and runs `length` on from there      */
+export const RING = { cx: 13.6603, cy: 52.8063, r: 7, width: 6 };
+export const LEVER = { from: 4.84, length: 56, thick: 7 };
 const MIDDLE = [35.1, 39.4];
-const ANGLE = { open: -30, closed: 0 };
+export const ANGLE = { open: -30, closed: 0 };
 
 export const FILL = { disc: 1.42, square: 1.1, maskable: 0.94 };
 
@@ -56,7 +63,7 @@ export function logoSVG(options) {
   ${ground}
   <g transform="translate(64 64) scale(${fill}) translate(${-MIDDLE[0]} ${-MIDDLE[1]})">
     <circle cx="${RING.cx}" cy="${RING.cy}" r="${RING.r}" stroke="${ink}" stroke-width="${RING.width}" fill="none"/>
-    <rect x="${LEVER.x}" y="${LEVER.y}" width="${LEVER.w}" height="${LEVER.h}" rx="${LEVER.r}" transform="rotate(${angle} ${LEVER.x} ${LEVER.y})" fill="${ink}"/>
+    <rect x="${RING.cx + LEVER.from}" y="${RING.cy - LEVER.thick / 2}" width="${LEVER.length}" height="${LEVER.thick}" rx="${LEVER.thick / 2}" transform="rotate(${angle} ${RING.cx} ${RING.cy})" fill="${ink}"/>
   </g>
 </svg>
 `;
@@ -75,7 +82,7 @@ export function drawLogo(g, size, options) {
   g.strokeStyle = g.fillStyle = ink;
   g.lineWidth = RING.width;
   g.beginPath(); g.arc(RING.cx, RING.cy, RING.r, 0, 2 * Math.PI); g.stroke();
-  g.translate(LEVER.x, LEVER.y); g.rotate(angle * Math.PI / 180);
-  g.beginPath(); g.roundRect(0, 0, LEVER.w, LEVER.h, LEVER.r); g.fill();
+  g.translate(RING.cx, RING.cy); g.rotate(angle * Math.PI / 180);
+  g.beginPath(); g.roundRect(LEVER.from, -LEVER.thick / 2, LEVER.length, LEVER.thick, LEVER.thick / 2); g.fill();
   g.restore();
 }
