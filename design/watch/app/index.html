@@ -111,6 +111,27 @@
     .screen .name { font-size: 11px; }
     .screen .target { font-size: 48px; color: var(--paper); line-height: 1; }
 
+    /* station: the draft over its list; sending, the letter going out lit */
+    .screen .draft { font-size: 13px; color: var(--paper); max-width: 170px; white-space: pre; overflow: hidden; border-bottom: 1px solid var(--wire); padding-bottom: 3px; }
+    .screen .tx { font-size: 22px; color: var(--graphite); max-width: 190px; word-break: break-all; white-space: pre-wrap; }
+    .screen .tx span.now { color: var(--brass); }
+
+    /* copy: three to choose from */
+    .screen .choices { list-style: none; margin: 0; padding: 0; display: flex; gap: 18px; font-size: 28px; }
+    .screen .choices li { color: var(--graphite); padding: 0 6px; border-bottom: 2px solid transparent; }
+    .screen .choices li.chosen { color: var(--paper); border-bottom-color: var(--brass); }
+    .screen .choices li.answer { color: var(--brass); }
+
+    /* the game: the ground, the runner (the key's disc), hurdles and beams */
+    .screen .game { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .game .ground { stroke: var(--wire); stroke-width: 1.5; }
+    .game .runner circle { fill: var(--paper); }
+    .game .ob.dot { fill: var(--dot); }
+    .game .ob.dash { fill: var(--dash); }
+    .game .ob.hit { fill: var(--wire); }
+    .game .coming { fill: var(--paper); font-family: var(--mono); font-size: 40px; }
+    .game .score { fill: var(--graphite); font-family: var(--mono); font-size: 11px; }
+
     /* the name as a stair (js/core/stair.js), as on the card */
     .screen .stair { display: block; position: relative; width: 70px; height: calc(var(--h) * 1em); font-size: 13px; }
     .screen .stair.small { font-size: 10px; width: 100%; }
@@ -130,7 +151,7 @@
 <body>
   <main class="sheet">
     <h1>watch app</h1>
-    <p>The Garmin app, drawn here first: its screens on a watch with five buttons, each working. Press the buttons, or use the keyboard.</p>
+    <p>The Garmin app, drawn here first: a station (write, then send), the reference, practice and a game, on a watch with five buttons, each working. Press the buttons, or use the keyboard.</p>
 
     <div class="bench">
       <div class="watch" id="watch">

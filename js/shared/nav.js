@@ -37,14 +37,14 @@
 import { GROUPS } from "./nav-tables.js";
 import { siteOrigin } from "../core/where.js";
 
-/* the site's top level: what you came for first, a rule, then the small pages */
+/* the site's top level: what you came for first, a rule, then the small pages, the manual (help) first */
 const TOP = [["/", "STATION"], ["/hero/", "KEY HERO"], ["/ref/", "REF"], null,
-  ["/design/", "DESIGN NOTES"], ["/privacy/", "PRIVACY"], ["/extension/", "EXTENSION"], ["/bookmarklet/", "BOOKMARKLET"]];
+  ["/manual/", "MANUAL"], ["/design/", "DESIGN NOTES"], ["/privacy/", "PRIVACY"], ["/extension/", "EXTENSION"], ["/bookmarklet/", "BOOKMARKLET"]];
 
 /* the reference: its six tables in its own order, a rule, then the pages that gather */
 const REF = [["alphabet", "ALPHABET"], ["numbers", "NUMBERS"], ["symbols", "SYMBOLS"], ["prosigns", "PROSIGNS"],
   ["q-codes", "Q CODES"], ["abbreviations", "ABBREVIATIONS"], null,
-  ["chart", "CHART"], ["phrases", "PHRASES"], ["how-it-works", "HOW IT WORKS"]].map(r => r && [`/ref/${r[0]}/`, r[1]]);
+  ["chart", "CHART"], ["tree", "TREE"], ["phrases", "PHRASES"], ["how-it-works", "HOW IT WORKS"]].map(r => r && [`/ref/${r[0]}/`, r[1]]);
 
 const LISTS = { top: TOP, ref: REF, ...GROUPS };
 

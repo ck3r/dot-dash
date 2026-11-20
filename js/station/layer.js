@@ -19,6 +19,7 @@ import { $, el, nearest, flash } from "../shared/dom.js";
 import { say } from "../shared/voice.js";
 import { timingNow } from "./keys.js";
 import { lightSyllable } from "../core/stair.js";
+import { inApp } from "../core/where.js";
 
 /* what each checkbox does, a tap on its word ("suggest" has its own
    note, with the speed set now: #suggest-pop) */
@@ -94,8 +95,9 @@ export function createLayer({
 
   /*
    * Long-press an output, and its list opens on its own, above it,
-   * without the settings: ♪ the sound, ☼ the light, ≋ vibration (on
-   * soon), the input switch (.- ⇄ A, anywhere on it) which keyer, text
+   * without the settings: ♪ the sound, ☼ the light, ≋ vibration (its
+   * strength, in the app; on the web, on soon), the input switch
+   * (.- ⇄ A, anywhere on it) which keyer, text
    * among them; a tap there still just swaps keying and typing. The
    * time holds pretty play, the suggestions' corner the suggestions:
    * a box in the tray, on or off. Each wears a tick in its corner, as
@@ -114,12 +116,13 @@ export function createLayer({
    */
   const LONG_PRESS = 450;   // ms
   const LISTS = [['[data-out="sound"]', "#opt-sound"], ['[data-out="light"]', "#opt-light"],
-                 ['[data-out="vibrate"]', null], ['.input-mode', "#opt-key"],
+                 ['[data-out="vibrate"]', inApp() ? "#opt-vibrate" : null], ['.input-mode', "#opt-key"],
                  ["#time", "#opt-pretty"], ["#chips-more", "#opt-suggest"]];
 
   /*
    * What a list offers: a select's options; a tray box's off and on
-   * (named by its word there); vibration's off, and on to come.
+   * (named by its word there); on the web, vibration's off, and on to
+   * come (the app's is a select, #opt-vibrate, its strengths).
    * Receiving, ♪ and ☼ hold what's read instead, chosen through rx's
    * own switches (js/station/main.js); ≋ holds nothing:
    *
@@ -155,10 +158,20 @@ export function createLayer({
         choose: v => { select.checked = v === "on"; select.dispatchEvent(new Event("change", { bubbles: true })); }
       };
     }
+    const options = [...select.options].filter(o => !o.disabled && !o.hidden).map(o => ({ value: o.value, label: o.textContent }));
+    /* ≋ (the app's): a last line for when nothing's felt, the manual's
+       fix. The phone's own setting can silence it, and the app can't
+       read that setting to tell (apps/mobile BuzzPlugin), so it's always
+       there */
+    const why = select.id === "opt-vibrate";
+    if (why) options.push({ value: "why", label: "not felt? ›" });
     return {
       name: select.closest("label")?.firstChild?.textContent.trim() ?? "choose", value: select.value,
-      options: [...select.options].filter(o => !o.disabled && !o.hidden).map(o => ({ value: o.value, label: o.textContent })),
-      choose: v => { select.value = v; select.dispatchEvent(new Event("change", { bubbles: true })); }   // as if chosen in the tray
+      options,
+      choose: v => {
+        if (why && v === "why") return location.assign("/manual/#no-vibration");
+        select.value = v; select.dispatchEvent(new Event("change", { bubbles: true }));   // as if chosen in the tray
+      }
     };
   }
   let list = null;          // the open list, or null

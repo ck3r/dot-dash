@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#1c1916">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-  <!-- made by npm run ref (tools/ref-groups.cjs) from the site's own modules: change them, or the maker, not this file -->
+  <!-- made by npm run ref (tools/ref-groups.cjs) from the reference, apps/web/ref/index.html: change that, or the maker, not this file -->
   <title>Morse code numbers: 0 to 9 · dot-da.sh</title>
   <meta name="description" content="The numbers in Morse code, 0 to 9: 1 is .----, 2 is ..---, 3 is ...--, and 0 is -----. Every number is five marks long.">
   <link rel="canonical" href="https://dot-da.sh/ref/numbers/">
@@ -16,7 +16,6 @@
 
   <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
   <link rel="stylesheet" href="/css/base.css">
-  <link rel="stylesheet" href="/css/prose.css">
   <link rel="stylesheet" href="/css/ref-item.css">
   <script type="module" src="/js/shared/nav.js"></script>
 
@@ -42,8 +41,8 @@
   </script>
 </head>
 
-<body class="notes signal item">
-  <!-- the bar: home, the way here, and this page's name: its heading -->
+<body data-focus="numbers">
+  <!-- the bar (js/shared/nav.js): home, and REF, this page's heading -->
   <header class="top">
     <nav class="crumbs" aria-label="where you are">
       <ol>
@@ -56,8 +55,273 @@
   </header>
 
   <main>
-    <p class="lead">The ten digits. Each is five marks long: 1 to 5 start with their own count of dots, 6 to 9 with dashes turning to dots. Where only numbers are expected they are often sent shorter, as <a href="/ref/how-it-works/#cut-numbers">cut numbers</a>.</p>
-      <table class="chart">
+    <p class="ref-lead">The ten digits. Each is five marks long: 1 to 5 start with their own count of dots, 6 to 9 with dashes turning to dots. Where only numbers are expected they are often sent shorter, as <a href="/ref/how-it-works/#cut-numbers">cut numbers</a>.</p>
+    <!-- ───────────── tree ───────────── -->
+    <section class="frame tree-frame" aria-labelledby="tree-label" data-group="alphabet numbers symbols">
+      <h2 class="frame-label" id="tree-label">tree</h2>
+      <!-- the station's switch, on the frame's bottom edge: it keys
+           along as the tree is traced (the frame lit while it's closed),
+           and takes you to the station -->
+      <a href="/" class="logo switch" aria-label="the station" title="the station">
+        <svg viewBox="0 0 73 79" fill="none" aria-hidden="true">
+          <circle cx="13.66" cy="52.81" r="7" stroke="currentColor" stroke-width="6"/>
+          <rect class="arm" x="16.02" y="47.22" width="56" height="7" rx="3.5" fill="currentColor"/>
+          <circle class="led" cx="13.66" cy="52.81" r="3.6"/>
+        </svg>
+      </a>
+
+      <fieldset class="options">
+        <legend class="visually-hidden">What the tree shows</legend>
+        <label class="check"><input type="checkbox" id="opt-letters" checked> letters</label>
+        <label class="pick">numbers
+          <select id="opt-numbers">
+            <option value="off">off</option>
+            <option value="on">standard</option>
+            <option value="cut">cut</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="opt-symbols"> symbols</label>
+        <label class="check"><input type="checkbox" id="opt-prune"> prune empty</label>
+      </fieldset>
+
+      <!-- the canvas: the tree, with replay at its top left and expand
+           at its top right, staying put over it (main.js) -->
+      <div class="tree-wrap">
+        <div class="tree-tools">
+          <button type="button" class="tree-replay" title="play it again" aria-label="play it again">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.6-3.7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12.6 1.6v3.3H9.3" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+          </button>
+          <button type="button" class="tree-expand" title="the whole tree" aria-label="the whole tree" aria-pressed="false">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path class="out" d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" fill="none" stroke="currentColor" stroke-width="1.6"/><path class="in" d="M6 2v4H2M14 6h-4V2M10 14v-4h4M2 10h4v4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+          </button>
+        </div>
+        <pre class="tree tree-h" id="tree-h" aria-label="Morse tree: dot branches left, dash branches right"></pre>
+        <pre class="tree tree-v" id="tree-v" aria-label="Morse tree: dot branches up, dash branches down"></pre>
+      </div>
+
+      <fieldset class="options options-look">
+        <legend class="visually-hidden">How the tree looks</legend>
+        <label class="pick">layout
+          <select id="opt-layout">
+            <option value="horizontal" selected>horizontal</option>
+            <option value="vertical">vertical</option>
+          </select>
+        </label>
+        <label class="pick">style
+          <select id="opt-style">
+            <option value="branches">branches</option>
+            <option value="classic" selected>classic</option>
+          </select>
+        </label>
+        <label class="pick">size
+          <select id="opt-size">
+            <option value="auto">auto</option>
+            <option value="roomy" selected>roomy</option>
+            <option value="compact">compact</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="opt-signal" checked aria-label="dot and dash colours"> colors</label>
+      </fieldset>
+    </section>
+
+    <!-- ───────────── one character: tap a node, or type it ───────────── -->
+    <section class="frame selected-frame" id="selected-frame" aria-labelledby="selected-label">
+      <h2 class="frame-label" id="selected-label">selected character</h2>
+      <p id="selected-none" class="empty">none</p>
+      <div id="selected-card" class="card" hidden></div>
+    </section>
+
+    <!-- ───────────── reference ───────────── -->
+    <section class="frame chart-frame" aria-labelledby="chart-label">
+      <h2 class="frame-label" id="chart-label">numbers</h2>
+  <div class="morse-code">
+
+  <!-- the letters, numbers and symbols, in a part of their own, so the
+       bar on top stays in reach while they go by (it lets go at the
+       prosigns: sticky inside this part) -->
+  <div class="chart-chars">
+
+  <!-- the bar: cards (every character as its tile, as in the about
+       card; the word says what they are), and with stroke on, the
+       player: the letters drawn as they're keyed, played as the
+       station's player plays a message (js/ref/main.js)
+
+         [x] cards    ▷ 2.8s ━━━━━━━━┃━━━━━━━ ⟲3 │ speed 5 wpm  consecutive   -->
+  <div class="chart-bar" data-group="alphabet numbers symbols">
+    <div class="cards-switch">
+      <label class="check box-only"><input type="checkbox" id="opt-cards"><span class="visually-hidden">characters as cards</span></label>
+      <button type="button" id="cards-info" class="flag-word" aria-haspopup="dialog" aria-controls="cards-pop">cards</button>
+    </div>
+    <div class="stroke-player" hidden>
+      <div class="stroke-play">
+        <button type="button" class="play" aria-label="play" title="play / pause">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path class="i-play" d="M7 4.5 19 12 7 19.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path class="i-pause" d="M6.5 5h3.5v14H6.5zM14 5h3.5v14H14z" fill="currentColor"/></svg>
+        </button>
+        <span class="time">0.0s</span>
+        <span class="seek-wrap">
+          <canvas class="trace" aria-hidden="true"></canvas>
+          <input type="range" class="seek" min="0" max="1000" step="1" value="1000" aria-label="position">
+        </span>
+        <div class="seek-pop" hidden aria-hidden="true"><canvas></canvas></div>
+        <button type="button" class="repeat" aria-pressed="false" aria-label="repeat: off" title="repeat: off">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12a7 7 0 1 1-2.05-4.95M19.5 4v4.5H15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="stroke-settings">
+        <label class="pick">speed
+          <select class="wpm">
+            <option value="5">5 wpm</option>
+            <option value="8" selected>8 wpm</option>
+            <option value="15">15 wpm</option>
+            <option value="25">25 wpm</option>
+          </select>
+        </label>
+        <button type="button" class="turn" aria-pressed="false">consecutive</button>
+      </div>
+    </div>
+  </div>
+  <dialog id="cards-pop" class="ref-pop" aria-labelledby="cards-title">
+    <span class="frame-label" id="cards-title">cards</span>
+    <button type="button" class="close" aria-label="close">×</button>
+    <p>Each character as a tile, like the periodic table's:</p>
+    <pre class="cards-sketch">┌───────────┐
+│<span class="g">num</span>   <span class="dash">-----</span>│   what it is, its marks
+│     <b>0</b>     │
+│<span class="g">22</span>      <span class="g">0</span> <span class="dot">.</span>│   weight, dots
+│        <span class="g">5</span> <span class="dash">−</span>│           dashes
+└───────────┘</pre>
+    <p>What it is: char, num, sym or pro, with cut for a letter that
+    stands in for a digit. Its weight: the units it takes to send,
+    its gaps and a letter gap included (PARIS is 50, with a word
+    gap).</p>
+    <p>With stroke on, the letters and numbers are drawn by their
+    marks.</p>
+  </dialog>
+
+  <!-- the letters, numbers and symbols A–Z, the ones English uses
+       most first, the quickest to send first, as the tree reads, or
+       in the order the Koch method teaches them,
+       each group on its own (js/ref/main.js); the lists from the prosigns
+       on keep their own order -->
+  <fieldset class="options chart-options" data-group="alphabet numbers symbols">
+    <legend class="visually-hidden">How the characters are ordered</legend>
+    <label class="pick">order
+      <select id="opt-chart-order">
+        <option value="az">A–Z</option>
+        <option value="freq">most used first</option>
+        <option value="weight">lightest first</option>
+        <option value="tree">as the tree reads</option>
+        <option value="koch">Koch order</option>
+      </select>
+    </label>
+  </fieldset>
+
+  <!-- a group's switch on its heading's line, at the right:
+       stroke letters (js/ref/main.js draws them over the plain ones),
+       cut numbers, prosigns with a bar, Q codes as questions -->
+  <div class="heading-row" data-group="alphabet">
+    <h2><a href="/ref/alphabet/">Letters</a></h2>
+    <span class="switches">
+      <label class="check box-after" title="stroke letters: each drawn by the marks that spell it">stroke<input type="checkbox" id="opt-strokes" aria-label="stroke letters"></label>
+      <label class="check box-after" title="the stroke letters' dots as circles">circles<input type="checkbox" id="opt-circles" aria-label="dots as circles"></label>
+    </span>
+  </div>
+  <div class="group-row morse-letters" data-group="alphabet">
+    <ul class="col-left">
+    </ul>
+    <ul class="col-right">
+    </ul>
+  
+    </div>
+
+  <div class="heading-row" data-group="numbers">
+    <h2>Numbers</h2>
+    <label class="check box-after" title="cut numbers: the marks a cut drops, and the letter it's sent as">cut<input type="checkbox" id="opt-chart-cut" aria-label="cut numbers"></label>
+  </div>
+  <div class="group-row morse-numbers" data-group="numbers">
+    <ul class="col-left">
+    <li><a href="/ref/numbers/?/.----"><span class="code">.----</span><span class="say">Wun</span><span class="label">1</span></a></li>
+    <li><a href="/ref/numbers/?/..---"><span class="code">..---</span><span class="say">Too</span><span class="label">2</span></a></li>
+    <li><a href="/ref/numbers/?/...--"><span class="code">...--</span><span class="say">Tree</span><span class="label">3</span></a></li>
+    <li><a href="/ref/numbers/?/....-"><span class="code">....-</span><span class="say">Fower</span><span class="label">4</span></a></li>
+    <li><a href="/ref/numbers/?/....."><span class="code">.....</span><span class="say">Fife</span><span class="label">5</span></a></li>
+    </ul>
+    <ul class="col-right">
+    <li><a href="/ref/numbers/?/-...."><span class="label">6</span><span class="say">Six</span><span class="code">-....</span></a></li>
+    <li><a href="/ref/numbers/?/--..."><span class="label">7</span><span class="say">Seven</span><span class="code">--...</span></a></li>
+    <li><a href="/ref/numbers/?/---.."><span class="label">8</span><span class="say">Ait</span><span class="code">---..</span></a></li>
+    <li><a href="/ref/numbers/?/----."><span class="label">9</span><span class="say">Niner</span><span class="code">----.</span></a></li>
+    <li><a href="/ref/numbers/?/-----"><span class="label">0</span><span class="say">Zero</span><span class="code">-----</span></a></li>
+    </ul>
+  </div>
+
+  <h2 data-group="symbols"><a href="/ref/symbols/">Symbols</a></h2>
+  <div class="group-row morse-symbols" data-group="symbols">
+    <ul class="col-left">
+    </ul>
+    <ul class="col-right">
+    </ul>
+  
+    </div>
+
+  </div><!-- /chart-chars -->
+
+  <!--
+    Prosigns, Q codes and abbreviations: one to a line, the code at
+    the left edge, the term on the page's centre line, the meaning at
+    the right edge. A Q code's question (sent with ?) is the line
+    under its answer; js/ref/main.js shows one or the other (the "?"
+    box), and orders them (A–Z, or as a contact goes: data-az,
+    data-flow). All three lists share one grid, as wide as their
+    longest code and meaning, so their centre lines meet.
+
+      ...---...            SOS                 distress
+      -...-.-               BK     break: back to you
+  -->
+  <div class="list-grid">
+  <fieldset class="options list-options" data-group="prosigns q-codes abbreviations">
+    <legend class="visually-hidden">How the lists read</legend>
+    <label class="pick">order
+      <select id="opt-order">
+        <option value="az">A–Z</option>
+        <option value="flow">as a contact goes</option>
+      </select>
+    </label>
+  </fieldset>
+
+  <div class="heading-row" data-group="prosigns">
+    <h2><a href="/ref/prosigns/">Prosigns</a></h2>
+    <label class="check box-after" title="prosigns with a bar over their letters, the old way, instead of brackets">bar<input type="checkbox" id="opt-bar" aria-label="prosigns as bar notation"></label>
+  </div>
+  <ul class="lists" data-list="prosigns" data-group="prosigns">
+  
+    </ul>
+
+  <div class="heading-row" data-group="q-codes">
+    <h2><a href="/ref/q-codes/">Q codes</a></h2>
+    <label class="check box-after" title="Q codes as questions, sent with ?">ask?<input type="checkbox" id="opt-ask" aria-label="Q codes as questions"></label>
+  </div>
+  <p class="cheat-note" data-group="q-codes">Three letters for a whole sentence. Sent with <b>?</b> they ask instead.</p>
+  <ul class="lists" data-list="q-codes" data-group="q-codes">
+  
+    </ul>
+
+  <h2 data-group="abbreviations"><a href="/ref/abbreviations/">Abbreviations</a></h2>
+  <p class="cheat-note" data-group="abbreviations">What operators send to save time; prosigns (above) and Q codes mix right in.</p>
+  <ul class="lists" data-list="abbreviations" data-group="abbreviations">
+  
+    </ul>
+  </div>
+
+</div>
+    </section>
+
+    <!-- its table, as text: for a reader with no script, a crawler, an AI answer -->
+    <section class="frame as-text" aria-labelledby="l-as-text">
+      <h2 class="frame-label" id="l-as-text">as text</h2>
+      <details>
+        <summary>number, Morse, said, spelled</summary>
+        <table class="chart">
         <thead><tr><th scope="col">number</th><th scope="col">Morse</th><th scope="col">said</th><th scope="col">spelled</th></tr></thead>
         <tbody>
           <tr><th scope="row"><a href="/ref/0/">0</a></th><td class="code">-----</td><td>dah-dah-dah-dah-dah</td><td>Zero</td></tr>
@@ -72,13 +336,35 @@
           <tr><th scope="row"><a href="/ref/9/">9</a></th><td class="code">----.</td><td>dah-dah-dah-dah-dit</td><td>Niner</td></tr>
         </tbody>
       </table>
+      </details>
+    </section>
     <nav class="item-more" aria-label="more of the reference">
-      <p><a href="/ref/alphabet/">alphabet</a> · <a href="/ref/symbols/">symbols</a> · <a href="/ref/prosigns/">prosigns</a> · <a href="/ref/q-codes/">Q codes</a> · <a href="/ref/abbreviations/">abbreviations</a> · <a href="/ref/chart/">the whole chart</a> · <a href="/ref/phrases/">phrases</a> · <a href="/ref/how-it-works/">how it works</a></p>
+      <p><a href="/ref/alphabet/">alphabet</a> · <a href="/ref/symbols/">symbols</a> · <a href="/ref/prosigns/">prosigns</a> · <a href="/ref/q-codes/">Q codes</a> · <a href="/ref/abbreviations/">abbreviations</a> · <a href="/ref/chart/">the whole chart</a> · <a href="/ref/tree/">the tree</a> · <a href="/ref/phrases/">phrases</a> · <a href="/ref/how-it-works/">how it works</a></p>
     </nav>
 
-    <footer>
-      <p><a href="/">the station</a> · <a href="/ref/">the reference</a> · made by ck3r</p>
-    </footer>
+    <!-- a page of its own for each character, each prosign that
+         doesn't share its marks with one, each Q code and each
+         abbreviation (/ref/k/, /ref/sos/, /ref/qrz/, /ref/cq/, made by
+         npm run ref; K, R and BK the abbreviations are on /ref/k/,
+         /ref/r/ and /ref/bk/): plain links, so a reader with no script, a crawler, finds
+         them from here. The chart's own links stay on this page: they
+         choose a character in place. tests/ref-pages.cjs checks every
+         page is listed -->
+    <nav class="pages" aria-labelledby="pages-label">
+      <p id="pages-label">A page of its own for each character, prosign, Q code and abbreviation, with pictures to keep:</p>
+      <p><a href="/ref/a/" title="A in Morse code">A</a> <a href="/ref/b/" title="B in Morse code">B</a> <a href="/ref/c/" title="C in Morse code">C</a> <a href="/ref/d/" title="D in Morse code">D</a> <a href="/ref/e/" title="E in Morse code">E</a> <a href="/ref/f/" title="F in Morse code">F</a> <a href="/ref/g/" title="G in Morse code">G</a> <a href="/ref/h/" title="H in Morse code">H</a> <a href="/ref/i/" title="I in Morse code">I</a> <a href="/ref/j/" title="J in Morse code">J</a> <a href="/ref/k/" title="K in Morse code">K</a> <a href="/ref/l/" title="L in Morse code">L</a> <a href="/ref/m/" title="M in Morse code">M</a> <a href="/ref/n/" title="N in Morse code">N</a> <a href="/ref/o/" title="O in Morse code">O</a> <a href="/ref/p/" title="P in Morse code">P</a> <a href="/ref/q/" title="Q in Morse code">Q</a> <a href="/ref/r/" title="R in Morse code">R</a> <a href="/ref/s/" title="S in Morse code">S</a> <a href="/ref/t/" title="T in Morse code">T</a> <a href="/ref/u/" title="U in Morse code">U</a> <a href="/ref/v/" title="V in Morse code">V</a> <a href="/ref/w/" title="W in Morse code">W</a> <a href="/ref/x/" title="X in Morse code">X</a> <a href="/ref/y/" title="Y in Morse code">Y</a> <a href="/ref/z/" title="Z in Morse code">Z</a></p>
+      <p><a href="/ref/1/" title="1 in Morse code">1</a> <a href="/ref/2/" title="2 in Morse code">2</a> <a href="/ref/3/" title="3 in Morse code">3</a> <a href="/ref/4/" title="4 in Morse code">4</a> <a href="/ref/5/" title="5 in Morse code">5</a> <a href="/ref/6/" title="6 in Morse code">6</a> <a href="/ref/7/" title="7 in Morse code">7</a> <a href="/ref/8/" title="8 in Morse code">8</a> <a href="/ref/9/" title="9 in Morse code">9</a> <a href="/ref/0/" title="0 in Morse code">0</a></p>
+      <p><a href="/ref/period/" title=". (period) in Morse code">.</a> <a href="/ref/comma/" title=", (comma) in Morse code">,</a> <a href="/ref/question-mark/" title="? (question mark) in Morse code">?</a> <a href="/ref/exclamation-mark/" title="! (exclamation mark) in Morse code">!</a> <a href="/ref/apostrophe/" title="' (apostrophe) in Morse code">'</a> <a href="/ref/quote/" title="&quot; (quote) in Morse code">&quot;</a> <a href="/ref/open-bracket/" title="( (open bracket) in Morse code">(</a> <a href="/ref/close-bracket/" title=") (close bracket) in Morse code">)</a> <a href="/ref/ampersand/" title="&amp; (ampersand) in Morse code">&amp;</a> <a href="/ref/colon/" title=": (colon) in Morse code">:</a> <a href="/ref/semicolon/" title="; (semicolon) in Morse code">;</a> <a href="/ref/slash/" title="/ (slash) in Morse code">/</a> <a href="/ref/underscore/" title="_ (underscore) in Morse code">_</a> <a href="/ref/equals/" title="= (equals) in Morse code">=</a> <a href="/ref/plus/" title="+ (plus) in Morse code">+</a> <a href="/ref/hyphen/" title="- (hyphen) in Morse code">-</a> <a href="/ref/dollar/" title="$ (dollar) in Morse code">$</a> <a href="/ref/at/" title="@ (at) in Morse code">@</a></p>
+      <p><a href="/ref/aa/" title="AA in Morse code">&lt;AA&gt;</a> <a href="/ref/bk/" title="BK in Morse code">&lt;BK&gt;</a> <a href="/ref/cl/" title="CL in Morse code">&lt;CL&gt;</a> <a href="/ref/do/" title="DO in Morse code">&lt;DO&gt;</a> <a href="/ref/hh/" title="HH in Morse code">&lt;HH&gt;</a> <a href="/ref/ka/" title="KA in Morse code">&lt;KA&gt;</a> <a href="/ref/sk/" title="SK in Morse code">&lt;SK&gt;</a> <a href="/ref/sn/" title="SN in Morse code">&lt;SN&gt;</a> <a href="/ref/sos/" title="SOS in Morse code">&lt;SOS&gt;</a></p>
+      <p><a href="/ref/qrl/" title="QRL in Morse code">QRL</a> <a href="/ref/qrm/" title="QRM in Morse code">QRM</a> <a href="/ref/qrn/" title="QRN in Morse code">QRN</a> <a href="/ref/qro/" title="QRO in Morse code">QRO</a> <a href="/ref/qrp/" title="QRP in Morse code">QRP</a> <a href="/ref/qrq/" title="QRQ in Morse code">QRQ</a> <a href="/ref/qrs/" title="QRS in Morse code">QRS</a> <a href="/ref/qrt/" title="QRT in Morse code">QRT</a> <a href="/ref/qru/" title="QRU in Morse code">QRU</a> <a href="/ref/qrv/" title="QRV in Morse code">QRV</a> <a href="/ref/qrx/" title="QRX in Morse code">QRX</a> <a href="/ref/qrz/" title="QRZ in Morse code">QRZ</a> <a href="/ref/qsb/" title="QSB in Morse code">QSB</a> <a href="/ref/qsk/" title="QSK in Morse code">QSK</a> <a href="/ref/qsl/" title="QSL in Morse code">QSL</a> <a href="/ref/qso/" title="QSO in Morse code">QSO</a> <a href="/ref/qsy/" title="QSY in Morse code">QSY</a> <a href="/ref/qth/" title="QTH in Morse code">QTH</a> <a href="/ref/qtr/" title="QTR in Morse code">QTR</a></p>
+      <p><a href="/ref/5nn/" title="5NN in Morse code">5NN</a> <a href="/ref/73/" title="73 in Morse code">73</a> <a href="/ref/88/" title="88 in Morse code">88</a> <a href="/ref/agn/" title="AGN in Morse code">AGN</a> <a href="/ref/ant/" title="ANT in Morse code">ANT</a> <a href="/ref/cq/" title="CQ in Morse code">CQ</a> <a href="/ref/cul/" title="CUL in Morse code">CUL</a> <a href="/ref/de/" title="DE in Morse code">DE</a> <a href="/ref/es/" title="ES in Morse code">ES</a> <a href="/ref/fb/" title="FB in Morse code">FB</a> <a href="/ref/ga/" title="GA in Morse code">GA</a> <a href="/ref/ge/" title="GE in Morse code">GE</a> <a href="/ref/gm/" title="GM in Morse code">GM</a> <a href="/ref/hi/" title="HI in Morse code">HI</a> <a href="/ref/hr/" title="HR in Morse code">HR</a> <a href="/ref/om/" title="OM in Morse code">OM</a> <a href="/ref/pse/" title="PSE in Morse code">PSE</a> <a href="/ref/rig/" title="RIG in Morse code">RIG</a> <a href="/ref/rst/" title="RST in Morse code">RST</a> <a href="/ref/tnx/" title="TNX in Morse code">TNX</a> <a href="/ref/tu/" title="TU in Morse code">TU</a> <a href="/ref/ur/" title="UR in Morse code">UR</a> <a href="/ref/wx/" title="WX in Morse code">WX</a> <a href="/ref/yl/" title="YL in Morse code">YL</a></p>
+      <p class="gathered">And gathered: <a href="/ref/chart/">the whole chart</a> · <a href="/ref/tree/">the tree</a> · <a href="/ref/alphabet/">alphabet</a> · <a href="/ref/numbers/">numbers</a> · <a href="/ref/symbols/">symbols</a> · <a href="/ref/prosigns/">prosigns</a> · <a href="/ref/q-codes/">Q codes</a> · <a href="/ref/abbreviations/">abbreviations</a> · <a href="/ref/phrases/">phrases</a> · <a href="/ref/how-it-works/">how Morse code works</a></p>
+    </nav>
+
+    <p class="colophon"><a href="/design/">design notes</a>: why the site looks and behaves as it does. <a href="/extension/">extension</a>: Morse on any page, played and copied there. <a href="/bookmarklet/">bookmarklet</a>: send what you've selected on any page here. <a href="/privacy/">privacy</a>: what you type stays in your browser.</p>
+
   </main>
+
+  <script type="module" src="/js/ref/main.js"></script>
 </body>
 </html>

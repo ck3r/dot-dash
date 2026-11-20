@@ -9,9 +9,9 @@
  *   ┌ the letter K ───────────┐   the card, as the station's (i)
  *   │ the tree   path, depth… │   and the reference show it
  *   │ the marks  the tile     │   (js/ref/item.js, overview.js)
- *   │ the name   how it sounds│
+ *   │ the name   how it sounds│   the pictures to keep at its right
  *   └─────────────────────────┘
- *   ┌ the prosign <K> ─┐  ┌ the abbreviation K ─┐  ┌ to keep ─┐
+ *   ┌ the prosign <K> ─┐  ┌ the abbreviation K ─┐
  *
  * Everything else, the frames included, is base.css's.
  */
@@ -22,42 +22,60 @@
    term) are for prose, and would push its rows out of line */
 .item .card dt { font-weight: 400; margin-top: 0; }
 .item .card dd { color: inherit; }
+/* … nor its sketches (a pre: taller lines, grey) for the whole tree,
+   nor the gap between paragraphs for the ways its marks are written */
+.item .card .card-full { line-height: 1.1; color: var(--paper); }
+.item .card .card-forms p { margin-top: 0; }
 
 .item-open { margin-top: 1.25rem; }
 
 /* the pages that gather (/ref/alphabet/, /ref/chart/, made by
    tools/ref-groups.cjs): a table, a row a character; the marks lit,
    the rest grey. Wide ones scroll in themselves, not the page */
-.item .chart { display: block; overflow-x: auto; max-width: 100%; margin-top: 1.25rem; border-collapse: collapse; }
-.item .chart th, .item .chart td { padding: 0.3rem 1.5ch 0.3rem 0; text-align: left; vertical-align: top; font-weight: 400; }
-.item .chart thead th { color: var(--graphite); border-bottom: 1px solid var(--wire); }
-.item .chart tbody th { color: var(--paper); font-weight: 700; white-space: nowrap; }
-.item .chart td { color: var(--graphite); }
-.item .chart td.code { color: var(--paper); font-weight: 700; white-space: nowrap; }
-.item .frame .chart { margin-top: 0; }
+:is(.item, .as-text) .chart { display: block; overflow-x: auto; max-width: 100%; margin-top: 1.25rem; border-collapse: collapse; }
+:is(.item, .as-text) .chart th, :is(.item, .as-text) .chart td { padding: 0.3rem 1.5ch 0.3rem 0; text-align: left; vertical-align: top; font-weight: 400; }
+:is(.item, .as-text) .chart thead th { color: var(--graphite); border-bottom: 1px solid var(--wire); }
+:is(.item, .as-text) .chart tbody th { color: var(--paper); font-weight: 700; white-space: nowrap; }
+:is(.item, .as-text) .chart td { color: var(--graphite); }
+:is(.item, .as-text) .chart td.code { color: var(--paper); font-weight: 700; white-space: nowrap; }
+:is(.item, .as-text) .frame .chart { margin-top: 0; }
 /* phrases: long marks wrap (between letters); under them, to play it, and a note */
-.item .chart.wrap td.code { white-space: normal; }
-.item .chart.wrap tbody th { white-space: normal; }
-.item .chart .marks i { font-style: normal; white-space: nowrap; }   /* a letter's marks never break in two */
-.item .chart small { display: block; margin-top: 0.2rem; font-size: 0.85em; font-weight: 400; color: var(--graphite); }
-.item .chart small b { white-space: nowrap; }
+:is(.item, .as-text) .chart.wrap td.code { white-space: normal; }
+:is(.item, .as-text) .chart.wrap tbody th { white-space: normal; }
+:is(.item, .as-text) .chart .marks i { font-style: normal; white-space: nowrap; }   /* a letter's marks never break in two */
+:is(.item, .as-text) .chart small { display: block; margin-top: 0.2rem; font-size: 0.85em; font-weight: 400; color: var(--graphite); }
+:is(.item, .as-text) .chart small b { white-space: nowrap; }
 .item-more { margin-top: 2rem; color: var(--graphite); }
 .item-jump { margin-top: 1.25rem; color: var(--graphite); }
 .item .na { color: var(--graphite); }
 
-/* the pictures to keep, small, in a row that wraps: a tap opens the
-   full one. The signal lamp's is the Worker's card, wide, on a row
-   of its own */
-.item-keep { display: flex; flex-wrap: wrap; gap: 1rem; }
-.item-keep figure { margin: 0; width: 9.5rem; }
-.item-keep figure.wide { width: 100%; }
-.item-keep figure.wide a { display: block; max-width: 20rem; }
+/* the card, and the pictures to keep beside it in its frame (under
+   it, without the room): the signal lamp across the top, the rest two
+   to a row, small; a tap opens the full one. The page is wider than a
+   page to read, for the two
+
+   ┌ the letter A ─────────────────────────────────────┐
+   │ ┌char┐ the 3rd most …              ┌ the lamp ──┐ │
+   │ │ A  │  E  path …                  └────────────┘ │
+   │ └────┘ …                            [card] [drawn] │
+   │ the tree  rows                      [marks] [sound]│
+   │ key it in the station · …           [name]         │
+   │ For programs: …                                    │
+   └────────────────────────────────────────────────────┘ */
+body.item { max-width: calc(1000px + 2 * var(--safe-x)); }
+.item-body { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 1.5rem 2rem; }
+.item-about { flex: 1 1 30rem; min-width: 0; }
+.item-keep { flex: 0 1 23rem; min-width: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.item-keep figure { margin: 0; min-width: 0; }
+.item-keep figure.wide { grid-column: 1 / -1; }
+.item-keep a { display: block; }
 .item-keep img { display: block; width: 100%; height: auto; border: 1px solid var(--wire); }
 .item-keep figcaption { margin-top: 0.3rem; color: var(--graphite); font-size: 0.85em; }
 @media (hover: hover) {
   .item-keep a:hover { background: transparent; }
   .item-keep a:hover img { border-color: var(--brass); }
 }
+.notes .frame .item-programs { margin-top: 1.5rem; }
 
 /* marks in a sentence (--.- .-. --.. ..--..) stay on one line: a
    break inside them reads as two codes */

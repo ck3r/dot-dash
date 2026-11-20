@@ -928,14 +928,51 @@ body.tree-expanded { overflow: hidden; }
  *   ~        how it could be misheard, one reading at a time
  */
 .card {
-  display: grid;
-  grid-template-columns: 4.5rem minmax(0, 1fr);
-  column-gap: 1rem;
-  align-items: start;
+  container-type: inline-size;
   font-family: var(--mono);
   font-size: 14px;
   line-height: 1.25;
   color: var(--paper);
+}
+
+/*
+ * The tile at the top left and the whole tree under it; the note at
+ * the top right, the rows under it (overview.js renderCard). Narrow
+ * (a phone's popup), the rows take the width and the tree goes
+ * under them:
+ *
+ *   ┌char─┐  the 3rd most …          ┌char─┐  the 3rd most
+ *   │  A  │   E   path  ● → E → A    │  A  │  common letter
+ *   └─────┘  [A]  depth 2            └─────┘
+ *     .H     ▬    ███ ███             E   path  ● → E → A
+ *   .I       ALFA .- / di-dah / …    [A]  depth 2
+ *   ●-A      cut  …                   …
+ *     …      ~    …                   the whole tree
+ */
+.card-body {
+  display: grid;
+  grid-template-areas: "side note" "rows rows" "full full";
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 1rem;
+  align-items: start;
+}
+.card-side { grid-area: side; margin-bottom: 1rem; }
+.card-body > .card-note { grid-area: note; margin-bottom: 1rem; }
+.card-rows {
+  grid-area: rows;
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  column-gap: 1rem;
+  align-items: start;
+}
+.card-full { grid-area: full; margin: 0.5rem 0 1rem; font-size: 13px; }
+.card .card-full a { color: inherit; }   /* lit or dim, as the tree says */
+@container (min-width: 30rem) {
+  .card-body {
+    grid-template-areas: "side note" "side rows" "full rows";
+    grid-template-rows: auto auto 1fr;
+  }
+  .card-full { margin: 1.25rem 0 0; justify-self: center; }
 }
 
 .card a { color: var(--paper); text-decoration: none; }
@@ -953,7 +990,7 @@ body.tree-expanded { overflow: hidden; }
 .card-right { padding-bottom: 1.15rem; container-type: inline-size; }
 /* a part's word (cut, ~) on its own row, so the right lines up with its letters */
 .card-left.r-label, .card-right.r-label { padding-bottom: 0.15rem; }
-.card-left.r-marks { padding-top: 0.5rem; }   /* under the tree, level with the card's top */
+.card-left.r-marks { padding-top: 0.2rem; }   /* level with the timeline's marks */
 
 /* the little tree: parent, the edge down, it, its two children */
 .card-tree { font-size: 1.1rem; line-height: 1.2; white-space: pre; }
@@ -1057,7 +1094,16 @@ body.tree-expanded { overflow: hidden; }
 .about-name.stair .said { color: var(--brass); }
 .card-sign { color: var(--graphite); font-size: 1.1rem; white-space: nowrap; }
 
-.card-sounds { font-weight: 700; margin-bottom: 0.55rem; }
+/* the ways its marks are written (overview.js writtenAs): the marks
+   small over how they're said, small over them in words, then the
+   blocks, a tap on any copies it */
+.card-forms { display: flex; flex-direction: column; align-items: flex-start; padding-top: 0.15rem; }
+.card .card-forms p { margin: 0; line-height: 1.2; }   /* (a popup's p + p gap is for prose) */
+.card .card-forms .form-small { font-size: 0.85rem; }
+.card .card-forms .form-words { font-weight: 700; margin-bottom: 0.55rem; }
+.card .card-forms .form-block { line-height: 1; letter-spacing: 0; }
+.card .card-forms .form-block.small { margin-top: 0.1rem; }
+.card-sounds { font-weight: 700; margin-bottom: 0.3rem; }
 .card-label { color: var(--graphite); font-size: 0.95rem; }
 .card-stack { display: flex; flex-direction: column; align-items: center; }
 .card .card-big { font-size: 1.3rem; font-weight: 700; line-height: 1.15; }
@@ -1154,7 +1200,7 @@ body.tree-expanded { overflow: hidden; }
 .card button.card-label { color: var(--graphite); font-size: 0.95rem; }
 .card button.card-big { font-size: 1.3rem; font-weight: 700; line-height: 1.15; }
 .card button.card-symbol { color: var(--paper); font-size: 2rem; font-weight: 700; line-height: 1; }   /* a symbol: itself; its word on a tap */
-.card-sounds button.card-tap { font-weight: 700; }
+.card-sounds button.card-tap, .form-words button.card-tap { font-weight: 700; }
 .card .tl { cursor: pointer; }
 @media (hover: hover) {
   .card a:hover { background: transparent; }   /* not the page's paper block: brass, in place */
@@ -1372,6 +1418,37 @@ body.tree-expanded { overflow: hidden; }
 .morse-code h2:first-child {
   margin-top: 0;
 }
+
+/* each group's heading is the way to its own page (/ref/alphabet/ …) */
+.morse-code h2 a { color: inherit; text-decoration: none; }
+@media (hover: hover) {
+  .morse-code h2 a:hover { background: transparent; color: var(--brass); }
+}
+.morse-code h2 a:focus-visible { outline: 1px dashed var(--brass); outline-offset: 2px; }
+
+/*
+ * A group's own page (/ref/alphabet/, made from this one by
+ * tools/ref-groups.cjs): the reference, its parts for that group
+ * alone (data-group, on each), a word on it at the top, and its table
+ * as text at the foot. The whole chart (/ref/chart/) is all of it but
+ * the tree; the tree (/ref/tree/) is the tree, and the selected
+ * character, alone.
+ *
+ *   ┌ tree ───────────┐      /ref/prosigns/:    ┌ selected ┐
+ *   ┌ selected ───────┐      (no tree: they're  ┌ prosigns ┐
+ *   ┌ alphabet ───────┐       words, or run     ┌ as text  ┐
+ *   ┌ as text ────────┐       off its foot)
+ */
+.ref-lead { max-width: 62ch; margin: 0 0 1.5rem; color: var(--graphite); }
+.ref-lead b { color: var(--paper); font-weight: 400; }
+body[data-focus="chart"] .tree-frame,
+body[data-focus="tree"] .chart-frame { display: none; }
+body[data-focus="alphabet"] [data-group]:not([data-group~="alphabet"]),
+body[data-focus="numbers"] [data-group]:not([data-group~="numbers"]),
+body[data-focus="symbols"] [data-group]:not([data-group~="symbols"]),
+body[data-focus="prosigns"] [data-group]:not([data-group~="prosigns"]),
+body[data-focus="q-codes"] [data-group]:not([data-group~="q-codes"]),
+body[data-focus="abbreviations"] [data-group]:not([data-group~="abbreviations"]) { display: none; }
 
 /* a heading with its group's switch at the right edge:
      Letters ···························· [ ] stroke        */

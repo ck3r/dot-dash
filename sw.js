@@ -22,11 +22,11 @@
  * Bump VERSION to clear the old cache after a big change.
  */
 
-const VERSION = "dot-dash-21";
+const VERSION = "dot-dash-22";
 
 /* fetched on install, so the first offline open works too */
 const CORE = [
-  "/", "/ref/", "/design/", "/extension/", "/bookmarklet/", "/privacy/",
+  "/", "/ref/", "/manual/", "/design/", "/extension/", "/bookmarklet/", "/privacy/",
   "/css/base.css", "/css/station.css", "/css/prose.css", "/css/bookmarklet.css", "/js/bookmarklet/main.js", "/switch.svg", "/manifest.webmanifest",
   "/icons/icon-192.png", "/icons/icon-512.png",
   "/js/ref/main.js", "/js/shared/nav.js", "/js/shared/nav-tables.js", "/js/core/morse.js", "/js/core/tree.js", "/js/shared/overview.js", "/js/shared/play-marks.js", "/js/shared/tab-keyer.js", "/js/shared/logo.js",

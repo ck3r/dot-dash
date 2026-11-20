@@ -43,6 +43,30 @@ let strokeRound = false;
 try { strokeRound = localStorage.getItem("dot-dash:stroke-round") === "1"; } catch { }
 
 
+/*
+ * A group's own page (/ref/alphabet/, made from this one by
+ * tools/ref-groups.cjs: body[data-focus]): the tree shows its group,
+ * whatever's remembered, for the visit; a change there is for the
+ * visit too, and what's remembered is left for the reference.
+ *
+ *   alphabet   the letters
+ *   numbers    the letters, and the numbers off them
+ *   symbols    the letters, and the symbols off them
+ *   tree       the letters (the tree's own page: the chart hidden)
+ */
+const FOCUS = document.body.dataset.focus ?? null;
+const FOCUS_TREE = {
+  alphabet: { "#opt-letters": true, "#opt-numbers": "off", "#opt-symbols": false },
+  numbers: { "#opt-letters": true, "#opt-numbers": "on", "#opt-symbols": false },
+  symbols: { "#opt-letters": true, "#opt-numbers": "off", "#opt-symbols": true },
+  tree: { "#opt-letters": true, "#opt-numbers": "off", "#opt-symbols": false }
+}[FOCUS] ?? {};
+const fixed = id => id in FOCUS_TREE;
+for (const [id, value] of Object.entries(FOCUS_TREE)) {
+  if (typeof value === "boolean") $(id).checked = value;
+  else $(id).value = value;
+}
+
 function getPayload() {
   const query = location.search;
   return query.startsWith("?/") ? query.slice(2) : "";
@@ -125,10 +149,10 @@ for (const [id, key] of [["#opt-style", "style"], ["#opt-numbers", "numbers"], [
   const menu = $(id);
   try {
     const saved = localStorage.getItem("dot-dash:" + key);
-    if (saved && [...menu.options].some(o => o.value === saved)) menu.value = saved;
+    if (saved && !fixed(id) && [...menu.options].some(o => o.value === saved)) menu.value = saved;
   } catch { /* storage blocked */ }
   menu.addEventListener("change", () => {
-    try { localStorage.setItem("dot-dash:" + key, menu.value); } catch { }
+    if (!fixed(id)) try { localStorage.setItem("dot-dash:" + key, menu.value); } catch { }
     drawTrees();
     centreTree();
   });
@@ -329,12 +353,12 @@ for (const [id, className] of [
   const box = $(id);
   try {
     const saved = localStorage.getItem("dot-dash:" + className);
-    if (saved !== null) box.checked = saved === "1";
+    if (saved !== null && !fixed(id)) box.checked = saved === "1";
   } catch { /* storage blocked */ }
 
   const apply = () => {
     document.body.classList.toggle(className, box.checked);
-    try { localStorage.setItem("dot-dash:" + className, box.checked ? "1" : "0"); } catch { }
+    if (!fixed(id)) try { localStorage.setItem("dot-dash:" + className, box.checked ? "1" : "0"); } catch { }
   };
   box.addEventListener("change", apply);
   apply();
@@ -619,7 +643,7 @@ for (const code of document.querySelectorAll(".morse-code .code")) {
         const name = link.querySelector(".label").textContent;
         /* with cut on, a number as it's sent cut (4 and 6 have no cut) */
         const cut = g === 1 && $("#opt-chart-cut").checked && morse.codeOf(name, { cut: true }) !== morse.ENCODE[name];
-        const code = cut ? morse.codeOf(name, { cut: true }) : link.getAttribute("href").replace("/ref/?/", "");
+        const code = cut ? morse.codeOf(name, { cut: true }) : link.getAttribute("href").replace(/^\/ref\/(?:[a-z-]+\/)?\?\//, "");   // /ref/?/.- , or a group page's /ref/alphabet/?/.-
         const { el, letter } = renderTile(code, { name, strokes: $("#opt-strokes").checked, cut, round: strokeRound });
         letter?.at(Infinity);
         if (letter) strokeLetters.set(letter.el, { letter, code });
@@ -866,7 +890,8 @@ if (!getPayload() && !cutView) {
   const FIRST = {
     "#opt-letters": true, "#opt-symbols": false, "#opt-prune": false,
     "#opt-signal": true,
-    "#opt-numbers": "off", "#opt-style": "classic", "#opt-size": "roomy"
+    "#opt-numbers": "off", "#opt-style": "classic", "#opt-size": "roomy",
+    ...FOCUS_TREE
   };
   for (const [id, value] of Object.entries(FIRST)) {
     const input = $(id);

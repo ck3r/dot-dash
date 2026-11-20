@@ -32,12 +32,24 @@
  *
  * A page can't tell if it's felt: Android stays still in silent mode
  * or battery saver, and navigator.vibrate still says yes.
+ *
+ * In the app the motor is the app's own (apps/mobile, BuzzPlugin):
+ * held from key down to key up, at a real strength, each buzz kicked
+ * at full for its first few ms so a dit is sharp. No pulsing.
  */
+
+import { inApp } from "../core/where.js";
+
+/* the app's motor, through Capacitor's bridge, which the app puts in
+   the page with each of its plugins under Capacitor.Plugins (no
+   @capacitor/core here, so no registerPlugin); null on the web */
+const motor = inApp() ? globalThis.Capacitor.Plugins?.Buzz ?? null : null;
 
 const PULSE = 60;        // ms per on/off cycle when pulsing
 const LEAST = 25;        // ms: the shortest burst a motor shows
 const GAP = 10;          // ms: the shortest gap that still reads as one
 const REISSUE = 900;     // ms: a held key re-sends the buzz this often
+const TEST = 150;        // ms: the buzz that says ≋ is on, or how hard
 
 /*
  * Chrome on Android keeps a vibration pattern to 99 entries of at
@@ -63,9 +75,14 @@ export function createOutputs({ settings, lampTarget, overlay }) {
   let again = 0;
 
   function vibrate(on) {
-    if (!("vibrate" in navigator)) return;
     if (on && !settings().vibrate) return;
     if (!on && !buzzing) return;                    // nothing to stop
+    if (motor) {
+      buzzing = on;
+      (on ? motor.on({ strength: settings().strength }) : motor.off()).catch(() => { });
+      return;
+    }
+    if (!("vibrate" in navigator)) return;
     buzzing = on;
     clearInterval(again);
     try {
@@ -80,8 +97,19 @@ export function createOutputs({ settings, lampTarget, overlay }) {
 
   /* a short buzz to feel the setting (call it from a tap) */
   function testBuzz() {
+    if (motor) {
+      motor.on({ strength: settings().strength }).then(() => setTimeout(() => { if (!buzzing) motor.off().catch(() => { }); }, TEST), () => { });
+      return true;
+    }
     if (!("vibrate" in navigator)) return false;
     try { return navigator.vibrate(buzzPattern().slice(0, 12)); } catch { return false; }
+  }
+
+  /* can this phone's motor be set softer than full? (the app only; a
+     page's buzz is faked softer by pulsing, and never asked) */
+  async function softens() {
+    if (!motor) return false;
+    try { return !!(await motor.info()).strength; } catch { return false; }
   }
 
   /* ---------- flashlight ---------- */
@@ -195,7 +223,7 @@ export function createOutputs({ settings, lampTarget, overlay }) {
   }
 
   return {
-    signal, quiet, torchReady, releaseTorch, testBuzz,
+    signal, quiet, torchReady, releaseTorch, testBuzz, softens,
     get down() { return down; },
     get torchLag() { return torchLag; }
   };

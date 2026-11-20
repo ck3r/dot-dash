@@ -659,6 +659,17 @@
             <option value="torch" id="torch-choice">flashlight</option>
           </select>
         </label>
+        <!-- ≋'s strength, the app's only (a page can't set it): chosen
+             from ≋'s long-press list (station/layer.js), not shown in
+             the tray, but kept with the rest of the settings -->
+        <label data-needs="vibrate" hidden>vibration
+          <select id="opt-vibrate">
+            <option value="off">off</option>
+            <option value="soft">soft</option>
+            <option value="medium" selected>medium</option>
+            <option value="strong">strong</option>
+          </select>
+        </label>
       </div>
 
       <!-- the checkboxes, one order everywhere, in pairs: how it's

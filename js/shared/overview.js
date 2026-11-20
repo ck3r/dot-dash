@@ -6,34 +6,38 @@
  * The card: the station's (i) opens it in a popup; the reference
  * shows it under the tree for the selected character.
  *
- * Down the left, the station's about column as it is (the tree
- * around it, the marks, the name as a stair, the cut, ~); across
- * from each part, more about it:
+ * The tile at the top left, the whole tree under it (its way lit);
+ * at the right, anything worth saying, then the station's about
+ * column as it is (the tree around it, the marks, the name as a
+ * stair, the cut, ~), across from each part more about it. Narrow,
+ * the rows take the width and the whole tree goes under them:
  *
- *     _      path      ● → T → M → O → _ → 0
- *     |      depth     5
- *    [0]     parent    _            (greyed: nothing there)
- *    / \     twin      9            (the other way from the parent)
- *   _   _    children  _ _
- *            reverse   0  (-----)
- *            inverse   5  (.....)
+ *   ┌num─────-----┐   the note: a prosign, another reading,
+ *   │      ⬭      │   something worth knowing (Q starts every Q code)
+ *   │22      0 .  │
+ *   └────────5 −──┘     _      path      ● → T → M → O → _ → 0
+ *                       |      depth     5
+ *         .H           [0]     parent    _            (greyed: nothing there)
+ *       .S             / \     twin      9            (the other way from the parent)
+ *     .I  -V          _   _    children  _ _
+ *    ●  …                      reverse   0  (-----)
+ *     -T                       inverse   5  (.....)
+ *       …
+ *                       ▬      ███ ███ ███ ███ ███    how long they sound
+ *                       ▬      ‾‾‾‾‾‾‾‾0‾‾‾‾‾‾‾‾
  *
- *     ▬     ┌num──────-----┐
- *     ▬     │      ⬭       │   a note: a prosign, another reading,
- *     ▬     │22       0 .  │   something worth knowing (Q starts
- *     ▬     └─────────5 −──┘   every Q code)
+ *                      Z       -----                  the ways it's written,
+ *                       E      dah-dah-dah-dah-dah    a tap copies one:
+ *                      R       –––––                  plaintext, sounded,
+ *                       O      dash dash dash …       textbook, descriptive,
+ *                              █████ ███ …            block, small block
  *
- *    Z      dah-dah-dah-dah-dah
- *     E     ███ ███ ███ ███ ███
- *    R      ‾‾‾‾‾‾‾‾0‾‾‾‾‾‾‾‾
- *     O
- *
- *   cut
- *    T      ░░░ ░░░ ░░░ ░░░ ███     the marks a cut leaves unsent, grey
- *                           T
- *    ~       ˄
- *    M      1/8  ███ ███   ███ ███ ███    each way it could be misheard,
- *    O       ˅     M           O          in turn (no cut: no cut row)
+ *                     cut
+ *                      T       ░░░ ░░░ ░░░ ░░░ ███    the marks a cut leaves unsent, grey
+ *                                              T
+ *                      ~        ˄
+ *                      M       1/8  ███ ███   ███ ███ ███    each way it could be misheard,
+ *                      O        ˅     M           O          in turn (no cut: no cut row)
  *
  * The little tree, the glyph and the timelines play once as the
  * card opens (and the misheard one again for each reading): the
@@ -45,7 +49,7 @@
  *
  * The parts of the column do what they do in the station's column:
  * the marks sound themselves at the station's speed (js/shared/play-marks.js),
- * how it sounds (di-di-dit) copies; and, where the
+ * each way it's written copies; and, where the
  * page has them (renderCard's options), the name says itself, cut
  * and ~ open what they are.
  *
@@ -58,6 +62,7 @@ import { PHONETIC, PROSIGNS_BY_CODE, splits } from "../core/characters.js";
 import { STROKES, CUT_STROKES, createLetter } from "../core/strokes.js";
 import { STRESS, spokenOf, syllablesOf, layStair } from "../core/stair.js";
 import { symbolWord, codeSaid } from "./voice.js";
+import { createTree, buildModel } from "../core/tree.js";
 import { playMarks } from "./play-marks.js";
 export { PHONETIC, PROSIGNS_BY_CODE, splits };   // (they used to live here)
 
@@ -132,7 +137,47 @@ function spoken(code) {
     .join("-");
 }
 
-const reverseOf = code => [...code].reverse().join("");
+/*
+ * The whole tree down the card's left, as the station's column grows
+ * it: the letters, and the branch to this one if it's off them (as far
+ * as the tree goes: SOS's nine marks stop at its foot). Its way lit
+ * from the root; every character in it is a link to its own card, as
+ * the card's other characters are.
+ *
+ *          .H
+ *       .S
+ *    .I    -V
+ *   ●  -A ─ …       (vertical: dots up, dashes down)
+ *
+ * Returns step(path): light the way to there (the card walks it as
+ * the marks sound).
+ */
+function drawFull(pre, code) {
+  const shown = code.slice(0, TREE.length);
+  const tree = createTree(pre, "vertical", { legend: false });
+  tree.render(buildModel({ letters: true, extra: [shown] }), false);
+  for (const s of pre.querySelectorAll('span.lbl[data-code]:not(.blank)')) {
+    if (s.dataset.reveal) continue;          // (a hidden one rewrites its own text as it's lit)
+    s.replaceChildren(ref(s.dataset.code, { label: s.textContent }));
+  }
+  tree.handle({ type: "start" });
+  return path => tree.handle({ type: "beat", path: path.slice(0, TREE.length) });
+}
+
+/* the ways the marks are written ([what, text, class]; the card's name row) */
+function writtenAs(code) {
+  const as = (dot, dash, gap) => [...code].map(m => (m === "." ? dot : dash)).join(gap);
+  return [
+    ["plaintext", code, "form-small"],
+    ["sounded", spoken(code), "card-sounds"],
+    ["textbook", as("·", "–", ""), "form-small"],
+    ["descriptive", as("dot", "dash", " "), "form-words"],
+    ["block", as("█", "███", " "), "form-block"],
+    ["small block", as("▄", "▄▄▄", " "), "form-block small"]
+  ];
+}
+
+const reverseOf = code =>[...code].reverse().join("");
 const inverseOf = code => code.replaceAll(".", "x").replaceAll("-", ".").replaceAll("x", "-");
 const markOf = code => (code.endsWith(".") ? "dot" : "dash");
 
@@ -375,13 +420,22 @@ export function renderCard(element, code, { say: speak, openCut, openHeard, flas
   const prosign = PROSIGNS_BY_CODE[code];
   const sign = name?.startsWith("<") ? name : prosign ? `<${prosign[0]}>` : null;
 
-  /* the grid: the column's part at the left, what goes with it at
-     the right, a row each */
+  /* the tile and the whole tree down the left; the note, then the
+     rows, at the right (base.css .card-body; narrow, the tree goes
+     under them all). In the rows, the column's part at the left,
+     what goes with it at the right, a row each */
+  const body = make("div", "card-body");
+  const tileBox = make("div", "card-side");
+  const note = make("div", "card-note");
+  const rows = make("div", "card-rows");
+  const full = make("pre", "tree card-full");
+  body.append(tileBox, note, rows, full);
+  element.append(body);
   const row = (cls, left, right) => {
     const l = make("div", `card-left ${cls}`), r = make("div", `card-right ${cls}`);
     if (left) l.append(...[left].flat());
     if (right) r.append(...[right].flat());
-    element.append(l, r);
+    rows.append(l, r);
     return [l, r];
   };
 
@@ -421,12 +475,16 @@ export function renderCard(element, code, { say: speak, openCut, openHeard, flas
       line(ref(below[0], { label: short(below[0]), cls: has(below[0]) ? "dot" : "" }), "   ",
         ref(below[1], { label: short(below[1]), cls: has(below[1]) ? "dash" : "" })));
   }
+  /* the whole tree, the letters' (and the branch to it, if it's off
+     them, as far as the tree goes), its way lit; it walks with the little one */
+  const whole = drawFull(full, code);
   let steps = [];
   function walkTree() {
     steps.forEach(clearTimeout);
-    if (still()) return drawTree(code);
+    if (still()) { whole?.(code); return drawTree(code); }
     drawTree("");
-    steps = marksAt.map(({ start }, k) => setTimeout(() => drawTree(code.slice(0, k + 1)), start));
+    whole?.("");
+    steps = marksAt.map(({ start }, k) => setTimeout(() => { drawTree(code.slice(0, k + 1)); whole?.(code.slice(0, k + 1)); }, start));
   }
 
   const place = make("dl", "card-place");
@@ -462,9 +520,10 @@ export function renderCard(element, code, { say: speak, openCut, openHeard, flas
   tile.title = "play the card again";
   tile.addEventListener("click", () => { replay(element); drawGlyph(); walkTree(); });
 
-  /* beside it, anything more to say */
-  const note = make("div", "card-note");
-  const say = (...parts) => { const p = make("p"); p.append(...parts); note.append(p); };
+  tileBox.append(tile);
+
+  /* beside it, at the top, anything more to say */
+  const say =(...parts) => { const p = make("p"); p.append(...parts); note.append(p); };
   const letterRefs = letters => letters.split(" ").flatMap((l, i) => {
     const c = Object.keys(DECODE).find(k => DECODE[k] === l);
     return i ? [" ", ref(c, { label: l })] : [ref(c, { label: l })];
@@ -480,11 +539,17 @@ export function renderCard(element, code, { say: speak, openCut, openHeard, flas
   const rank = FREQUENCY.indexOf(name);
   if (rank >= 0) say(...lit(`the *${ordinal(rank + 1)}* most common letter in English`));
   if (TIDBITS[name]) say(...lit(TIDBITS[name]));
-  const tileRow = make("div", "card-tile-row");
-  tileRow.append(tile, note);
-  row("r-marks", marks, tileRow);
 
-  /* ---- its name, and how it sounds ---- */
+  /* across from the marks, how long they sound: a prosign, its letters
+     run together */
+  if (name?.startsWith("<") && prosign) {
+    const letters = prosign[1].split(" ").map(l => Object.keys(DECODE).find(k => DECODE[k] === l));
+    row("r-marks", marks, timeline(letters, { join: 1, labels: letters.map(c => ref(c)) }));
+  } else {
+    row("r-marks", marks, timeline([code], { labels: [make("span", name ? "" : "na", name ?? "_")] }));
+  }
+
+  /* ---- its name, and the ways its marks are written ---- */
   const said = isName ? "dot-da.sh" : name && spokenOf(name);
   let nameEl = null;
   if (said && speak && !isName) {
@@ -499,17 +564,22 @@ export function renderCard(element, code, { say: speak, openCut, openHeard, flas
   } else if (sign || name) {
     nameEl = make("span", "card-sign", sign ?? name);
   }
-  const sounds = make("p", "card-sounds");
-  const sounded = tap("", `copy ${spoken(code)}`, () => copy(spoken(code), sounded, flash), spoken(code));
-  sounds.append(sounded);
-  const sound = [sounds];
-  if (name?.startsWith("<") && prosign) {
-    const letters = prosign[1].split(" ").map(l => Object.keys(DECODE).find(k => DECODE[k] === l));
-    sound.push(timeline(letters, { join: 1, labels: letters.map(c => ref(c)) }));
-  } else {
-    sound.push(timeline([code], { labels: [make("span", name ? "" : "na", name ?? "_")] }));
+  /* the same marks as people write them, each a tap to copy:
+
+       .-          plaintext      the keyboard's own
+       di-dah      sounded        as it's said
+       ·–          textbook       a middle dot, an en dash
+       dot dash    descriptive    in words
+       █ ███       block          as long as they sound
+       ▄ ▄▄▄       small block                                      */
+  const forms = make("div", "card-forms");
+  for (const [kind, text, cls] of writtenAs(code)) {
+    const p = make("p", cls);
+    const b = tap("", `copy ${kind}: ${text}`, () => copy(text, b, flash), text);
+    p.append(b);
+    forms.append(p);
   }
-  row("r-name", nameEl, sound);
+  row("r-name", nameEl, forms);
 
   /* ---- cut: the digit's marks, the ones the cut drops grey ---- */
   const cutFor = CUT[code] && CUT[code] !== name ? CUT[code] : null;     // a letter, standing for a digit

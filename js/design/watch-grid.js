@@ -1,22 +1,24 @@
 /*
  * The grid tree, as on a panel or a coin: every step along or down.
- * The dot side runs right from the root, the dash side left; a step
- * that repeats the side's first mark goes on outward, the other turns
- * down. A branch that turns down starts below everything the outward
- * branch needs, so nothing crosses:
+ * The dot side runs left from the root, the dash side right, as the
+ * paddles sit (the dit on the left); a step that repeats the side's
+ * first mark goes on outward, the other turns down. A branch that
+ * turns down starts below everything the outward branch needs, so
+ * nothing crosses:
  *
- *      O ━ M ━ T ━ (o) ─ E ─ I ─ S ─ H
- *              ·  ·       ━   ━   ━
- *          G ━ ·  N   ...  A   U   V
- *          ·      ...      ·
- *          Z               R ─ L
- *                          ━
- *                          W ─ P
- *                          ━
- *                          J
+ *      H ─ S ─ I ─ E ─ (o) ━ T ━ M ━ O
+ *      ━   ━   ━              ·   ·
+ *      V   U   A  ...         N   G ━ Q
+ *              ·              ...  ·
+ *          L ─ R                   Z
+ *              ━
+ *          P ─ W
+ *              ━
+ *              J
  *
  * gridOf(codes)   every code (and its prefixes) to its [column, row]:
- *                 columns + to the right, - to the left, rows down
+ *                 columns - to the left (dots), + to the right
+ *                 (dashes), rows down
  * drawGrid(svg, { codes, labels, path, ... })
  *                 the tree into an svg, the path (a code) lit; hands
  *                 back each code's place on screen, for a tap
@@ -42,8 +44,8 @@ export function gridOf(codes) {
     if (has.has(down)) rows += place(down, x, y + rows, dir);
     return rows;
   };
-  if (has.has(".")) place(".", 1, 0, 1);
-  if (has.has("-")) place("-", -1, 0, -1);
+  if (has.has(".")) place(".", -1, 0, -1);
+  if (has.has("-")) place("-", 1, 0, 1);
   return at;
 }
 

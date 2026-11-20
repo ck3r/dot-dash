@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#1c1916">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <title>operator's manual · dot-da.sh</title>
+  <link rel="canonical" href="https://dot-da.sh/manual/">
+  <meta name="description" content="How to use the dot-da.sh Morse station: keying, typing, playing, receiving, sharing, the settings, the app, and what to do when something doesn't work.">
+
+  <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
+
+  <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/prose.css">
+  <script type="module" src="/js/shared/nav.js"></script>
+
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://dot-da.sh/manual/">
+  <meta property="og:title" content="operator's manual · dot-da.sh">
+  <meta property="og:description" content="How to use the Morse station, and what to do when something doesn't work.">
+  <meta property="og:image" content="https://dot-da.sh/preview.png">
+</head>
+
+<!--
+  The operator's manual: how the station is used, and what to do when
+  something doesn't work. Written from the station's own labels and
+  popups (index.html, station/layer.js's FLAG_NOTES), so it says what
+  the controls say; when a control changes, change its line here.
+
+  Each problem under "troubleshooting" has an id of its own, so the
+  station can point at one: ≋'s list in the app ends with "not felt?",
+  which opens #no-vibration.
+-->
+<body class="notes">
+  <!-- the bar (js/shared/nav.js): home, and this page's name, its heading -->
+  <header class="top">
+    <nav class="crumbs" aria-label="where you are">
+      <ol>
+        <li><a href="/" class="home">dot-da.sh</a></li>
+        <li><h1 data-crumb="top"><span class="crumb-name">MANUAL</span></h1></li>
+      </ol>
+    </nav>
+    <div class="top-right"><span class="profile" title="profiles: coming soon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3.2"/><path d="M6.4 18.6c1.3-2.2 3.3-3.4 5.6-3.4s4.3 1.2 5.6 3.4"/></svg></span></div>
+  </header>
+
+  <main>
+    <p class="lead">The station is a Morse key you can hear, see and share: key or type a message, play it back as sound, light or vibration, read Morse from a microphone or a camera, and send it to anyone as a link. This is how each part works, and what to do when something doesn't.</p>
+
+    <nav aria-label="on this page">
+      <ol>
+        <li><a href="#glance">at a glance</a></li>
+        <li><a href="#keying">keying</a></li>
+        <li><a href="#typing">typing</a></li>
+        <li><a href="#tape">the tape</a></li>
+        <li><a href="#playing">playing back</a></li>
+        <li><a href="#outputs">sound, light, vibration</a></li>
+        <li><a href="#settings">settings</a></li>
+        <li><a href="#receiving">receiving</a></li>
+        <li><a href="#sharing">sharing</a></li>
+        <li><a href="#more">key hero, the reference</a></li>
+        <li><a href="#app">the app</a></li>
+        <li><a href="#troubleshooting">troubleshooting</a></li>
+      </ol>
+    </nav>
+
+    <section class="frame" id="glance" aria-labelledby="l-glance">
+      <h2 class="frame-label" id="l-glance">at a glance</h2>
+<!-- open on the right: ♪ ☼ ≋ ˽ ⌫ are wider than a column in some
+     fonts, and a border after them wouldn't line up -->
+<pre>
+ ┌──────┬──────────────────────
+ │ tree │ the tape: the Morse
+ │ card │ over its letters
+ │      │ counts            ↵
+ ├──────┴──────────────────────
+ │ tx rx   ♪ ☼ ≋   suggestions
+ │ ⚙ ▶ 0.0/5.6s ────── ↻  .- A
+ ├─────────────────────────────
+ │    dit    │   dah   │ ˽ /
+ │           │         │ ⌫ ↵
+ └─────────────────────────────
+</pre>
+      <ul>
+        <li>From the top: the tape, where the message is written a line at a time; the tabs and the outputs; the settings, the player and the switch between keys and text; then the keys.</li>
+        <li><strong>tx</strong> sends: you key or type. <strong>rx</strong> receives: the station listens or watches, and writes what it reads onto the tape.</li>
+        <li>The column at the left follows what you key: where you are in the Morse tree, then a card for the character showing (its marks, its name, what it could be misheard as). <code>&gt;&lt;</code> opens the whole tree.</li>
+        <li>Everything is in place from the start and stays there: controls don't move or rearrange as you use them.</li>
+      </ul>
+    </section>
+
+    <section class="frame" id="keying" aria-labelledby="l-keying">
+      <h2 class="frame-label" id="l-keying">keying</h2>
+      <p>Tap the keys: <strong>dit</strong> (a short mark, <code>.</code>) and <strong>dah</strong> (a long one, <code>-</code>). At the side: <code>˽</code> ends a letter (hold it for a word space), <code>/</code> ends a word, <code>⌫</code> takes back the last mark (hold it for words), and <code>↵</code> starts a new line.</p>
+      <p>On a computer the keyboard keys too:</p>
+      <dl>
+        <dt>dit</dt><dd><code>.</code> <code>[</code> <code>A</code> <code>1</code>, or the left Ctrl key with <em>ctrl</em> on</dd>
+        <dt>dah</dt><dd><code>-</code> <code>]</code> <code>D</code> <code>3</code>, or the right Ctrl key with <em>ctrl</em> on</dd>
+        <dt>letter space, word space</dt><dd>Space (hold for a word space), <code>/</code></dd>
+        <dt>back, return</dt><dd>Backspace, Enter</dd>
+      </dl>
+      <p><strong>How it times you</strong> is the <em>key</em> setting. Long-press the <code>.- A</code> switch to choose:</p>
+      <dl>
+        <dt>tap</dt><dd>No timing: each press is one mark, and you end letters and words with <code>˽</code> and <code>/</code>. The easiest place to start.</dd>
+        <dt>straight</dt><dd>One key, as on a real straight key: how long you hold decides dit or dah, how long you wait decides a letter or a word space.</dd>
+        <dt>bug</dt><dd>The dit side repeats dits by itself while held; the dah side you time yourself.</dd>
+        <dt>iambic A, iambic B</dt><dd>Two paddles. Hold one and it repeats; squeeze both and they alternate <code>.-.-</code>. Letting go of a squeeze stops after the current mark (A) or sends one more (B).</dd>
+        <dt>ultimatic</dt><dd>Two paddles; squeezed, the one pressed last wins and repeats.</dd>
+      </dl>
+      <p>With timing on, the bar above the keys shows each press against your speed: key down fills in colour, key up in grey, and a mark or space that lands on time takes a brass edge. Tap it for the details.</p>
+      <p>A key with a mark in its corner holds more: press and hold, slide onto one, and let go. A letter's key holds the numbers and symbols that start with its code (<code>V</code> holds <code>3</code>).</p>
+      <p>With <em>pro</em> on, a prosign keyed as one letter does its job: AR, SK, BK and CL return, HH erases the word before it, and BT and AA lay out the text.</p>
+    </section>
+
+    <section class="frame" id="typing" aria-labelledby="l-typing">
+      <h2 class="frame-label" id="l-typing">typing</h2>
+      <p>Tap the <code>.- A</code> switch to swap the keys for a keyboard, and type text: its Morse appears above each letter as you go. The <code>123</code> keys hold numbers and symbols. Swipe down on the switch to put the keys away and give the tape the room.</p>
+      <p>Pasting text works too, and so does a link from the browser extension or the bookmarklet, which arrives on the line ready to play.</p>
+    </section>
+
+    <section class="frame" id="tape" aria-labelledby="l-tape">
+      <h2 class="frame-label" id="l-tape">the tape</h2>
+      <ul>
+        <li>The tape holds what you've keyed, a line at a time: the current line at the bottom with the <code>&gt;</code>, earlier lines above it. <code>↵</code> (Enter) moves on to a new line; nothing is sent anywhere.</li>
+        <li><code>×</code> clears the message being written; <code>⌫</code> brings it back. To clear the whole history, scroll to its top, pull down and hold until the brass line fills; or use <em>clear history</em> in the privacy <code>(i)</code>.</li>
+        <li>The counts under the tape copy: tap <em>chars</em> or <em>words</em> for the text, <em>dits</em> or <em>dahs</em> for the Morse.</li>
+        <li>The history is kept on this device only, and never uploaded.</li>
+      </ul>
+    </section>
+
+    <section class="frame" id="playing" aria-labelledby="l-playing">
+      <h2 class="frame-label" id="l-playing">playing back</h2>
+      <p><code>▶</code> (or <code>K</code>) plays the line; Space pauses while it plays. <code>↻</code> repeats. The bar beside the time is the whole message: drag it to scrub.</p>
+      <p>While it plays: <code>←</code> <code>→</code> step a letter, Shift or <code>J</code> <code>L</code> a word, Home and End jump to either end, and <code>0</code>–<code>9</code> to that tenth of the message (<code>5</code>: halfway).</p>
+      <p>It plays back as you keyed it, every long dah and rushed gap included. Turn on <em>pretty</em> (or hold the time) for textbook timing instead.</p>
+    </section>
+
+    <section class="frame" id="outputs" aria-labelledby="l-outputs">
+      <h2 class="frame-label" id="l-outputs">sound, light, vibration</h2>
+      <p>Keying and playback come out through the three switches: tap one to turn it on or off, hold it for its choices. Off is grey; on is lit.</p>
+      <dl>
+        <dt>♪ sound</dt><dd>A tone (sine, triangle, square, sawtooth), the clack of a telegraph <em>sounder</em>, or the marks spoken: <em>Di-Dah</em> or <em>Dot Dash</em>. In the settings, <em>voice</em> adds the letters read out as playback goes (<em>ALFA</em> for the phonetic alphabet, <em>ABC</em> for letter names).</dd>
+        <dt>☼ light</dt><dd>The <em>signal lamp</em> fills the screen for playback (it asks first, and asks twice when it would flash more than three times a second); tap it to stop. On Android the <em>flashlight</em> can be the light instead.</dd>
+        <dt>≋ vibration</dt><dd>In the Android app: the phone buzzes with each mark, <em>soft</em>, <em>medium</em> or <em>strong</em> (hold ≋ to choose). A web page can't set how hard a phone buzzes, so on the website it's still to come.</dd>
+      </dl>
+      <p>The station's own lamp, the switch in the bar, and a brass glow round the tape always follow the signal.</p>
+    </section>
+
+    <section class="frame" id="settings" aria-labelledby="l-settings">
+      <h2 class="frame-label" id="l-settings">settings</h2>
+      <p><code>⚙</code> opens the tray. A setting whose output is off is greyed; touching it turns that output back on. Tap a checkbox's word to see what it does.</p>
+      <dl>
+        <dt>wpm, farns.</dt><dd>The speed, in words per minute. <em>Farnsworth</em> sends each letter at full speed but stretches the gaps between letters and words, so you learn a letter's sound whole rather than counting marks.</dd>
+        <dt>vol, pitch</dt><dd>The tone's loudness and note.</dd>
+        <dt>key, sound, voice, light</dt><dd>The same choices as holding <code>.- A</code>, ♪ and ☼.</dd>
+        <dt>ctrl</dt><dd>The Ctrl keys as paddles (left dit, right dah), for a USB paddle adapter.</dd>
+        <dt>mouse</dt><dd>Click the tape and the mouse becomes the key: left button dit, right dah. Esc gives the pointer back.</dd>
+        <dt>finish, next</dt><dd>Suggestions beside the tabs: letters and words that finish what you've started, or what might come next. A tap keys one. They help, but leave them off to practise.</dd>
+        <dt>about</dt><dd>Shows or hides the card in the left column.</dd>
+        <dt>pro</dt><dd>Prosigns read as themselves (<code>&lt;AR&gt;</code>, not <code>+</code>) and do their job when keyed.</dd>
+        <dt>cut</dt><dd>Cut numbers: in a word with a digit, T A U V E B D N read as 0 1 2 3 5 7 8 9, so 5NN is 599.</dd>
+        <dt>color, invert</dt><dd>Dits red and dahs blue, or one colour; the light theme. Both carry over to the reference.</dd>
+        <dt>pretty</dt><dd>Playback in textbook timing.</dd>
+      </dl>
+      <p>At the foot of the tray, <em>report</em> copies what's needed to help with a problem: the version, this device, the settings and the last errors. Never your messages.</p>
+    </section>
+
+    <section class="frame" id="receiving" aria-labelledby="l-receiving">
+      <h2 class="frame-label" id="l-receiving">receiving</h2>
+      <p>Switch to <strong>rx</strong> and the station reads Morse onto the tape. In rx, ♪ and ☼ choose what it reads:</p>
+      <dl>
+        <dt>♪ sound</dt><dd>Tap to listen with the microphone, or open a recording (a sound, or a video's sound), or drop one onto the tape. <em>isolate</em> plays back only the tone that was read, without the noise around it.</dd>
+        <dt>☼ light</dt><dd>Point the camera at a lamp and tap it: the ring is what's watched (drag it, pinch or zoom). <em>lamp</em> reads how bright the ring is; <em>blink</em> reads how much it changes, for a light that doesn't go fully dark (keep the camera still). A video works too.</dd>
+      </dl>
+      <p>The first time, the phone or browser asks for the microphone or the camera. What's heard or seen stays on this device.</p>
+    </section>
+
+    <section class="frame" id="sharing" aria-labelledby="l-sharing">
+      <h2 class="frame-label" id="l-sharing">sharing</h2>
+      <p>Every message is a link, and the link is the message: <code>dot-da.sh/?/…</code> carries the Morse in the address, so it opens the station with it on the line, ready to play. In a chat, its preview shows the Morse, the text and a moving card.</p>
+      <p><em>share</em> above the station offers:</p>
+      <ul>
+        <li><strong>copy</strong> the Morse, the text, or the link (<em>with my settings</em> adds your speed, pitch and sound to it, used for that visit only).</li>
+        <li><strong>save</strong> the message as <code>.txt</code>, a <code>.sh</code> script that plays it in a terminal, a <code>.wav</code> sound or a moving <code>.gif</code>.</li>
+        <li><strong>share…</strong>: the phone's own share sheet.</li>
+      </ul>
+      <p>A link's message reaches the server when it's opened, so share only what you'd put in any link. Morse is an encoding, not encryption.</p>
+    </section>
+
+    <section class="frame" id="more" aria-labelledby="l-more">
+      <h2 class="frame-label" id="l-more">key hero, the reference</h2>
+      <ul>
+        <li><a href="/hero/">Key hero</a> is a game for the sending hand: Morse comes down a road, and you key each mark as it reaches the line.</li>
+        <li><a href="/ref/">The reference</a> has every character, prosign, Q code and abbreviation, each with its own page, sound and pictures, and <a href="/ref/how-it-works/">how Morse works</a> in short answers.</li>
+        <li>The <a href="/extension/">browser extension</a> and the <a href="/bookmarklet/">bookmarklet</a> bring text from any page to the station.</li>
+      </ul>
+    </section>
+
+    <section class="frame" id="app" aria-labelledby="l-app">
+      <h2 class="frame-label" id="l-app">the app</h2>
+      <p>The Android app is the same station, kept on the phone, so it works with no connection at all. What it adds:</p>
+      <ul>
+        <li><strong>Vibration</strong> at a strength you choose (≋, above).</li>
+        <li><strong>Links open in the app</strong>: a <code>dot-da.sh</code> link tapped in a chat or a QR code opens there instead of the browser, even offline.</li>
+        <li><strong>Shortcuts</strong>: hold the app's icon for the station, the chart, the reference or Key hero. The phone's search finds them too.</li>
+      </ul>
+      <p>It asks for the microphone and the camera only when you first use rx, or the flashlight; nothing is asked at install.</p>
+    </section>
+
+    <section class="frame" id="troubleshooting" aria-labelledby="l-troubleshooting">
+      <h2 class="frame-label" id="l-troubleshooting">troubleshooting</h2>
+      <dl>
+        <dt id="no-vibration">The app doesn't vibrate</dt>
+        <dd>
+          <p>Check, in order:</p>
+          <ul>
+            <li>≋ is on: lit, not grey. Hold it to see the strength.</li>
+            <li>The phone's <strong>media vibration</strong> is on. The app buzzes as media, so that setting silences it. On a Pixel: Settings › Sound &amp; vibration › Vibration &amp; haptics › Media vibration. Other phones put it under Sounds and vibration › Vibration intensity › Media. The app can't see that setting, so it can't tell you it's off; <em>not felt?</em> at the end of ≋'s list brings you here.</li>
+            <li>Battery saver and Do Not Disturb are off. Some phones stop vibration in either, and the app can't tell.</li>
+          </ul>
+        </dd>
+
+        <dt id="no-vibration-web">≋ says "soon" on the website</dt>
+        <dd>A web page can only buzz at full strength, on or off, and an iPhone's browser not at all. Vibration is the app's for now.</dd>
+
+        <dt id="no-sound">There's no sound</dt>
+        <dd>Check that ♪ is lit and <em>vol</em> is up in the settings, and that the phone's media volume is up (not the ringer). On an iPhone, the ring/silent switch can silence a web page. In some browsers the first tap on the page is what lets it make sound at all.</dd>
+
+        <dt id="permission-refused">The microphone or camera was refused</dt>
+        <dd>
+          <p>Once refused, the station can't ask again; it has to be allowed by hand:</p>
+          <ul>
+            <li>In the app: Settings › Apps › dot-da.sh › Permissions.</li>
+            <li>In a browser: the icon at the left of the address bar, then the site's permissions.</li>
+          </ul>
+          <p>Then reload the page.</p>
+        </dd>
+
+        <dt id="flashlight">The flashlight lags, or there's no flashlight choice</dt>
+        <dd>A page reaches the flashlight through the camera, and each switch takes time: tens of milliseconds on some phones, a couple of hundred on others. The station measures it when the flashlight is chosen, and playback goes no faster than it can follow. The choice appears only where the browser offers the torch: Chrome on Android, and the app.</dd>
+
+        <dt id="lamp-asks">The signal lamp asks before it flashes</dt>
+        <dd>A flashing screen can harm people with photosensitive epilepsy, so the lamp asks first, and asks again when a message would flash more than three times a second. Slowing the speed (wpm) brings it under that.</dd>
+
+        <dt id="links-in-browser">Links open in the browser, not the app</dt>
+        <dd>Android opens <code>dot-da.sh</code> links in the app once it has checked that the site vouches for it, which needs a connection once after installing. If they still open in the browser: Settings › Apps › dot-da.sh › Open by default, and turn on <em>Open supported links</em>. A link typed into a browser's address bar stays in the browser.</dd>
+
+        <dt id="misread">It reads my keying as the wrong letters</dt>
+        <dd>The station decides dit or dah, and letter or word space, from your speed setting. If your hand is slower than <em>wpm</em>, dits turn into dahs and letters split; set <em>wpm</em> to match your hand, or use <em>tap</em>, which doesn't time you. The <code>~</code> in the card shows what the same marks could also be, cut differently, and the timing bar shows where each press fell.</dd>
+
+        <dt id="keys-dont-key">The computer's keys don't key</dt>
+        <dd>Click the tape first, so the page has the keyboard. Ctrl keys key only with <em>ctrl</em> on in the settings, and with it off they stay free for shortcuts like Ctrl+Z.</dd>
+
+        <dt id="history-gone">My history is gone</dt>
+        <dd>The history, settings and stats live in this browser or app only. Clearing the site's data, a private window, or another browser or device each starts empty, and nothing can bring them back.</dd>
+
+        <dt id="report">Something else</dt>
+        <dd>
+          <!--email_off-->
+          <p>Open the settings, tap <em>report</em> at the foot of the tray, and send what it copies, with a few words on what happened, to <a href="mailto:cq@dot-da.sh">cq@dot-da.sh</a>. It holds the version, the device, the settings and the last errors; never your messages.</p>
+          <!--/email_off-->
+        </dd>
+      </dl>
+    </section>
+  </main>
+</body>
+</html>

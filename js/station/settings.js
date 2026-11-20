@@ -20,6 +20,7 @@ import * as share from "../core/formats.js";
 import { READING } from "../core/morse.js";
 import { spokenWords } from "../shared/voice.js";
 import { createOutputs } from "../shared/outputs.js";
+import { inApp } from "../core/where.js";
 import { $, toast, flash } from "../shared/dom.js";
 
 /* the sound list: a tone's wave, the sounder, or the marks spoken
@@ -416,12 +417,16 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
    */
   const outputOn = name => document.querySelector(`[data-out="${name}"]`).getAttribute("aria-pressed") === "true";
 
+  /* ≋'s strengths (#opt-vibrate), 0 to 100: the app sets the motor's
+     amplitude from it (apps/mobile BuzzPlugin), after a kick at full */
+  const STRENGTH = { soft: 30, medium: 65, strong: 100 };
+
   const outputs = createOutputs({
     settings: () => ({
       light: outputOn("light"),
       lightMode: choice("#opt-light"),
       vibrate: outputOn("vibrate"),
-      strength: 50     // a strength of its own waits for the native app
+      strength: STRENGTH[choice("#opt-vibrate")] ?? STRENGTH.medium   // the app's; the web's ≋ is "soon"
     }),
     lampTarget: $(".station"),
     overlay: {
@@ -682,32 +687,55 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
     applyOutputs();
   }
 
-  /* vibration waits for the native app (strength, a sharp tap per dit,
-     roadmap): the toggle says so, and stays off */
-  document.querySelector('[data-out="vibrate"]').setAttribute("aria-pressed", "false");
+  /*
+   * Vibration is the app's (strength, a sharp tap per dit: a page has
+   * neither, roadmap). On the web the toggle says "soon" and stays off.
+   * In the app it's a switch like the others, a short buzz saying it's
+   * on; its long-press list has the strengths, or just on where the
+   * motor can't be softened (many cheap ones), and always "not felt?",
+   * the manual's fix (station/layer.js): the phone's own setting can
+   * silence it, and the app can't read that setting to know.
+   */
+  const buzzer = document.querySelector('[data-out="vibrate"]');
+  const strengths = $("#opt-vibrate");
+  if (!inApp()) {
+    buzzer.setAttribute("aria-pressed", "false");
+  } else {
+    buzzer.title = "vibration";
+    outputs.softens().then(softens => {
+      if (softens) return;
+      for (const o of strengths.options) o.hidden = o.value === "soft" || o.value === "strong";
+      strengths.querySelector('[value="medium"]').textContent = "on";
+      if (strengths.value !== "off") strengths.value = "medium";
+      if (strengths.dataset.last) strengths.dataset.last = "medium";
+    });
+  }
 
   for (const b of document.querySelectorAll(".outputs button")) {
     b.addEventListener("click", () => {
       /* receiving, ♪ and ☼ say what's read, not what comes out (js/station/main.js); ≋ is greyed */
       if (document.body.classList.contains("rx")) return document.dispatchEvent(new CustomEvent("dot-dash:rx-out", { detail: b.dataset.out }));
-      if (b.dataset.out === "vibrate") return flash(b, "soon");
+      if (b.dataset.out === "vibrate" && !inApp()) return flash(b, "soon");
       setOutput(b.dataset.out, !outputOn(b.dataset.out));
       if (b.dataset.out === "sound" && sound.enabled) preview();
+      if (b.dataset.out === "vibrate" && outputOn("vibrate")) outputs.testBuzz();
     });
   }
 
   /*
-   * Sound and light also have "off" in their lists: the same
-   * switch as ♪ / ☼. Picking off turns the output off; picking
-   * anything else turns it back on. While it's off the list shows
-   * "off" and keeps the last real choice for when it comes back.
+   * Sound, light and vibration also have "off" in their lists: the
+   * same switch as ♪ / ☼ / ≋. Picking off turns the output off;
+   * picking anything else turns it back on. While it's off the list
+   * shows "off" and keeps the last real choice for when it comes back.
+   * A strength picked buzzes once, to feel it.
    */
-  for (const select of document.querySelectorAll("#opt-sound, #opt-light")) {
+  for (const select of document.querySelectorAll("#opt-sound, #opt-light, #opt-vibrate")) {
     select.addEventListener("change", () => {
       const name = select.closest("[data-needs]").dataset.needs;
       if (select.value === "off") return setOutput(name, false);
       select.dataset.last = select.value;
       setOutput(name, true);
+      if (name === "vibrate") outputs.testBuzz();
     });
   }
 
