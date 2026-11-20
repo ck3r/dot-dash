@@ -29,7 +29,7 @@
  * draws from (none: no random), draw of them at a time; key: where
  * the choice is kept; change(): another was picked from the list.
  */
-import { readLink, encode, DECODE } from "../morse.js";
+import { readLink, encode, DECODE } from "../core/morse.js";
 import { keep, kept } from "./store.js";
 
 const AUTO = "link", RANDOM = "random";

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#1c1916">
   <!-- installable: add to home screen (see sw.js) -->
@@ -18,8 +18,8 @@
   <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
 
   <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
-  <link rel="stylesheet" href="/style.css">
-  <script type="module" src="/js/nav.js"></script>
+  <link rel="stylesheet" href="/css/base.css">
+  <script type="module" src="/js/shared/nav.js"></script>
 
   <!-- Primary Meta Tags -->
 <meta name="title" content="Morse code reference: chart, tree, prosigns, Q codes · dot-da.sh" />
@@ -44,7 +44,7 @@
 </head>
 
 <body>
-  <!-- the bar (js/nav.js): home, and REF, this page's heading -->
+  <!-- the bar (js/shared/nav.js): home, and REF, this page's heading -->
   <header class="top">
     <nav class="crumbs" aria-label="where you are">
       <ol>
@@ -144,7 +144,7 @@
   <!-- the bar: cards (every character as its tile, as in the about
        card; the word says what they are), and with stroke on, the
        player: the letters drawn as they're keyed, played as the
-       station's player plays a message (js/main.js)
+       station's player plays a message (js/ref/main.js)
 
          [x] cards    ▷ 2.8s ━━━━━━━━┃━━━━━━━ ⟲3 │ speed 5 wpm  consecutive   -->
   <div class="chart-bar">
@@ -201,7 +201,7 @@
   <!-- the letters, numbers and symbols A–Z, the ones English uses
        most first, the quickest to send first, as the tree reads, or
        in the order the Koch method teaches them,
-       each group on its own (js/main.js); the lists from the prosigns
+       each group on its own (js/ref/main.js); the lists from the prosigns
        on keep their own order -->
   <fieldset class="options chart-options">
     <legend class="visually-hidden">How the characters are ordered</legend>
@@ -217,7 +217,7 @@
   </fieldset>
 
   <!-- a group's switch on its heading's line, at the right:
-       stroke letters (js/main.js draws them over the plain ones),
+       stroke letters (js/ref/main.js draws them over the plain ones),
        cut numbers, prosigns with a bar, Q codes as questions -->
   <div class="heading-row">
     <h2>Letters</h2>
@@ -312,7 +312,7 @@
     Prosigns, Q codes and abbreviations: one to a line, the code at
     the left edge, the term on the page's centre line, the meaning at
     the right edge. A Q code's question (sent with ?) is the line
-    under its answer; js/main.js shows one or the other (the "?"
+    under its answer; js/ref/main.js shows one or the other (the "?"
     box), and orders them (A–Z, or as a contact goes: data-az,
     data-flow). All three lists share one grid, as wide as their
     longest code and meaning, so their centre lines meet.
@@ -453,10 +453,10 @@
       <p class="gathered">And gathered: <a href="/ref/chart/">the whole chart</a> · <a href="/ref/alphabet/">alphabet</a> · <a href="/ref/numbers/">numbers</a> · <a href="/ref/symbols/">symbols</a> · <a href="/ref/prosigns/">prosigns</a> · <a href="/ref/q-codes/">Q codes</a> · <a href="/ref/abbreviations/">abbreviations</a> · <a href="/ref/phrases/">phrases</a> · <a href="/ref/how-it-works/">how Morse code works</a></p>
     </nav>
 
-    <p class="colophon"><a href="/design/">design notes</a>: why the site looks and behaves as it does. <a href="/bookmarklet/">bookmarklet</a>: send what you've selected on any page here. <a href="/privacy/">privacy</a>: what you type stays in your browser.</p>
+    <p class="colophon"><a href="/design/">design notes</a>: why the site looks and behaves as it does. <a href="/extension/">extension</a>: Morse on any page, played and copied there. <a href="/bookmarklet/">bookmarklet</a>: send what you've selected on any page here. <a href="/privacy/">privacy</a>: what you type stays in your browser.</p>
 
   </main>
 
-  <script type="module" src="/js/main.js"></script>
+  <script type="module" src="/js/ref/main.js"></script>
 </body>
 </html>

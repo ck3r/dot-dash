@@ -1,0 +1,5 @@
+# GitHub Pages runs the site through Jekyll, which leaves out any
+# folder whose name starts with a dot. Android looks for the app's
+# links at /.well-known/assetlinks.json (apps/mobile/README.md), so
+# that one is let through; everything else is served as it was.
+include: [".well-known"]

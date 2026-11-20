@@ -2,20 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="robots" content="noindex">
   <title>stroke editor · dot-da.sh</title>
   <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
 
   <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/css/base.css">
 
   <style>
     /*
      * The stroke letters, set by hand: drag a mark's middle and it
      * slides along its own stroke, never off it, never past the next
      * mark. Each letter has its own size (a mark's length) and weight
-     * (its width). What's changed comes out as lines for js/strokes.js.
+     * (its width). What's changed comes out as lines for js/core/strokes.js.
      *
      *   ┌───────────────┐   size    ──●──────
      *   │      ●        │   weight  ────●────
@@ -127,16 +127,16 @@
     <div class="strip" id="strip-cut"></div>
 
     <section class="out">
-      <h2>changed, as lines for js/strokes.js</h2>
+      <h2>changed, as lines for js/core/strokes.js</h2>
       <pre id="out"></pre>
       <div class="controls"><button id="copy">copy changes</button></div>
     </section>
   </main>
 
   <script type="module">
-    import { ENCODE, codeOf } from "/js/morse.js";
-    import { timeline } from "/js/tx-player.js";
-    import { STROKES, CUT_STROKES, WEIGHT, DOT, DASH, ROUND, substrokes, createLetter } from "/js/strokes.js";
+    import { ENCODE, codeOf } from "/js/core/morse.js";
+    import { timeline } from "/js/shared/playback.js";
+    import { STROKES, CUT_STROKES, WEIGHT, DOT, DASH, ROUND, substrokes, createLetter } from "/js/core/strokes.js";
 
     const ORDER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
     /* and the numbers as cut, each by a key of its own ("9 cut"), so
@@ -459,7 +459,7 @@
     let ORIGINAL_LINES = {};
     const COMMENTS = {};   // a cut line's "// N  -.", and the column it starts at
     try {
-      const source = await (await fetch("/js/strokes.js")).text();
+      const source = await (await fetch("/js/core/strokes.js")).text();
       for (const [, name, d] of source.matchAll(/^const ([A-Z]+) = "([^"]+)";/gm)) NAMES[d] = name;
       const blockOf = start => source.slice(source.indexOf(start), source.indexOf("\n};", source.indexOf(start)));
       for (const [start, keyOf] of [["export const STROKES = {", c => c], ["export const CUT_STROKES = {", c => `${c} cut`]]) {

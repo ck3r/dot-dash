@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "sh.dotda.app",
+      "sha256_cert_fingerprints": [
+        "71:55:06:22:E0:9C:2C:15:D4:85:9A:A4:17:84:C4:C9:D3:20:17:BB:EC:37:2B:61:F7:2C:5B:90:67:AC:CF:FD"
+      ]
+    }
+  }
+]

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#1c1916">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -14,10 +14,10 @@
   <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
 
   <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
-  <link rel="stylesheet" href="/style.css">
-  <link rel="stylesheet" href="/design/design.css">
-  <script type="module" src="/js/nav.js"></script>
-  <link rel="stylesheet" href="/bookmarklet/bookmarklet.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/prose.css">
+  <script type="module" src="/js/shared/nav.js"></script>
+  <link rel="stylesheet" href="/css/bookmarklet.css">
 
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://dot-da.sh/bookmarklet/">
@@ -27,7 +27,7 @@
 </head>
 
 <body class="notes">
-  <!-- the bar (js/nav.js): home, and this page's name, its heading -->
+  <!-- the bar (js/shared/nav.js): home, and this page's name, its heading -->
   <header class="top">
     <nav class="crumbs" aria-label="where you are">
       <ol>
@@ -75,6 +75,6 @@
     </footer>
   </main>
 
-  <script type="module" src="/bookmarklet/bookmarklet.js"></script>
+  <script type="module" src="/js/bookmarklet/main.js"></script>
 </body>
 </html>

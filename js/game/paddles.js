@@ -20,7 +20,7 @@
  *
  * It keeps no state: whether a key counts as down is the game's.
  */
-import { DIT_KEYS, DAH_KEYS } from "../keymap.js";
+import { DIT_KEYS, DAH_KEYS } from "../core/keymap.js";
 
 /* a key with a modifier is the browser's, not ours (Ctrl by itself may be a paddle) */
 export const chord = event => event.metaKey || event.altKey || (event.ctrlKey && !/^Control/.test(event.code));
@@ -39,7 +39,7 @@ export function createPaddles({ pads, ctrl = () => false, mouse = () => false, p
   }
 
   /* a keyboard: the station's own keys for its two paddles
-     (js/keymap.js; and Ctrl, with its box ticked) */
+     (js/core/keymap.js; and Ctrl, with its box ticked) */
   function laneFor(event) {
     const { code } = event, ctrlKeys = ctrl();
     if (DIT_KEYS.has(code) || event.key === "." || (ctrlKeys && code === "ControlLeft")) return ".";

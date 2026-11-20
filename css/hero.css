@@ -1,0 +1,1302 @@
+/*
+ * Key hero (/hero). The road fills the screen over the keys, and
+ * the rest sits round it, where the road isn't:
+ *
+ *   ┌────────────────────────────┐
+ *   │ dot-da.sh   KEY HERO       │
+ *   │ CQ CQ      D̲E̲ K            │   keyed (left); coming, the word on
+ *   │            ╱╲     CQ CQ    │   deck over the road's far end
+ *   │           ╱│ ╲             │   (js/hero/message.js)
+ *   │          ╱ │  ╲      ⚙ ^   │   the road (js/hero/road.js); the
+ *   │   E     ╱  │▄▄ ╲     ×7    │   settings behind the gear, the run,
+ *   │  ━━━━━━━━━○╱━━━━━━━━ ▭▭▭   │   the strikes; the bar, its switch
+ *   │ > D̲    ╱   │     ╲   pause │   the caret and the word being spelled
+ *   │ ┌────────────┬───────────┐ │
+ *   │ │     ●      │     ▬     │ │   dit, dah
+ *   │ └────────────┴───────────┘ │
+ *   └────────────────────────────┘
+ *
+ * A note on its way is grey, whatever it is. Keyed, it takes its
+ * colour (body.signal, the station's setting: dots red, dashes blue;
+ * off, paper), and brass if it landed. Brass is also the bar's, lit
+ * while a key is down.
+ */
+
+body.hero {
+  /* the station's (station.css): its type sizes, and its side column's width */
+  --side: 5.4rem;
+  --gap: 6px;
+  --fs-xs: 0.72rem;
+  --fs-s: 0.85rem;
+  --fs-m: 1rem;
+  --key-lit: var(--paper);
+  /* the station's input slot (station.css --input-h): its pad and its
+     text keyboard are this high, and so are these */
+  --input-h: max(6rem, min(300px, max(190px, 32dvh), 100dvh - 17.5rem - var(--safe-top) - var(--safe-bottom)));
+
+  max-width: calc(560px + 2 * var(--safe-x));
+  height: 100dvh;
+  /* the safe areas, as the station's (station.css body.tx) */
+  padding: calc(0.75rem + var(--safe-top)) calc(1rem + var(--safe-x))
+    max(0.75rem, var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hero .sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- the top ---------- */
+
+/* share and the profile at the right, as
+   the station's (station.css .top-right, .share-toggle; the profile a
+   placeholder: nothing behind it yet) */
+.hero-top .top-right {
+  justify-self: end;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 1.2ch;
+}
+
+.hero .share-toggle {
+  padding: 0.15rem 0.2rem;
+  color: var(--graphite);
+  font-size: var(--fs-s);
+}
+
+.hero .share-toggle[aria-expanded="true"] {
+  color: var(--paper);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.hero-top .profile {
+  display: inline-flex;
+  padding: 0;
+  color: var(--wire);
+  cursor: default;
+}
+
+.hero-top .profile svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* the bar is every page's (base.css .top, js/shared/nav.js) */
+.hero-top {
+  margin-bottom: 0;
+}
+
+.hero button,
+.hero select {
+  font: inherit;
+  color: var(--graphite);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+/* the station's lists (station.css .switches): the name over a dotted
+   line, and a small chevron of our own */
+.hero .pick {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  color: var(--graphite);
+  font-size: var(--fs-xs);
+}
+
+.hero select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  padding: 0.1rem 0.75rem 0.1rem 0;
+  color: var(--paper);
+  border-radius: 0;
+  border-bottom: 1px dotted var(--graphite);
+  font-size: var(--fs-xs);
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+}
+
+.hero .pick::after {
+  content: "";
+  position: absolute;
+  right: 0.2rem;
+  bottom: 0.55rem;
+  width: 0.28rem;
+  height: 0.28rem;
+  border-right: 1.2px solid var(--graphite);
+  border-bottom: 1.2px solid var(--graphite);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+@media (hover: hover) {
+  .hero .pick:hover select { color: var(--brass); border-bottom-color: var(--brass); }
+  .hero .pick:hover::after { border-color: var(--brass); }
+}
+
+.hero select option {
+  background: var(--bakelite);
+  color: var(--paper);
+}
+
+.hero button:disabled {
+  color: var(--wire);
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .hero-top .home:hover,
+  .hero button:not(:disabled):hover,
+  .hero select:hover { color: var(--brass); background: transparent; }
+}
+
+/* ---------- the stage ---------- */
+
+.hero main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.stage {
+  container-type: size;       /* the settings measure themselves against it (cqh, below) */
+  --drop: 105px;              /* the bar over the keys: as the station's box edge is over its pad */
+  --bar: var(--drop);         /* where it came out (set by road.js) */
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+/*
+ * ---------- the road ----------
+ *
+ * A flat strip of road, tipped back about its near edge:
+ *
+ *        far ╲          the eye is above the far end, so the lanes
+ *             ╲         draw together as they go
+ *   eye ▸      ╲
+ *        near ━━┷━ (the hinge)
+ *
+ * The plane is taller than the box it's in: tipped, it looks short.
+ * The lanes part in the middle, over where the two keys meet, and
+ * stop short of the plane's sides: the letters ride the left one.
+ */
+/* It starts under the first line of the message, so the word on deck
+   and the far end's first notes aren't on top of each other */
+.road {
+  position: absolute;
+  inset: calc(0.5rem + 1.4 * var(--fs-s) + 0.2rem) 0 0;
+  overflow: hidden;
+  perspective: 560px;
+  perspective-origin: 50% 0%;
+}
+
+.signal .key[data-lane="."] .mark { color: var(--dot); }
+.signal .key[data-lane="-"] .mark { color: var(--dash); }
+
+.plane {
+  --u: 20px;                    /* a unit of time, as road (set by road.js) */
+  --near: calc(var(--u) * var(--near-u, 3));   /* road this side of the bar (road.js sets how much): what's been keyed goes on, under the keys */
+  --inset: 20%;                 /* the lanes' edges, from the plane's */
+  --note: 19%;                  /* a note's width: the same in either lane */
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 300%;
+  transform: rotateX(66deg);
+  transform-origin: 50% 100%;
+  overflow: hidden;
+  /* the far end comes out of the dark */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 30%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 30%);
+}
+
+/* the lanes: an edge each side, and one where they part */
+.lanes {
+  position: absolute;
+  inset: 0 var(--inset);
+  border-inline: 2px solid var(--wire);
+  background: linear-gradient(var(--wire), var(--wire)) 50% 0 / 2px 100% no-repeat;
+}
+
+/* where the bar is, on the road: not seen itself (the bar is drawn
+   flat, over it), only measured */
+.line {
+  position: absolute;
+  left: var(--inset);
+  right: var(--inset);
+  bottom: var(--near);
+  height: 2px;
+  visibility: hidden;
+}
+
+.strip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--near);
+  height: 0;
+  will-change: transform;
+}
+
+/*
+ * A note: grey on its way. Taken by a key, it's an outline in its
+ * colour (--ink), and inside it as much as the key has covered (the
+ * <s>, placed by road.js). What the grade adds:
+ *
+ *   landed    brass, and whole
+ *   close     its colour; a dotted border if let go early
+ *   missed    the outline alone, in wire; dotted if it was keyed short
+ */
+.note,
+.press {
+  --ink: var(--paper);
+  position: absolute;
+  bottom: calc(var(--u) * var(--at));
+  height: calc(var(--u) * var(--len));
+  width: var(--note);
+  border-radius: calc(var(--u) * 0.3);
+}
+
+:is(.note, .press).dot { left: calc(var(--inset) + (50% - var(--inset)) / 2 - var(--note) / 2); }
+:is(.note, .press).dash { left: calc(50% + (50% - var(--inset)) / 2 - var(--note) / 2); }
+
+.signal :is(.note, .press).dot { --ink: var(--dot); }
+.signal :is(.note, .press).dash { --ink: var(--dash); }
+
+.note {
+  box-sizing: border-box;
+  background: var(--graphite);
+  border: 3px solid transparent;
+  overflow: hidden;
+}
+
+.note s {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  background: var(--ink);
+}
+
+.note:is(.taken, .close, .landed, .missed) {
+  background: none;
+  border-color: var(--ink);
+}
+
+.plane .note:is(.gold, .landed) { --ink: var(--brass); }
+.plane .note.landed s { bottom: 0 !important; height: 100% !important; }
+.plane .note.under { border-style: dotted; }
+.plane .note.missed { --ink: var(--wire); }
+.plane .note.missed.under { --ink: var(--graphite); }
+
+/* the press itself, faint, and under the notes: seen where it runs
+   past its note (held too long, or early), or where there was no
+   note at all */
+.note { z-index: 1; }
+.press { background: var(--ink); opacity: 0.32; }
+.plane .press.stray { --ink: var(--graphite); }
+
+/* where a letter ends */
+.sep {
+  position: absolute;
+  left: var(--inset);
+  right: var(--inset);
+  bottom: calc(var(--u) * var(--at));
+  border-top: 2px dotted var(--graphite);
+}
+
+/*
+ * A letter, on the left edge, level with its first mark; drawn tall,
+ * since the road it lies on is tipped away. --lift (road.js) holds it
+ * over the bar while its marks go by.
+ *
+ * It's drawn by its marks (strokes.js): a thin paper letter, the
+ * marks along it dark till they're keyed. Done (.passed), the thin
+ * line goes as thick as the marks (--w, the letter's own weight), so
+ * it's one bold letter in its grade's colour, the keyed marks still
+ * showing on it in theirs.
+ */
+.letter {
+  position: absolute;
+  right: calc(100% - var(--inset) + var(--u) * 0.2);
+  bottom: calc(var(--u) * var(--at));
+  /* never wider than the road's margin has room for (a tall, narrow
+     screen: the unit goes by the height, the margin by the width) */
+  width: min(calc(var(--u) * 1.1), var(--inset) - var(--u) * 0.35);
+  aspect-ratio: 1;
+  transform: translateY(var(--lift, 0px)) scaleY(1.8);
+  transform-origin: 50% 100%;
+}
+
+/* where a letter waits over the bar (road.js measures it) */
+.letter.probe {
+  bottom: calc(var(--near) + var(--u) * var(--stick));
+  visibility: hidden;
+}
+
+.letter .stroked {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.letter .scaffold path { stroke: var(--paper); stroke-width: 2px; }
+.letter .grey path { stroke: var(--graphite); }   /* its marks to come: grey, as the notes are */
+.letter.passed .scaffold path { vector-effect: none; stroke-width: var(--w); stroke-linecap: square; }
+.letter.passed .grey { display: none; }
+.letter.missed .scaffold path { stroke: var(--graphite); }
+.letter.perfect .scaffold path,
+.letter.perfect .fill path { stroke: var(--brass); }
+body.hero:not(.signal) .letter .fill path { stroke: var(--paper); }
+body.hero:not(.signal) .letter.correct .fill path { stroke: none; }
+
+/* one with no drawing: as type */
+.letter.plain {
+  width: auto;
+  height: auto;
+  font-size: calc(var(--u) * 1.1);
+  line-height: 1;
+  color: var(--paper);
+}
+.letter.plain.missed { color: var(--graphite); }
+.letter.plain.perfect { color: var(--brass); }
+
+/*
+ * The bar: the station box's bottom edge, with the switch on it.
+ * Open, the lever lifts and leaves a gap; closed (a key down), it
+ * drops into the line, the LED lights, and the bar goes brass.
+ *
+ *   ━━━━━━━━○╱ ━━━━━━━━        ━━━━━━━━●━━━━━━━━━
+ */
+.bar {
+  position: absolute;
+  height: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.bar i {
+  position: absolute;
+  top: -1.5px;
+  height: 3px;
+  background: var(--paper);
+  transition: background-color 0.08s linear, box-shadow 0.08s linear;
+}
+
+.bar i:first-child { left: 0; right: calc(50% + 14px); }
+.bar i:last-child { left: calc(50% + 14px); right: 0; }
+
+.bar .switch {
+  position: absolute;
+  left: calc(50% - 15px);
+  top: -21.7px;               /* the closed lever, level with the bar */
+  width: 30px;
+  height: 32.5px;
+}
+
+.bar .switch svg {
+  width: 30px;
+  height: 32.5px;
+}
+
+.bar.down i {
+  background: var(--brass);
+  box-shadow: 0 0 6px 1px var(--brass), 0 0 22px 4px color-mix(in srgb, var(--brass) 60%, transparent);
+}
+
+/* waiting, paused: said over the road, as the station says "copied"
+   over what was tapped (station.css .flash-tip) */
+#note {
+  position: absolute;
+  left: 50%;
+  bottom: 45%;
+  transform: translateX(-50%);
+  padding: 0.1rem 0.25rem;
+  background: var(--bakelite);
+  border: 1px solid var(--brass);
+  color: var(--brass);
+  font-size: var(--fs-xs);
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+}
+
+#note:empty { display: none; }
+
+/*
+ * ---------- the message ----------
+ *
+ * Capitals throughout, as Morse is written. Either side of the far
+ * end, clear of the road: it's narrow up there.
+ */
+.incoming,
+.keyed {
+  --lh: 1.4em;
+  --mid: 7ch;                 /* from the middle of the screen to where the incoming box starts */
+  --clear: 2.4rem;            /* and from the middle to where the lines that wait start: clear of the road */
+  position: absolute;
+  top: 0.5rem;
+  width: calc(50% - var(--mid) - 0.5rem);
+  height: calc(5 * var(--lh));
+  overflow: hidden;
+  font-size: var(--fs-s);
+  font-weight: 700;
+  line-height: var(--lh);
+  text-transform: uppercase;
+}
+
+/*
+ * Coming. The word on deck sits over the road's far end, in the
+ * middle, so a letter that peels off it drops straight onto the road;
+ * the rest of its line runs on to the right, and the lines that wait
+ * are under that, clear of the road, dimmer.
+ *
+ *            ┆ the middle
+ *         HEL┆LO WORLD AND
+ *            ┆    MORE TO COME
+ *
+ * A tap on it is for typing a text of your own: a dotted frame while
+ * the keyboard is up.
+ */
+.incoming {
+  cursor: text;
+  z-index: 1;
+  outline: 1px dotted transparent;
+  outline-offset: 3px;
+  left: calc(50% - var(--mid));
+  width: auto;
+  right: 0;
+  color: var(--wire);
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+}
+
+.incoming .rows {
+  display: block;
+  padding-left: calc(var(--mid) + var(--clear));
+  transform: translateY(calc(var(--k, 0) * -1 * var(--lh)));
+  transition: transform 0.35s ease-out;
+}
+
+.incoming .row {
+  display: block;
+  height: var(--lh);
+  white-space: pre;
+}
+
+.incoming .run {
+  display: inline-block;
+  transition: transform 0.35s ease-out;
+}
+
+/* the feeding line: slid so the middle of its word on deck (--c
+   letters along, message.js) is in the middle of the screen */
+.incoming .row:has(.deck) .run,
+.incoming .row.spent .run { transform: translateX(calc(-1 * var(--clear) - var(--c, 0) * 1ch)); }
+
+.incoming b {
+  display: inline-block;
+  font-weight: inherit;
+  transition: transform 0.25s ease-in, opacity 0.25s ease-in;
+}
+
+.incoming .row:has(.deck) { color: var(--graphite); }
+
+/* (a line of its own under the word: an underline wouldn't reach
+   the letters, each a box so it can drop) */
+.incoming .w { display: inline-block; line-height: 1.15; border-bottom: 2px solid transparent; }
+
+.incoming .deck {
+  color: var(--paper);
+  border-bottom-color: var(--paper);
+}
+
+.incoming b.gone {
+  transform: translateY(0.9em);
+  opacity: 0;
+}
+
+body[data-input="text"] .incoming { outline-color: var(--brass); }
+
+@media (hover: hover) {
+  .incoming:hover { outline-color: var(--brass); }
+}
+
+/* keyed: words in their order, each letter as it was keyed */
+.keyed { left: 0; }
+
+:is(.keyed, .word, .flying) b { font-weight: inherit; }
+:is(.keyed, .word, .flying) .correct { color: var(--paper); }
+:is(.keyed, .word, .flying) .perfect { color: var(--brass); }
+:is(.keyed, .word, .flying) .missed { color: var(--graphite); opacity: 0.55; }
+
+.keyed .w { display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
+
+/* a word on its way up (message.js): a copy, on the page itself */
+.flying {
+  position: fixed;
+  z-index: 2;
+  font-size: var(--fs-s);
+  font-weight: 700;
+  line-height: 1.4em;
+  pointer-events: none;
+}
+
+/* under the bar, by the keys: the caret, and the word being spelled,
+   underlined as the one on deck is. Its letter is over them, the
+   road's, waiting at the bar */
+.now {
+  position: absolute;
+  left: 0;
+  bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1ch;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.now .word {
+  min-height: 1.4em;
+  font-size: var(--fs-s);
+  font-weight: 700;
+  line-height: 1.4em;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  color: var(--graphite);
+}
+
+.now .caret {
+  color: var(--brass);
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ---------- the key ---------- */
+
+.keybox {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap);
+  height: var(--input-h);
+  touch-action: none;
+}
+
+.hero .key {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 1px solid var(--wire);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--paper) 4%, var(--bakelite));
+  color: var(--graphite);
+  font-size: 1.6rem;
+  touch-action: none;
+}
+
+.hero .key kbd {
+  font: inherit;
+  font-size: var(--fs-s);
+  padding: 0 0.8ch;
+  color: var(--graphite);
+  border: 1px solid var(--wire);
+  border-radius: 4px;
+}
+
+/* no keyboard to hint at where a finger does the pressing */
+@media (hover: none) {
+  .hero .key kbd { display: none; }
+}
+
+@media (hover: hover) {
+  .hero .key:hover { border-color: var(--brass); }
+}
+
+.hero .key.down,
+.hero .key.down:hover {
+  border-color: var(--paper);
+  background: var(--paper);
+}
+
+.hero .key.down .mark,
+.hero .key.down kbd { color: var(--bakelite); border-color: var(--bakelite); }
+
+/*
+ * ---------- the settings ----------
+ *
+ * Down the right, beside the road (which has drawn in and left
+ * room). At the foot, always: pause, nearest the thumb, restart, the
+ * strikes, the run, and the gear. The settings themselves open upward from
+ * the gear (the text, the boxes, the speed), and are shut while a
+ * song is played unless they're wanted:
+ *
+ *    text ▾          ┐
+ *    [ ] ctrl …      │ the tray, open
+ *    ┃ ┃ speed       ┘
+ *     ⚙ ^
+ *     ×4
+ *    ▭ ▭ ▭
+ *   restart
+ *    pause
+ */
+/* the foot is as wide as the road's own margin there (the lanes'
+   edge is --inset in from the side: .plane), so nothing on the road
+   goes under pause */
+.settings {
+  --foot: 9.6rem;             /* its height, about: the gear, the run, the strikes, restart, pause */
+  position: absolute;
+  right: 0;
+  bottom: 0.4rem;
+  width: calc(20% - 6px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  font-size: var(--fs-xs);
+}
+
+/* the strikes: three boxes, each filling by thirds; full, the run is over */
+#strikes {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+#strikes i {
+  width: 0.9rem;
+  height: 0.5rem;
+  border: 1px solid var(--graphite);
+  background: linear-gradient(var(--paper), var(--paper)) 0 0 / calc(var(--fill, 0) * 100%) 100% no-repeat;
+}
+
+/* the tray stands on the foot, wider than it: up there the road has
+   drawn in. As tall as the stage has room for (the faders give way
+   on a short screen), and over the message's lines while it's open */
+.tray {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.45rem);
+  width: var(--side);
+  max-height: calc(100cqh - var(--foot) - 0.2rem);
+  padding: 0.3rem 0 0 0.3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  background: var(--bakelite);
+  overflow: hidden;
+  z-index: 2;
+}
+
+.tray .pick,
+.tray .flags { flex: none; }
+
+.tray[hidden] { display: none; }
+
+.settings #gear {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.8ch;
+  padding: 0.1rem 0;
+}
+
+#gear svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+/* the chevron: up to open, down to shut */
+#gear .chevron {
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-top: 0.2rem;
+  border-left: 1.5px solid currentColor;
+  border-top: 1.5px solid currentColor;
+  transform: rotate(45deg);
+}
+
+#gear[aria-expanded="true"] { color: var(--paper); }
+#gear[aria-expanded="true"] .chevron { margin-top: -0.2rem; transform: rotate(225deg); }
+
+/* the run of notes keyed: grey while there's none */
+#streak.none { color: var(--wire); }
+
+#streak {
+  height: 1.6rem;
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.6rem;
+  color: var(--brass);
+}
+
+.settings .group { flex: 0 1 8.5rem; min-height: 4.5rem; }
+
+.settings #pause,
+.settings #restart {
+  padding: 0.35rem 0;
+  white-space: nowrap;
+  border: 1px solid var(--wire);
+  font-size: var(--fs-s);
+}
+
+/* restart: smaller than pause, the one the thumb finds first */
+.settings #restart { padding: 0.2rem 0; font-size: var(--fs-xs); }
+
+@media (hover: hover) {
+  .settings :is(#pause, #restart):not(:disabled):hover { border-color: var(--brass); }
+}
+
+.settings .flags {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: var(--fs-xs);
+}
+
+/* the station's boxes ([x], base.css); the word grey, as its are */
+.settings .check { display: block; }
+.settings .check span { color: var(--graphite); }
+
+@media (hover: hover) {
+  .settings .check:hover::before,
+  .settings .check:hover span { color: var(--brass); }
+}
+
+/*
+ * ---------- the speed ----------
+ *
+ * The station's faders (station.css), a pair with its name under it:
+ * value on top, label below, low at the bottom. A thin line, brass up
+ * to the level (--p), a brass bar across it for the handle; above
+ * farnsworth's reach (--f) the line gives way to a dotted cap.
+ *
+ *     │
+ *     │       the line (wire)
+ *    ━━━      the handle
+ *     ┃       brass, down to the bottom
+ */
+.hero .group {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.2rem;
+}
+
+.hero .pair {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: var(--gap);
+}
+
+.hero .group-name {
+  text-align: center;
+  color: var(--graphite);
+  border-top: 1px solid var(--wire);
+  padding-top: 0.15rem;
+  font-size: var(--fs-xs);
+}
+
+.fader {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.fader output {
+  color: var(--paper);
+  font-size: var(--fs-s);
+}
+
+.fader span {
+  color: var(--graphite);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+
+.fader input[type="range"] {
+  --r: 8px;                 /* half the handle's target: its centre travels r … height − r */
+  --at: calc(var(--r) + var(--p, 0.5) * (100% - 2 * var(--r)));
+  flex: 1;
+  min-height: 0;
+  width: 2rem;
+  margin: 0;
+  writing-mode: vertical-lr;
+  direction: rtl;
+  -webkit-appearance: none;
+  appearance: none;
+  background: linear-gradient(to top,
+      var(--brass) 0 var(--at),
+      var(--wire) 0 calc(100% - var(--f, 0) * (100% - 2 * var(--r))),
+      transparent 0) center / 2px 100% no-repeat;
+  cursor: pointer;
+  touch-action: none;
+  position: relative;
+  z-index: 1;               /* the handle over farnsworth's cap */
+}
+.fader input[type="range"]::-webkit-slider-runnable-track { background: transparent; border: 0; }
+.fader input[type="range"]::-moz-range-track              { background: transparent; border: 0; }
+.fader input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 16px;
+  border: 0;
+  background: linear-gradient(var(--brass), var(--brass)) center / 100% 4px no-repeat;
+}
+.fader input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 16px;
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(var(--brass), var(--brass)) center / 100% 4px no-repeat;
+}
+
+.fader .track {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  --f: 0;
+  --r: 8px;
+}
+
+.fader .track .cap {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 10px;
+  transform: translateX(-50%);
+  height: calc(var(--f) * (100% - 2 * var(--r)));
+  z-index: 0;               /* under the handle */
+  background:
+    repeating-linear-gradient(to bottom, var(--graphite) 0 2px, transparent 2px 5px) center / 2px 100% no-repeat,
+    var(--bakelite);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+/* ---------- the card ---------- */
+
+/* over the page, which dims behind it, as the station's popups do */
+.result {
+  position: absolute;
+  inset: 12% 0 auto;
+  margin: 0 auto;
+  width: min(100%, 300px);
+  padding: 1rem 1.2rem;
+  background: var(--bakelite);
+  border: 1px solid var(--graphite);
+  box-shadow: 0 0 0 100vmax color-mix(in srgb, var(--bakelite) 60%, transparent);
+  z-index: 3;
+}
+
+.result[hidden] { display: none; }
+
+.result .frame-label { left: 0.8rem; font-size: var(--fs-s); }
+
+/* the station's close (station.css .popup .close): an x in the corner */
+.hero .result .close {
+  position: absolute;
+  top: 0.1rem;
+  right: 0.15rem;
+  display: inline-flex;
+  padding: 0.25rem;
+  color: var(--graphite);
+}
+
+.result .close svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+}
+
+/* the longest run, large and faint over the whole card: seen first,
+   and never in the way of what's under it */
+.result .ghost {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--brass);
+  opacity: 0.3;
+  font-size: clamp(5rem, 34vw, 9rem);
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* struck out: the three strikes in its place, the boxes full, as
+   large and as faint */
+.result .ghost.struck {
+  display: flex;
+  gap: clamp(0.5rem, 3vw, 0.9rem);
+}
+
+.result .ghost.struck i {
+  width: clamp(3.2rem, 21vw, 4.6rem);
+  aspect-ratio: 9 / 5;
+  background: currentColor;
+}
+
+.result .percent b { font-size: 2rem; }
+.result .percent span { display: block; color: var(--graphite); }
+
+.result dl { margin: 0.6rem 0 1rem; }
+.result dl div { display: flex; justify-content: space-between; }
+.result dt { color: var(--graphite); }
+
+.hero .result #again {
+  color: var(--paper);
+  border: 1px solid var(--wire);
+  padding: 0.3rem 2ch;
+}
+
+.result .hint {
+  margin-left: 1ch;
+  color: var(--graphite);
+  font-size: var(--fs-s);
+}
+
+@media (hover: hover) {
+  .hero .result #again:hover { border-color: var(--brass); }
+}
+
+/*
+ * ---------- share ----------
+ *
+ * The station's menu (station.css .share-menu), with the game's rows:
+ * under the word, the page dimmed behind it.
+ */
+.share-menu {
+  position: fixed;
+  z-index: 10;
+  top: var(--share-top, 3rem);
+  right: max(0.75rem, calc((100vw - 520px) / 2 + 0.75rem));
+  width: min(20rem, calc(100vw - 1.5rem));
+  padding: 1rem 0.9rem 0.7rem;
+  background: var(--bakelite);
+  border: 1px solid var(--graphite);
+  box-shadow: 0 0 0 100vmax color-mix(in srgb, var(--bakelite) 55%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: var(--fs-s);
+}
+
+.share-menu[hidden],
+.share-menu .rows[hidden] { display: none; }
+
+.share-menu .frame-label { left: 0.8rem; font-size: var(--fs-s); }
+
+.hero .share-menu .close {
+  position: absolute;
+  top: 0.1rem;
+  right: 0.15rem;
+  display: inline-flex;
+  width: auto;
+  padding: 0.25rem;
+  color: var(--graphite);
+}
+
+.share-menu .close svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+}
+
+.share-menu .rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.share-menu .rows + .rows {
+  border-top: 1px dashed var(--wire);
+  padding-top: 0.5rem;
+}
+
+.hero .share-menu .rows button,
+.share-menu .rows a {
+  display: flex;
+  justify-content: space-between;
+  gap: 1ch;
+  width: 100%;
+  padding: 0.35rem 0.2rem;
+  text-align: left;
+  text-decoration: none;
+  color: var(--paper);
+}
+
+.share-menu .rows button > span:first-child { flex: none; white-space: nowrap; }
+/* nothing to copy yet (no run keyed): there, and grey */
+.hero .share-menu .rows button:disabled { color: var(--wire); cursor: default; }
+
+.share-menu .peek {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--graphite);
+}
+
+.share-menu .privacy {
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--wire);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  color: var(--graphite);
+}
+
+.share-note {
+  min-height: 1.2em;
+  color: var(--brass);
+  font-size: var(--fs-xs);
+}
+
+@media (hover: hover) {
+  .hero .share-toggle:hover,
+  .hero .share-menu .close:hover,
+  .hero .share-menu .rows button:not(:disabled):hover,
+  .share-menu .rows a:hover { color: var(--brass); }
+}
+
+/*
+ * ---------- the text keyboard ----------
+ *
+ * The station's (js/shared/keyboard.js), in the keys' place and their
+ * height. Its styles are the station's own, copied from station.css
+ * (THE TEXT KEYBOARD, the long-press fan): keep the two alike.
+ */
+body[data-input="text"] .keybox { display: none; }
+.kbd[hidden] { display: none; }
+.hero .kbd { flex: none; height: var(--input-h); }
+.hero .kbd button { border-radius: 0; cursor: pointer; }
+
+.kbd {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: repeat(4, minmax(0, 1fr));   /* rows as the slot allows, never their keys' own height */
+  gap: 5px;
+}
+
+/* 20 half-key columns: keys are placed on this grid (see shared/keyboard.js) */
+.kbd .row {
+  display: grid;
+  grid-template-columns: repeat(20, minmax(0, 1fr));
+  column-gap: 2px;
+  min-height: 0;
+}
+
+.kbd button {
+  position: relative;
+  overflow: hidden;
+  container-type: inline-size;   /* for the codes (below) */
+  min-width: 0;
+  margin: 0 1px;   /* with the 2px column gap: 4px between keys */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 0;
+  border: 1px solid var(--wire);
+  background: color-mix(in srgb, var(--paper) 4%, var(--bakelite));
+  color: var(--paper);
+  touch-action: none;
+}
+
+.kbd b {
+  font-size: var(--fs-m);
+  line-height: 1;
+}
+
+/* each key's code, tiny, under the letter */
+.kbd small {
+  font-size: 0.55rem;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  color: var(--graphite);
+  white-space: nowrap;
+}
+
+.signal .kbd small .dot  { color: var(--dot); }
+.signal .kbd small .dash { color: var(--dash); }
+
+.kbd .k-layout b {
+  font-size: var(--fs-s);
+}
+
+/* a key that would type something other than it says (+ with
+   prosigns on, <AR> with them off: shared/keyboard.js): grey, idle,
+   and its code grey too, even with the signal's colours on */
+.kbd button.off,
+.fan .item.off {
+  color: var(--wire);
+  border-style: dashed;
+  cursor: default;
+}
+.kbd button.off small span,
+.fan .item.off small span { color: var(--wire) !important; }
+
+/*
+ * Codes fit their key: each key measures its own width (a size
+ * container) and a code of --len marks takes at most that, so
+ * short codes stay full size and $ (7 marks) shrinks just enough.
+ * (A monospace mark is about 0.6em wide.)
+ */
+.kbd small[style*="--len"] {
+  font-size: min(0.55rem, calc(88cqw / (var(--len) * 0.62)));
+  letter-spacing: 0;
+}
+
+/* keys that hold more (long-press): a tick in the corner. Letters hold
+   their digits / symbols, 123 / ABC the layouts menu */
+.kbd .more::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 4px;
+  height: 4px;
+  border-top: 1px solid var(--graphite);
+  border-right: 1px solid var(--graphite);
+}
+
+/* the long-press fan */
+.fan {
+  position: fixed;
+  z-index: 15;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bakelite);
+  border: 1px solid var(--paper);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.fan .item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 2.6rem;
+  padding: 0.45rem 0.3rem;
+  color: var(--paper);
+}
+
+.fan .item b {
+  font-size: var(--fs-m);
+  line-height: 1;
+}
+
+.fan .item small {
+  font-size: 0.6rem;
+  line-height: 1;
+  color: var(--graphite);
+  white-space: nowrap;
+}
+
+.signal .fan small .dot  { color: var(--dot); }
+.signal .fan small .dash { color: var(--dash); }
+
+.fan .item.on {
+  background: var(--paper);
+  color: var(--bakelite);
+}
+
+.fan .item.on small,
+.fan .item.on small span {
+  color: var(--bakelite) !important;
+}
+
+.kbd .pressed {
+  background: var(--key-lit);
+  color: var(--bakelite);
+}
+
+.kbd .pressed small,
+.kbd .pressed small span {
+  color: var(--bakelite) !important;
+}
+
+/* the (i) in the Z row's empty start: a ring, not a key */
+.kbd .kbd-info {
+  justify-self: center;
+  align-self: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--graphite);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--graphite);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 1;
+  overflow: visible;
+}
+
+#hold-pop .close {
+  color: var(--paper);
+  border: 1px solid var(--wire);
+  padding: 0.3rem 2ch;
+  margin-top: 0.6rem;
+}
+
+/* asked for less motion: the message's line doesn't slide. The road
+   keeps its depth: lying back is how it looks, not something moving,
+   and the notes come down it flat or not */
+@media (prefers-reduced-motion: reduce) {
+  .incoming .rows, .incoming .run, .incoming b { transition: none; }
+}

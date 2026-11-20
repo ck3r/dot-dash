@@ -2,33 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#1c1916">
   <meta name="robots" content="noindex">
   <title>404 · dot-da.sh</title>
   <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
   <!-- every path from the root: 404.html is served for any address -->
-  <link rel="stylesheet" href="/style.css">
-  <link rel="stylesheet" href="/tx/tx.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/station.css">
   <!-- /ref/romeo, /ref/%24, /ref/_.-._: another name for a page of the reference
-       (js/ref-alias.js). The Worker answers those with a 301 before Pages is asked;
+       (js/ref/alias.js). The Worker answers those with a 301 before Pages is asked;
        without it (Pages alone, npm run serve) the page moves on here, unseen while it looks.
        Morse at the root (/_.-._) too: its page, or the station playing it -->
   <script>if (/^\/ref\/|^\/[._\-\/]*[.-][._\-\/]*$/.test(location.pathname)) document.documentElement.style.visibility = "hidden";</script>
   <script type="module">
-    import { refAlias, rootAlias } from "/js/ref-alias.js";
+    import { refAlias, rootAlias } from "/js/ref/alias.js";
     const to = refAlias(location.pathname) ?? rootAlias(location.pathname);
     if (to) location.replace(to);
     else document.documentElement.style.visibility = "";
   </script>
-  <script type="module" src="/js/skeleton.js"></script>
+  <script type="module" src="/js/shared/skeleton.js"></script>
 </head>
 <body class="tx signal">
 
   <!--
     Not found: the station's skeleton keys the answer once, as the page
-    loads, as an operator would (js/skeleton.js plays data-morse; data-names says
+    loads, as an operator would (js/shared/skeleton.js plays data-morse; data-names says
     what's under each letter, here 0 cut to a T and HH as a prosign):
 
       ........  ....- - ....-  --.- .-. ..-  .... .-.

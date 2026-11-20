@@ -1,4 +1,4 @@
-<!-- made by npm run icons (tools/icons.cjs) from site/js/logo.js: change the logo there -->
+<!-- made by npm run icons (tools/icons.cjs) from apps/web/js/shared/logo.js: change the logo there -->
 <svg xmlns="http://www.w3.org/2000/svg" id="open" viewBox="0 0 128 128">
   <circle cx="64" cy="64" r="64" fill="#1c1916"/>
   <g transform="translate(64 64) scale(1.42) translate(-35.1 -39.4)">

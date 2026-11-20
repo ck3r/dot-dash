@@ -26,10 +26,10 @@
  * and beside it: judge.js grades a press, road.js and message.js are
  * this game's two views.
  */
-import { timing } from "../tx-keyer.js";
-import { createSound } from "../tx-sound.js";
-import { createJudge } from "../judge.js";
-import { $ } from "../tx/dom.js";
+import { timing } from "../core/keyer.js";
+import { createSound } from "../shared/sound.js";
+import { createJudge } from "../core/judge.js";
+import { $ } from "../shared/dom.js";
 import { keep, kept, keptJSON, keptBox } from "../game/store.js";
 import { createClock } from "../game/clock.js";
 import { createSpeed } from "../game/speed.js";
@@ -39,7 +39,8 @@ import { createStrikes } from "../game/strikes.js";
 import { createTexts } from "../game/texts.js";
 import { createTyping } from "../game/typing.js";
 import { createShare } from "../game/share.js";
-import { format } from "../morse.js";
+import { format } from "../core/morse.js";
+import { siteOrigin } from "../core/where.js";
 import { chart } from "../game/chart.js";
 import { createRoad, MARGIN } from "./road.js";
 import { createMessage } from "./message.js";
@@ -119,7 +120,7 @@ const typing = createTyping({
  * (a challenge: the same words, random's draw too), the run just
  * keyed in a line, and the text in the station.
  */
-const linkHere = () => (words.length ? `${location.origin}/hero/?/${format(words)}` : "");
+const linkHere = () => (words.length ? `${siteOrigin()}/hero/?/${format(words)}` : "");
 const share = createShare({
   toggle: $("#share-toggle"),
   menu: $("#share"),

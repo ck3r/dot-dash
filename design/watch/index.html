@@ -2,20 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="robots" content="noindex">
   <title>watch faces · dot-da.sh</title>
   <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
 
   <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/css/base.css">
 
   <style>
     /*
-     * A sheet for the Garmin faces (docs/garmin.md, faces.js beside
-     * this): every face runs from one clock, which can be sped up,
-     * stopped or set, so a minute's turn can be watched without
-     * waiting for it. Not linked from anywhere yet.
+     * A sheet for the Garmin faces (docs/garmin.md, and
+     * js/design/watch-faces.js): every face runs from one clock,
+     * which can be sped up, stopped or set, so a minute's turn can
+     * be watched without waiting for it. Not linked from anywhere yet.
      */
     .sheet { padding: 1.5rem 16px; max-width: 84rem; margin: 0 auto; }
     .sheet h1 { font-size: 1.05rem; font-weight: 700; }
@@ -256,7 +256,7 @@
   </main>
 
   <script type="module">
-    import { square, quadrant, radial, quadrantRadial, beams, border, strokes, parachute, tapeRound, lit, treeGrid, spiral, wordBeams, halftone } from "./faces.js";
+    import { square, quadrant, radial, quadrantRadial, beams, border, strokes, parachute, tapeRound, lit, treeGrid, spiral, wordBeams, halftone } from "/js/design/watch-faces.js";
 
     /* the groups, in order, each with a line under its heading */
     const GROUPS = {

@@ -73,8 +73,8 @@
  * It reads the grades the judge and the page write on the notes and
  * the letters, and keeps a keyed note's press on it (note.press).
  */
-import { el } from "../tx/dom.js";
-import { STROKES, WEIGHT, createLetter } from "../strokes.js";
+import { el } from "../shared/dom.js";
+import { STROKES, WEIGHT, createLetter } from "../core/strokes.js";
 
 export const MARGIN = 1;  // units: a letter's dotted lines stand this far off its marks
 export const SPAN = 30;   // units of road in view, the bar to the far end: about a word

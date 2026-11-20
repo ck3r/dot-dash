@@ -31,7 +31,7 @@
  *
  * It reads the grade the page writes on each letter.
  */
-import { el } from "../tx/dom.js";
+import { el } from "../shared/dom.js";
 
 export const PEEL = 21;   // units from the bar: about where the road comes out of the dark
 const FLOAT = 900;        // ms: a word's way up

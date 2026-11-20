@@ -12,12 +12,17 @@
 ```
 
 ```
-index.html      page + reference chart
-style.css
-js/morse.js     the core: tree, encode/decode, URL formats, cost
-js/keyer.js     favicon + title transmitter; announces each beat
-js/tree.js      live ASCII trees (horizontal + vertical), built from the data
-js/main.js      wires the page to the core
+index.html      the station: key, type, play and share Morse
+ref/            the reference: the chart, the tree, a page per character
+hero/           Key hero, a game for the sending hand
+css/            the stylesheets; base.css is every page's
+js/core/        the Morse itself: the tree, encode and decode, the
+                link's formats, timing, cost. Runs anywhere, no page
+js/shared/      what more than one page uses: sound, playback, the
+                bar, the card, the tab that keys
+js/station/     the station's own; js/ref/, js/hero/ likewise
+js/game/        what any game would want
+sw.js           works offline
 ```
 
 No build step. Preview locally with any static server (ES modules

@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <!-- The words here are for search engines and anything else that
        reads the page without running it: once the script is up, the
-       tab keys the name and rests on "dot-da.sh" (js/keyer.js). The
+       tab keys the name and rests on "dot-da.sh" (js/shared/tab-keyer.js). The
        og: and twitter: tags below stay in Morse: that's the card a
        shared link shows. -->
   <title>dot-da.sh · Morse code station: key, type, play and share</title>
@@ -23,9 +23,9 @@
   <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }
   /* the note on arrival: seen in the last 30 days, it stays away (before paint, no flash) */
   try { if (Date.now() - Number(localStorage.getItem("dot-dash:tx-noticed") || 0) < 30 * 864e5) document.documentElement.classList.add("noticed"); } catch { }</script>
-  <link rel="stylesheet" href="/style.css">
-  <link rel="stylesheet" href="/tx/tx.css">
-  <script type="module" src="/js/nav.js"></script>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/station.css">
+  <script type="module" src="/js/shared/nav.js"></script>
   <!-- Primary Meta Tags -->
 <meta name="title" content="dot-da.sh · Morse code station: key, type, play and share" />
 <meta name="description" content="A Morse code station on the web: key it, type it, hear it, and share any message as a link. Free, no account, nothing to install." />
@@ -92,7 +92,7 @@
 
   <!--
     icons: every tappable symbol that isn't a framed button is drawn
-    from these, at one size (--icon in tx.css), so they match on every
+    from these, at one size (--icon in station.css), so they match on every
     phone (font symbols like ♪ ☼ ⟲ vary a lot between fonts)
   -->
   <svg class="sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
@@ -112,7 +112,7 @@
     </defs>
   </svg>
 
-  <!-- the bar (js/nav.js): home, and STATION, the page's heading -->
+  <!-- the bar (js/shared/nav.js): home, and STATION, the page's heading -->
   <header class="top tx-top">
     <nav class="crumbs" aria-label="where you are">
       <ol>
@@ -253,9 +253,9 @@
     <section class="field" aria-labelledby="field-heading">
       <h2 class="visually-hidden" id="field-heading">message</h2>
       <ol id="tape" class="tape"></ol>
-      <!-- quick scroll: a thumb to drag through a long tape (tx/tape.js) -->
+      <!-- quick scroll: a thumb to drag through a long tape (station/tape.js) -->
       <button type="button" id="tape-thumb" class="tape-thumb" tabindex="-1" aria-hidden="true" hidden></button>
-      <!-- back in the history: the eye, floating at the bottom left (tx/tape.js) -->
+      <!-- back in the history: the eye, floating at the bottom left (station/tape.js) -->
       <span id="tape-eye" class="marker tape-eye" hidden></span>
 
       <!-- the counts; return (↵) sits on the rule above them, at the
@@ -326,7 +326,7 @@
   </section>
 
   <!-- a prosign or an operators' word in the about column, tapped:
-       what it means (js/tx/layer.js openWord) -->
+       what it means (js/station/layer.js openWord) -->
   <section id="word-pop" class="popup word-pop" role="dialog" aria-labelledby="word-title" hidden>
     <span class="frame-label" id="word-title"></span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
@@ -336,7 +336,7 @@
   </section>
 
   <!-- "about" in the tray, tapped: what the about column shows, each
-       part its own switch (js/tx/about.js PARTS) -->
+       part its own switch (js/station/about.js PARTS) -->
   <section id="about-set-pop" class="popup about-set-pop" role="dialog" aria-labelledby="about-set-title" hidden>
     <span class="frame-label" id="about-set-title">about</span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
@@ -412,7 +412,7 @@
     (DE, K, TU, 73). It can stay on while you practise.</p>
   </section>
 
-  <!-- a checkbox's word, tapped: what it does (js/tx/layer.js FLAG_NOTES) -->
+  <!-- a checkbox's word, tapped: what it does (js/station/layer.js FLAG_NOTES) -->
   <section id="flag-pop" class="popup" role="dialog" aria-labelledby="flag-title" hidden>
     <span class="frame-label" id="flag-title"></span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
@@ -447,7 +447,7 @@
   </section>
 
   <!-- the profile (the ring, top right): a callsign and your keying,
-       on this device only (js/tx/profile.js, js/tx/stats.js) -->
+       on this device only (js/station/profile.js, js/station/stats.js) -->
   <section id="profile-pop" class="popup profile-pop" role="dialog" aria-labelledby="profile-title" hidden>
     <span class="frame-label" id="profile-title">profile</span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
@@ -537,7 +537,7 @@
         <button type="button" data-out="vibrate" class="holds" aria-pressed="false" title="vibration (soon)"><svg class="ico" aria-hidden="true"><use href="#i-vibrate"/></svg></button>
       </span>
       <div class="tiles">
-        <!-- suggestions (js/tx/suggest.js): a tap keys it -->
+        <!-- suggestions (js/station/suggest.js): a tap keys it -->
         <div id="chips" class="chips" aria-label="suggestions"></div>
         <!-- their own corner: two switches, finish (what you've begun:
              the tray's box too) and next (a few to start with, or to
@@ -555,7 +555,7 @@
       <button type="button" id="tray-toggle" class="tray-toggle" aria-expanded="false" aria-controls="tray" aria-label="settings" title="settings">
         <svg class="ico gear" aria-hidden="true"><use href="#i-gear"/></svg>
       </button>
-      <!-- receiving only, in the player's place (js/tx/rx.js): what's
+      <!-- receiving only, in the player's place (js/station/rx.js): what's
            heard stays here; a recording to read; the tape, kept -->
       <div class="rx-row">
         <p id="rx-note" class="rx-note">Heard here only: not kept, never sent.</p>
@@ -571,7 +571,7 @@
       <div class="player">
         <button type="button" id="play" class="play" aria-label="play" title="play / pause (K; Space while playing)"><svg class="ico" aria-hidden="true"><use href="#i-play"/></svg></button>
         <span id="time" class="time holds" title="the time (hold: pretty play)">0.0s</span>
-        <!-- the scrub bar draws the message's signal (js/tx-trace.js);
+        <!-- the scrub bar draws the message's signal (js/shared/trace.js);
              hold it for a magnified pop-out around the playhead -->
         <span class="seek-wrap">
           <canvas class="trace" aria-hidden="true"></canvas>
@@ -745,7 +745,7 @@
 
 
     <!--
-      receiving (rx, by the name): the hearing view (js/tx/rx.js). It
+      receiving (rx, by the name): the hearing view (js/station/rx.js). It
       has the bottom of the station to itself: the keys' place and,
       above it, the player's and the settings' (they're the
       transmitter's). A tape recorder: the scope shows what's heard,
@@ -766,19 +766,19 @@
     -->
     <div id="rx" class="rx" hidden>
       <!-- rx's switches, out of sight: ♪ and ☼ in the tab row work them,
-           a tap for sound or light, a hold for the rest (js/tx/main.js,
-           js/tx/layer.js); rx.js keeps its state in them -->
+           a tap for sound or light, a hold for the rest (js/station/main.js,
+           js/station/layer.js); rx.js keeps its state in them -->
       <div class="rx-switches" hidden>
-        <!-- receiving only (js/tx/rx.js): what rec takes in, sound (the
+        <!-- receiving only (js/station/rx.js): what rec takes in, sound (the
              microphone) or light (the camera, watching a lamp) -->
         <button type="button" id="rx-medium" class="rx-medium" aria-label="reading sound: switch to light" title="read sound (the microphone) or light (the camera, pointed at a lamp)">
           <span class="side on" data-medium="sound">sound</span>
           <span class="side" data-medium="light">light</span>
         </button>
-        <!-- receiving only (js/tx/rx.js): how the tape plays, the tone that
+        <!-- receiving only (js/station/rx.js): how the tape plays, the tone that
              was read alone (isolated), or the sound as it was (raw) -->
         <button type="button" id="rx-isolate" class="rx-isolate" aria-pressed="true" title="play the tape isolated (only the tone that was read) or raw (the sound as it was)">isolate</button>
-        <!-- receiving light only (js/tx/rx.js), in isolate's place: what the
+        <!-- receiving light only (js/station/rx.js), in isolate's place: what the
              ring is on, a lamp (how bright) or an eye (a blink: how changed) -->
         <button type="button" id="rx-look" class="rx-medium rx-look off" aria-label="reading a lamp: switch to blinks" title="read a lamp (how bright the ring is) or blinks (how much the ring has changed: keep the camera still)">
           <span class="side on" data-look="lamp">lamp</span>
@@ -786,7 +786,7 @@
         </button>
       </div>
       <div class="rx-screen">
-        <!-- light (js/tx/rx-eye.js): the camera's picture (or a video's),
+        <!-- light (js/station/rx-eye.js): the camera's picture (or a video's),
              the ring that's watched, the zoom. The video itself is out
              of sight: its pictures are drawn onto the canvas -->
         <div id="rx-eye" class="rx-eye" hidden>
@@ -864,12 +864,12 @@
   </div>
 
   <!--
-    waiting: the station's skeleton (tx.css, AUXILIARY PAGES), keying
+    waiting: the station's skeleton (station.css, AUXILIARY PAGES), keying
     AS (.-..., "wait") over and over as the tape plays a message back,
     the box's edge and the switch keying with it. Drawn by the HTML
     and CSS alone, so it shows even if the scripts never run; it fades
     in only after a second (a normal start never sees it), and the
-    station takes it away once it's ready (js/tx/main.js). Last in
+    station takes it away once it's ready (js/station/main.js). Last in
     the page, so the station's own .logo is the one found first.
   -->
   <div id="waiting" class="waiting signal" aria-hidden="true">
@@ -892,6 +892,6 @@
   </div>
   </div>
 
-  <script type="module" src="/js/tx/main.js"></script>
+  <script type="module" src="/js/station/main.js"></script>
 </body>
 </html>

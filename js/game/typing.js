@@ -19,7 +19,7 @@
  *   }
  *
  * field: what's tapped; board: the keyboard's box (#kbd, with the
- * page's #hold-pop: js/tx/keyboard.js fills it, fetched the first
+ * page's #hold-pop: js/shared/keyboard.js fills it, fetched the first
  * time); text(): what to start from; change(text): typed, capitals,
  * one space at most between words; before(): the keyboard is
  * about to come up (stop what's running); toggle(on): it's up, or
@@ -34,7 +34,7 @@
  * The page hides its keys by body[data-input="text"].
  */
 import { chord } from "./paddles.js";
-import { wordsFrom, DECODE } from "../morse.js";
+import { wordsFrom, DECODE } from "../core/morse.js";
 
 export function createTyping({ field, board, text, change, before, toggle }) {
   let on = false, draft = "";
@@ -65,7 +65,7 @@ export function createTyping({ field, board, text, change, before, toggle }) {
   async function show(next) {
     if (next === on) return;
     if (next) before?.();
-    if (next && !keyboard) keyboard = (await import("../tx/keyboard.js")).createKeyboard({ typeKey });
+    if (next && !keyboard) keyboard = (await import("../shared/keyboard.js")).createKeyboard({ typeKey });
     on = next;
     document.body.dataset.input = on ? "text" : "keys";
     board.hidden = !on;

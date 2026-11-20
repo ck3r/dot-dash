@@ -12,7 +12,7 @@
   <meta name="description" content="Key hero: Morse notes come down a road, key each one as it reaches the line. Two keys, your own timing, your own tone.">
   <!-- the card a shared link shows. For a link with a text in it
        (/hero/?/hi+k) the Worker rewrites these, as it does the
-       station's (worker/src/preview.js): the text's own card -->
+       station's (services/worker/src/preview.js): the text's own card -->
   <meta name="title" content="key hero · dot-da.sh">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://dot-da.sh/hero/">
@@ -27,9 +27,9 @@
 
   <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
   <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
-  <link rel="stylesheet" href="/style.css">
-  <link rel="stylesheet" href="/hero/hero.css">
-  <script type="module" src="/js/nav.js"></script>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/hero.css">
+  <script type="module" src="/js/shared/nav.js"></script>
 </head>
 
 <body class="hero" data-state="ready">
@@ -185,7 +185,7 @@
       <button type="button" class="key" data-lane="." aria-label="dit"><span class="mark">●</span><kbd>[</kbd></button>
       <button type="button" class="key" data-lane="-" aria-label="dah"><span class="mark">▬</span><kbd>]</kbd></button>
     </section>
-    <!-- the station's text keyboard (js/tx/keyboard.js), in the keys'
+    <!-- the station's text keyboard (js/shared/keyboard.js), in the keys'
          place while a message of your own is typed -->
     <div id="kbd" class="kbd" aria-label="keyboard" hidden></div>
     <section id="hold-pop" class="result" role="dialog" aria-labelledby="hold-title" hidden>

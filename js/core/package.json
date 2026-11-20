@@ -1,0 +1,6 @@
+{
+  "name": "@dot-dash/core",
+  "private": true,
+  "description": "Morse that runs anywhere: no page, no DOM at import (tests/modules.cjs)",
+  "type": "module"
+}

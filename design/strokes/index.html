@@ -2,17 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="robots" content="noindex">
   <title>stroke letters · dot-da.sh</title>
   <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
 
   <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/css/base.css">
 
   <style>
     /*
-     * A test sheet for js/strokes.js: every card runs from one clock,
+     * A test sheet for js/core/strokes.js: every card runs from one clock,
      * so the scrub bar moves them all. Not linked from anywhere yet.
      */
     .sheet { padding: 1.5rem 16px; max-width: 60rem; margin: 0 auto; }
@@ -95,9 +95,9 @@
   </main>
 
   <script type="module">
-    import { ENCODE, codeOf } from "/js/morse.js";
-    import { timeline } from "/js/tx-player.js";
-    import { STROKES, CUT_STROKES, createLetter } from "/js/strokes.js";
+    import { ENCODE, codeOf } from "/js/core/morse.js";
+    import { timeline } from "/js/shared/playback.js";
+    import { STROKES, CUT_STROKES, createLetter } from "/js/core/strokes.js";
 
     const ORDER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
     const DIGITS = "1234567890";

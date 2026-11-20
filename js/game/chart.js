@@ -20,10 +20,10 @@
  *   }
  *
  * words is morse.js's own shape (a list of words, each a list of
- * codes); timing is tx-keyer's timing(wpm, fwpm), so Farnsworth's
+ * codes); timing is core/keyer.js's timing(wpm, fwpm), so Farnsworth's
  * longer spaces come with it.
  */
-import { DECODE } from "../morse.js";
+import { DECODE } from "../core/morse.js";
 
 export function chart(words, timing, { lead = 0 } = {}) {
   const { unit, letter: letterGap, word: wordGap } = timing;

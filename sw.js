@@ -22,26 +22,26 @@
  * Bump VERSION to clear the old cache after a big change.
  */
 
-const VERSION = "dot-dash-18";
+const VERSION = "dot-dash-21";
 
 /* fetched on install, so the first offline open works too */
 const CORE = [
   "/", "/ref/", "/design/", "/extension/", "/bookmarklet/", "/privacy/",
-  "/style.css", "/tx/tx.css", "/design/design.css", "/bookmarklet/bookmarklet.css", "/bookmarklet/bookmarklet.js", "/switch.svg", "/manifest.webmanifest",
+  "/css/base.css", "/css/station.css", "/css/prose.css", "/css/bookmarklet.css", "/js/bookmarklet/main.js", "/switch.svg", "/manifest.webmanifest",
   "/icons/icon-192.png", "/icons/icon-512.png",
-  "/js/main.js", "/js/nav.js", "/js/nav-ref.js", "/js/morse.js", "/js/tree.js", "/js/overview.js", "/js/tone.js", "/js/keyer.js", "/js/logo.js",
-  "/js/tx-keyer.js", "/js/tx-sound.js", "/js/tx-player.js", "/js/tx-share.js", "/js/tx-files.js", "/js/tx-outputs.js", "/js/tx-trace.js",
-  "/js/tx/main.js", "/js/tx/dom.js", "/js/tx/state.js", "/js/tx/keyboard.js", "/js/tx/about.js",
-  "/js/tx/player.js", "/js/tx/share.js", "/js/tx/settings.js", "/js/tx/tree.js", "/js/tx/layer.js", "/js/tx/tape.js", "/js/tx/keys.js", "/js/tx/typing.js", "/js/tx/suggest.js", "/js/tx/undo.js", "/js/tx/media.js", "/js/tx/tab.js", "/js/tx/stats.js", "/js/tx/profile.js", "/js/tx/practice.js", "/js/tx/wear.js",
-  "/js/characters.js", "/js/voice-times.js", "/js/tx/voice.js", "/js/strokes.js", "/js/stair.js",
+  "/js/ref/main.js", "/js/shared/nav.js", "/js/shared/nav-tables.js", "/js/core/morse.js", "/js/core/tree.js", "/js/shared/overview.js", "/js/shared/play-marks.js", "/js/shared/tab-keyer.js", "/js/shared/logo.js",
+  "/js/core/keyer.js", "/js/shared/sound.js", "/js/shared/playback.js", "/js/core/formats.js", "/js/core/where.js", "/js/shared/offline.js", "/js/shared/files.js", "/js/shared/outputs.js", "/js/shared/trace.js",
+  "/js/station/main.js", "/js/shared/dom.js", "/js/station/state.js", "/js/shared/keyboard.js", "/js/station/about.js",
+  "/js/station/player.js", "/js/station/share.js", "/js/station/settings.js", "/js/station/tree.js", "/js/station/layer.js", "/js/station/tape.js", "/js/station/keys.js", "/js/station/typing.js", "/js/station/suggest.js", "/js/station/undo.js", "/js/station/media.js", "/js/station/tab.js", "/js/station/stats.js", "/js/station/profile.js", "/js/station/practice.js", "/js/station/wear.js",
+  "/js/core/characters.js", "/js/core/voice-times.js", "/js/core/voice-syllables.js", "/js/shared/voice.js", "/js/core/strokes.js", "/js/core/stair.js",
   /* hearing (RX): fetched the first time rx is chosen, kept here so that works offline too */
-  "/js/tx/rx.js", "/js/rx-decoder.js", "/js/rx-worklet.js", "/js/rx-light.js", "/js/tx/rx-eye.js",
+  "/js/station/rx.js", "/js/core/rx-decoder.js", "/js/station/rx-worklet.js", "/js/core/rx-light.js", "/js/station/rx-eye.js",
   /* key hero (/hero), and what it shares with the station */
-  "/hero/", "/hero/hero.css", "/js/hero/main.js", "/js/hero/road.js", "/js/hero/message.js", "/js/judge.js", "/js/keymap.js",
+  "/hero/", "/css/hero.css", "/js/hero/main.js", "/js/hero/road.js", "/js/hero/message.js", "/js/core/judge.js", "/js/core/keymap.js",
   "/js/game/store.js", "/js/game/clock.js", "/js/game/speed.js", "/js/game/look.js", "/js/game/paddles.js", "/js/game/strikes.js", "/js/game/texts.js", "/js/game/typing.js", "/js/game/chart.js", "/js/game/share.js",
   /* a character's own page (/ref/k/): what every one of them needs; the pages and their
      pictures are kept as they're visited (there are dozens, and most are never opened) */
-  "/ref/item.css", "/js/ref-item.js", "/js/ref-pages.js"
+  "/css/ref-item.css", "/js/ref/item.js", "/js/ref/pages.js"
 ];
 
 self.addEventListener("install", event => {

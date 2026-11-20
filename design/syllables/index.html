@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>syllable editor · dot-da.sh</title>
+  <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
+
+  <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
+  <link rel="stylesheet" href="/css/base.css">
+
+  <style>
+    /*
+     * Where each phonetic name's syllables start, set by ear: the word's
+     * sound drawn out, a brass line at each break; drag one (or focus it
+     * and use the arrow keys) and play the word, or a syllable alone, to
+     * hear where it falls. The stair lights as it plays, as the site's
+     * does. What's changed comes out as lines for FIX in
+     * tests/tools/voice-syllables.cjs (run it after: it writes
+     * js/core/voice-syllables.js).
+     *
+     *   ┌──────────────────────────────────────┐    A
+     *   │ ▁▃▇█▇▅▂   ┃   ▂▆██▇▅▃▁               │     L
+     *   │    AL     ┃      FA                   │    F
+     *   └──────────────────────────────────────┘     A
+     *   0           280 ms                 580
+     */
+    .sheet { padding: 1.5rem 16px; max-width: 60rem; margin: 0 auto; }
+    .sheet h1 { font-size: 1.05rem; font-weight: 700; }
+    .sheet p { margin-top: 0.5rem; color: var(--graphite); }
+
+    .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5ch; margin-top: 0.75rem; }
+    .sheet button {
+      font: inherit; color: var(--graphite); background: none;
+      border: 1px solid var(--wire); padding: 0.25rem 1ch; cursor: pointer;
+    }
+    .sheet [aria-pressed="true"] { color: var(--paper); border-color: var(--paper); }
+    .sheet button:focus-visible { color: var(--brass); border-color: var(--brass); outline: none; }
+    @media (hover: hover) {
+      .sheet button:hover { color: var(--brass); border-color: var(--brass); }
+    }
+
+    .bench { display: grid; grid-template-columns: minmax(0, 1fr) 8rem; gap: 1.5rem; margin-top: 1.25rem; align-items: start; }
+    @media (max-width: 560px) { .bench { grid-template-columns: minmax(0, 1fr); } }
+
+    /* the word: its sound, the breaks, the syllables between them */
+    .stage { position: relative; border: 1px solid var(--wire); height: 11rem; touch-action: none; user-select: none; -webkit-user-select: none; }
+    .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .seg {
+      position: absolute; bottom: 0; height: 1.6rem; display: flex; align-items: center; justify-content: center;
+      color: var(--graphite); cursor: pointer; border-top: 1px dashed var(--wire);
+    }
+    .seg.said { color: var(--brass); }
+    @media (hover: hover) { .seg:hover { color: var(--paper); } }
+    .cut {
+      position: absolute; top: 0; bottom: 0; width: 17px; margin-left: -8px; cursor: ew-resize; outline: none;
+      display: flex; justify-content: center;
+    }
+    .cut::before { content: ""; width: 2px; background: var(--brass); }
+    .cut .ms { position: absolute; top: 0.2rem; left: 12px; color: var(--brass); font-size: 0.8rem; white-space: nowrap; }
+    .cut:focus-visible::before, .cut.held::before { width: 4px; background: var(--paper); }
+    .cut.changed .ms::after { content: " •"; color: var(--paper); }
+    .head { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--paper); pointer-events: none; }
+    .axis { display: flex; justify-content: space-between; color: var(--graphite); font-size: 0.8rem; margin-top: 0.25rem; }
+
+    /* the name as a stair, as on the card (base.css .card .stair) */
+    .name { font-size: 1.6rem; color: var(--graphite); }
+    .name.stair { display: block; position: relative; width: 100%; height: calc(var(--h) * 1em); }
+    .name.stair > * { position: absolute; left: calc(50% + var(--dx) * 0.72em); top: calc(var(--y) * 1em); transform: translateX(-50%); line-height: 1; }
+    .name .stress { color: var(--paper); font-weight: 700; }
+    .name .said { color: var(--brass); }
+
+    .strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr)); gap: 0.4rem; margin-top: 1.5rem; }
+    .strip button { position: relative; text-align: left; }
+    .strip button small { display: block; color: var(--graphite); font-size: 0.75rem; }
+    .strip button[aria-current="true"] { border-color: var(--paper); color: var(--paper); }
+    .strip button.changed::after { content: "•"; position: absolute; top: 0; right: 0.3rem; color: var(--paper); }
+
+    .out { margin-top: 1.5rem; }
+    .out h2 { font-size: 1rem; font-weight: 400; color: var(--graphite); }
+    .out pre { margin-top: 0.5rem; padding: 0.5rem; border: 1px dashed var(--wire); color: var(--paper); font-size: 0.8rem; white-space: pre-wrap; overflow-wrap: anywhere; min-height: 2.5em; }
+  </style>
+</head>
+
+<body>
+  <main class="sheet">
+    <h1>syllable editor</h1>
+    <p>Where each phonetic name's syllables start, as the stair lights
+    them. Drag a brass line (or focus it: arrow keys move 5 ms, Shift
+    25); tap a syllable to hear it alone. Edits stay in this browser
+    until copied out, as lines for <code>FIX</code> in
+    tests/tools/voice-syllables.cjs; run that after.</p>
+
+    <div class="controls">
+      <button id="play">play</button>
+      <button id="slow" aria-pressed="false">half speed</button>
+      <button id="reset">reset name</button>
+      <button id="reset-all">reset all</button>
+    </div>
+
+    <div class="bench">
+      <div>
+        <div class="stage" id="stage"><canvas id="wave"></canvas></div>
+        <div class="axis"><span>0</span><span id="len"></span></div>
+      </div>
+      <span class="name" id="name"></span>
+    </div>
+
+    <div class="strip" id="strip"></div>
+
+    <section class="out">
+      <h2>changed, as lines for FIX in tests/tools/voice-syllables.cjs</h2>
+      <pre id="out"></pre>
+      <div class="controls"><button id="copy">copy changes</button></div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { VOICE_WORDS, VOICE_SLOT, VOICE_LENGTHS } from "/js/core/voice-times.js";
+    import * as syllableTimes from "/js/core/voice-syllables.js";
+    const { SYLLABLE_AT } = syllableTimes, BY_HAND = syllableTimes.BY_HAND ?? [];
+    import { STRESS, spokenOf, syllablesOf, layStair, lightSyllable } from "/js/core/stair.js";
+
+    const $ = id => document.getElementById(id);
+    const KEY = "dot-dash:syllables-edit";
+    const GAP = 20;    // ms: the least a syllable can be
+    const syllables = ch => syllablesOf(ch, spokenOf(ch)).flatMap(g => g.split("·"));
+    /* the names of more than one syllable, in the voice's order */
+    const NAMES = VOICE_WORDS.filter(ch => spokenOf(ch) && syllables(ch).length > 1);
+    const lengthOf = ch => VOICE_LENGTHS.phonetic[VOICE_WORDS.indexOf(ch)];
+    const startOf = ch => VOICE_WORDS.indexOf(ch) * VOICE_SLOT;
+
+    let edits = {};
+    try { edits = JSON.parse(localStorage.getItem(KEY)) ?? {}; } catch { }
+    const save = () => { try { localStorage.setItem(KEY, JSON.stringify(edits)); } catch { } };
+    const cutsOf = ch => edits[ch] ?? SYLLABLE_AT[ch] ?? [];
+    const changed = ch => !!edits[ch] && edits[ch].join() !== (SYLLABLE_AT[ch] ?? []).join();
+
+    let current = NAMES[0];
+    try { const last = localStorage.getItem(KEY + ":at"); if (NAMES.includes(last)) current = last; } catch { }
+
+    /* ---------- the sound ---------- */
+    let context = null, buffer = null, playing = null;
+    const loading = (async () => {
+      const data = await (await fetch("/voice/phonetic.webm")).arrayBuffer();
+      buffer = await new OfflineAudioContext(1, 1, 48000).decodeAudioData(data);
+      drawWave();
+    })();
+
+    function stop() {
+      if (!playing) return;
+      try { playing.src.stop(); } catch { }
+      cancelAnimationFrame(playing.frame);
+      playing.timers.forEach(clearTimeout);
+      playing.head.remove();
+      lightSyllable($("name"), -1);
+      for (const s of document.querySelectorAll(".seg")) s.classList.remove("said");
+      playing = null;
+    }
+
+    /* from..to, in ms of the word; the syllables lit as they come */
+    async function play(from = 0, to = lengthOf(current)) {
+      stop();
+      context ??= new (window.AudioContext || window.webkitAudioContext)();
+      context.resume?.();
+      await loading;
+      const rate = $("slow").getAttribute("aria-pressed") === "true" ? 0.5 : 1;
+      const src = context.createBufferSource();
+      src.buffer = buffer;
+      src.playbackRate.value = rate;
+      src.connect(context.destination);
+      src.start(context.currentTime, (startOf(current) + from) / 1000, (to - from) / 1000);
+      const head = Object.assign(document.createElement("div"), { className: "head" });
+      $("stage").append(head);
+      const cuts = [0, ...cutsOf(current)];
+      const light = i => {
+        lightSyllable($("name"), i);
+        document.querySelectorAll(".seg").forEach((s, k) => s.classList.toggle("said", k === i));
+      };
+      /* the syllable it starts in, at once; each later one as it comes */
+      const first = cuts.findLastIndex(c => c <= from);
+      const timers = cuts.map((ms, i) => i === first ? setTimeout(() => light(i), 0)
+        : i > first && ms < to ? setTimeout(() => light(i), (ms - from) / rate) : null).filter(Boolean);
+      timers.push(setTimeout(stop, (to - from) / rate + 30));
+      const t0 = performance.now();
+      const tick = now => {
+        const ms = from + (now - t0) * rate;
+        head.style.left = `${ms / lengthOf(current) * 100}%`;
+        if (ms < to) playing.frame = requestAnimationFrame(tick);
+      };
+      playing = { src, timers, head, frame: requestAnimationFrame(tick) };
+    }
+
+    /* ---------- drawing ---------- */
+    function drawWave() {
+      const canvas = $("wave"), box = canvas.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+      canvas.width = Math.round(box.width * dpr);
+      canvas.height = Math.round(box.height * dpr);
+      const g = canvas.getContext("2d");
+      g.clearRect(0, 0, canvas.width, canvas.height);
+      if (!buffer) return;
+      const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      const ch = buffer.getChannelData(0), rate = buffer.sampleRate;
+      const a = Math.round(startOf(current) / 1000 * rate), n = Math.round(lengthOf(current) / 1000 * rate);
+      const mid = (canvas.height - 1.6 * 16 * dpr) / 2, per = n / canvas.width;
+      let peak = 0;
+      for (let k = a; k < a + n; k++) peak = Math.max(peak, Math.abs(ch[k]));
+      g.fillStyle = css("--graphite");
+      for (let x = 0; x < canvas.width; x++) {
+        let lo = 0, hi = 0;
+        for (let k = a + Math.floor(x * per); k < a + Math.floor((x + 1) * per); k++) { lo = Math.min(lo, ch[k]); hi = Math.max(hi, ch[k]); }
+        const top = mid - hi / peak * mid * 0.95, bottom = mid - lo / peak * mid * 0.95;
+        g.fillRect(x, top, 1, Math.max(1, bottom - top));
+      }
+    }
+
+    function draw() {
+      stop();
+      const len = lengthOf(current), cuts = cutsOf(current), syl = syllables(current);
+      $("len").textContent = `${len} ms`;
+      const stage = $("stage");
+      stage.querySelectorAll(".cut, .seg").forEach(e => e.remove());
+      const at = ms => `${ms / len * 100}%`;
+      /* the syllables between the breaks: a tap plays one alone */
+      const bounds = [0, ...cuts, len];
+      syl.forEach((s, i) => {
+        const seg = Object.assign(document.createElement("div"), { className: "seg", textContent: s });
+        seg.style.left = at(bounds[i]);
+        seg.style.width = `${(bounds[i + 1] - bounds[i]) / len * 100}%`;
+        seg.title = `play ${s} alone`;
+        seg.addEventListener("click", () => play(bounds[i], bounds[i + 1]));
+        stage.append(seg);
+      });
+      cuts.forEach((ms, i) => {
+        const cut = Object.assign(document.createElement("div"), { className: "cut", tabIndex: 0 });
+        cut.style.left = at(ms);
+        cut.setAttribute("role", "slider");
+        cut.setAttribute("aria-label", `${syl[i + 1]} starts`);
+        cut.setAttribute("aria-valuenow", ms);
+        cut.classList.toggle("changed", (SYLLABLE_AT[current] ?? [])[i] !== ms);
+        cut.append(Object.assign(document.createElement("span"), { className: "ms", textContent: `${ms}` }));
+        cut.addEventListener("keydown", event => {
+          const step = { ArrowLeft: -5, ArrowRight: 5, ArrowDown: -5, ArrowUp: 5 }[event.key];
+          if (!step) return;
+          event.preventDefault();
+          move(i, cutsOf(current)[i] + step * (event.shiftKey ? 5 : 1));
+          stage.querySelectorAll(".cut")[i].focus();
+        });
+        cut.addEventListener("pointerdown", event => {
+          event.preventDefault();
+          cut.setPointerCapture(event.pointerId);
+          cut.classList.add("held");
+          const r = stage.getBoundingClientRect();
+          const drag = e => {
+            const ms = Math.round((e.clientX - r.left) / r.width * len / 5) * 5;
+            /* only this line moves: the others redraw when it's let go */
+            const v = clamp(i, ms);
+            cut.style.left = at(v);
+            cut.querySelector(".ms").textContent = `${v}`;
+            cut.dataset.ms = v;
+          };
+          const up = () => {
+            cut.removeEventListener("pointermove", drag);
+            cut.classList.remove("held");
+            if (cut.dataset.ms) move(i, Number(cut.dataset.ms));
+          };
+          cut.addEventListener("pointermove", drag);
+          cut.addEventListener("pointerup", up, { once: true });
+          cut.addEventListener("pointercancel", up, { once: true });
+        });
+        stage.append(cut);
+      });
+      const name = $("name");
+      name.textContent = "";
+      name.className = "name";
+      layStair(name, syllablesOf(current, spokenOf(current)), STRESS[current]);
+      drawWave();
+      drawStrip();
+      drawOut();
+    }
+
+    /* a break stays between its neighbours, a syllable at least GAP long */
+    function clamp(i, ms) {
+      const cuts = cutsOf(current), lo = (i ? cuts[i - 1] : 0) + GAP, hi = (i + 1 < cuts.length ? cuts[i + 1] : lengthOf(current)) - GAP;
+      return Math.max(lo, Math.min(hi, ms));
+    }
+    function move(i, ms) {
+      const cuts = [...cutsOf(current)];
+      cuts[i] = clamp(i, ms);
+      edits[current] = cuts;
+      if (!changed(current)) delete edits[current];
+      save();
+      draw();
+    }
+
+    function drawStrip() {
+      $("strip").replaceChildren(...NAMES.map(ch => {
+        const b = Object.assign(document.createElement("button"), { type: "button" });
+        b.append(ch, Object.assign(document.createElement("small"), { textContent: syllables(ch).join("·").toLowerCase() }));
+        if (ch === current) b.setAttribute("aria-current", "true");
+        b.classList.toggle("changed", changed(ch));
+        b.addEventListener("click", () => {
+          current = ch;
+          try { localStorage.setItem(KEY + ":at", ch); } catch { }
+          draw();
+          play();
+        });
+        return b;
+      }));
+    }
+
+    /* the whole table: what was set by hand before (BY_HAND), and what's changed here */
+    function drawOut() {
+      const lines = NAMES.filter(ch => changed(ch) || BY_HAND.includes(ch)).map(ch => `  ${/^\d$/.test(ch) ? `"${ch}"` : ch}: [${cutsOf(ch).join(", ")}],   // ${syllables(ch).join("·")}`);
+      $("out").textContent = lines.length ? `const FIX = {\n${lines.join("\n")}\n};` : "";
+    }
+
+    $("play").addEventListener("click", () => play());
+    $("slow").addEventListener("click", () => $("slow").setAttribute("aria-pressed", String($("slow").getAttribute("aria-pressed") !== "true")));
+    $("reset").addEventListener("click", () => { delete edits[current]; save(); draw(); });
+    $("reset-all").addEventListener("click", () => { edits = {}; save(); draw(); });
+    $("copy").addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText($("out").textContent); $("copy").textContent = "copied"; }
+      catch { $("copy").textContent = "can't copy: select the lines"; }
+      setTimeout(() => { $("copy").textContent = "copy changes"; }, 1500);
+    });
+    addEventListener("keydown", event => {
+      if (event.target.closest?.("button, .cut")) return;
+      if (event.key === " ") { event.preventDefault(); play(); }
+    });
+    new ResizeObserver(drawWave).observe($("stage"));
+    draw();
+  </script>
+</body>
+</html>

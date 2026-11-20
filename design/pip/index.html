@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="robots" content="noindex">
   <meta name="color-scheme" content="dark">
   <title>pip · dot-da.sh</title>
   <link rel="icon" type="image/svg+xml" href="/switch.svg">
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/css/base.css">
   <!--
     A try-out, not linked: the extension card's "pop out", as a
     Document Picture-in-Picture window (Chrome and Edge 116+; not
@@ -58,7 +58,7 @@
   </main>
 
   <script type="module">
-    import { wordsFrom, decode } from "/js/morse.js";
+    import { wordsFrom, decode } from "/js/core/morse.js";
 
     const $ = s => document.querySelector(s);
     const unitMs = () => 1200 / Number($("#wpm").value || 20);
