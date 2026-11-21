@@ -1,0 +1,117 @@
+/*
+ * Key dash (/dash, js/dash/main.js). The page is Key hero's (hero.css:
+ * its top, settings down the right, card, share menu and keys), with
+ * the body .hero.dash; this is only the run, where Key hero has its
+ * road: the word coming at the top, the run, and the words done.
+ *
+ *   ┌───────────────────────────┐
+ *   │ dot-da.sh / KEY DASH share│
+ *   │          R A I N          │   the word coming
+ *   │   ⌐R                  ⚙^  │   its letter, over the runner
+ *   │    ●    ▮  ▔▔▔ ● ▔▔▔  12  │   the run; a bronze point
+ *   │  ━━━━━━━━━━━━━━━━━━  ●●○  │   the bronze points in a row
+ *   │       THE  AND        ▭▭▭ │   the words done; the strikes
+ *   │ ┌──────────┐┌──────────┐  │
+ *   │ │    ●     ││    ▬     │  │   the keys: jump, duck
+ *   └───────────────────────────┘
+ */
+
+/* the run takes the stage, clear of the settings down the right, as
+   the road does */
+.dash .stage {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.25rem;
+  padding-right: 20%;
+}
+
+/* the word coming, its letters lit as they're cleared, the one coming brass */
+.dash .word {
+  text-align: center;
+  letter-spacing: 0.5ch;
+  color: var(--graphite);
+  min-height: 1.3em;
+  font-size: 1.6rem;
+}
+.dash .word .cleared { color: var(--paper); }
+/* tapped, it's a field to type in, as Key hero's message is: brass
+   round it while the keyboard's up, its caret blinking */
+.dash .word { cursor: pointer; outline: 1px dashed transparent; outline-offset: 4px; }
+body.dash[data-input="text"] .word { outline-color: var(--brass); color: var(--paper); letter-spacing: 0.15ch; font-size: 1.2rem; }
+.dash .word .caret { color: var(--brass); animation: caret 1s steps(2, jump-none) infinite; }
+@keyframes caret { 50% { opacity: 0; } }
+@media (hover: hover) { .dash .word:hover { outline-color: var(--brass); } }
+.dash .word .here { color: var(--brass); }
+
+.dash .run { width: 100%; height: auto; display: block; }
+.run .ground { stroke: var(--wire); stroke-width: 2; }
+.run .runner circle { fill: var(--paper); }
+.run .ob { fill: var(--paper); }
+body.signal .run .ob.dot { fill: var(--dot); }
+body.signal .run .ob.dash { fill: var(--dash); }
+.run .ob.hit { fill: var(--wire); }
+
+/* a brass crumb, just after every dash, at head height */
+.run .point { fill: var(--brass); }
+.run .point.taken { opacity: 0; transition: opacity 200ms; }
+.run .point.missed { fill: var(--wire); }
+
+/* each letter's stroke letter, riding over the run: the strokes'
+   three layers, as on /design/strokes/ */
+.rider path { fill: none; }
+.rider .scaffold path { stroke: var(--graphite); stroke-width: 1.5; }
+.rider .ink path { stroke: var(--paper); stroke-width: 1.5; }
+.rider .grey path { stroke: var(--wire); }
+.rider .fill .dot { stroke: var(--paper); }
+.rider .fill .dash { stroke: var(--paper); }
+body.signal .rider .fill .dot { stroke: var(--dot); }
+body.signal .rider .fill .dash { stroke: var(--dash); }
+.rider text { fill: var(--graphite); font-family: var(--mono); }
+
+/* the words done, the newest first; a word with a hit in it grey */
+.dash .done {
+  display: flex;
+  justify-content: center;
+  gap: 1.5ch;
+  min-height: 1.4em;
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--paper);
+}
+.dash .done .hit { color: var(--graphite); }
+.dash .done span:nth-child(n + 4) { opacity: 0.5; }
+
+/* ready: the ball on the ground, the first word over it and the tip
+   between, together in the middle; nothing of the run yet. Running,
+   the tip goes (its room stays) and the run comes */
+.dash .tip { text-align: center; color: var(--graphite); font-size: var(--fs-s); margin: 0.75rem 0 1rem; }
+.dash .tip b { color: var(--paper); font-weight: 400; }
+.dash .tip b.b { color: var(--brass); }
+body.dash:is(:not([data-state="ready"]), [data-input="text"]) .tip { visibility: hidden; }   /* its room kept: nothing jumps as the run starts, or while typing */
+body.dash[data-state="ready"] .run :is(.obstacles, .letters) { visibility: hidden; }
+
+/* a stumble: the runner dims for the moment the run slows, then
+   blinks through its grace; what it touches then is dimmed, not hit */
+.run .runner.stumble circle { fill: var(--graphite); }
+.run .runner.grace { animation: grace 200ms steps(2, jump-none) infinite; }
+@keyframes grace { 50% { opacity: 0.35; } }
+.run .ob.excused { opacity: 0.4; }
+@media (prefers-reduced-motion: reduce) { .run .runner.grace { animation: none; opacity: 0.6; } }
+
+/* the count of marks, over the bronze points */
+.dash .settings .score { text-align: center; font-size: 1.4rem; color: var(--paper); line-height: 1.6rem; }
+
+/* the bronze points in a row: three dots, lit as they're taken */
+#bronze { display: flex; justify-content: center; gap: 5px; }
+#bronze i { width: 0.5rem; height: 0.5rem; border-radius: 50%; border: 1px solid var(--graphite); }
+#bronze i.on { background: var(--brass); border-color: var(--brass); }
+
+/* the streak: three in a row and it all goes bronze, until one's
+   missed: over the dots' and dashes' own colours too */
+body.bronzed .run :is(.ob, .ob.dot, .ob.dash, .runner circle) { fill: var(--brass); }
+body.bronzed .run .ground { stroke: var(--brass); }
+body.bronzed .rider :is(.scaffold path, .ink path, .fill path, .fill .dot, .fill .dash) { stroke: var(--brass); }
+body.bronzed .dash .word, body.bronzed.dash .word .cleared, body.bronzed.dash .done span { color: var(--brass); }
+body.bronzed.dash .settings .score { color: var(--brass); }
+body.bronzed.dash .keybox .key { border-color: var(--brass); }

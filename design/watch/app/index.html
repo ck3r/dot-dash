@@ -111,6 +111,65 @@
     .screen .name { font-size: 11px; }
     .screen .target { font-size: 48px; color: var(--paper); line-height: 1; }
 
+    /* the keys beside their buttons: the dit by UP, the dah by DOWN, or
+       the straight key by START; brass while held */
+    .screen .edge { position: absolute; transform: translate(-50%, -50%); }
+    .screen .edge.dot { width: 9px; height: 9px; background: var(--dot); }
+    .screen .edge.dash { width: 24px; height: 7px; background: var(--dash); }
+    .screen .edge.key { width: 11px; height: 11px; border: 2px solid var(--paper); border-radius: 50%; }
+    .screen .edge.down { background: var(--brass); border-color: var(--brass); }
+
+    /* the station: the message box, the switch in its edge, the letter keyed */
+    .screen .station { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .station .box { fill: none; stroke: var(--wire); stroke-width: 1.5; }
+    .station .box.lit { stroke: var(--paper); }
+    .station .m.dot { fill: var(--dot); }
+    .station .m.dash { fill: var(--dash); }
+    .station .ch { fill: var(--paper); font-family: var(--mono); font-size: 12px; text-anchor: middle; }
+    .station .ch.now { fill: var(--brass); font-weight: 700; }
+    .station .ch.empty { fill: var(--graphite); font-size: 10px; }
+    .station .switch circle { fill: none; stroke: var(--paper); stroke-width: 1.6; }
+    .station .switch .lever { fill: var(--paper); }
+    .station .switch.down circle { stroke: var(--brass); }
+    .station .switch.down .lever { fill: var(--brass); }
+    .station .keying { fill: var(--paper); font-family: var(--mono); font-size: 38px; text-anchor: middle; }
+    .screen .marks.keyed { position: absolute; top: 184px; left: 0; right: 0; margin: 0 auto; }
+    .screen .stair.keyed { position: absolute; left: 132px; top: 138px; width: 60px; font-size: 12px; }
+    .screen .hint.foot { position: absolute; top: 190px; left: 0; right: 0; }
+
+    /* the tree: the letter walked to, large in the gap under the root, its
+       marks stacked down the gap under it, a dash upright as the tree's
+       own steps down are; the gap is narrow, the column fits it */
+    .screen .walked { position: absolute; top: 84px; left: 0; right: 0; font-size: 32px; color: var(--paper); line-height: 1; pointer-events: none; }
+    .screen .walked-marks { position: absolute; top: 122px; left: 0; right: 0; margin: 0 auto; flex-direction: column; flex-wrap: nowrap; gap: 4px; pointer-events: none; }
+    .screen .walked-marks i.dot { width: 6px; height: 6px; }
+    .screen .walked-marks i.dash { width: 6px; height: 18px; }
+
+    /* the chart, as on a coin */
+    .screen .chart { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .chart text { fill: var(--graphite); font-family: var(--mono); font-size: 12px; text-anchor: middle; }
+    .chart .m.dot { fill: var(--dot); }
+    .chart .m.dash { fill: var(--dash); }
+    .chart .hit { fill: transparent; }
+    .chart .on text { fill: var(--paper); font-weight: 700; }
+    .chart .on .hit { fill: none; stroke: var(--brass); stroke-width: 1; }
+
+    /* the station's tray: the outputs, lit while on */
+    .screen .tray { position: absolute; top: 210px; left: 0; right: 0; display: flex; justify-content: center; gap: 16px; font-size: 14px; }
+    .screen .tray span { color: var(--wire); cursor: default; }
+    .screen .tray span.on { color: var(--paper); }
+
+    /* what's learned, round the edge: a cell a letter */
+    .screen .ring { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .ring path { fill: none; stroke: var(--wire); stroke-width: 4; stroke-opacity: 0.5; }
+    .ring path.seen { stroke: var(--graphite); stroke-opacity: 1; }
+    .ring path.known { stroke: var(--paper); stroke-opacity: 1; }
+    .ring path.now { stroke: var(--brass); stroke-opacity: 1; }
+
+    /* the game's strikes, as /hero's: three boxes filling by thirds */
+    .screen .strikes { position: absolute; top: 34px; left: 0; right: 0; display: flex; justify-content: center; gap: 4px; }
+    .screen .strikes i { width: 14px; height: 7px; border: 1px solid var(--graphite); background: linear-gradient(var(--paper), var(--paper)) 0 0 / calc(var(--fill, 0) * 100%) 100% no-repeat; }
+
     /* station: the draft over its list; sending, the letter going out lit */
     .screen .draft { font-size: 13px; color: var(--paper); max-width: 170px; white-space: pre; overflow: hidden; border-bottom: 1px solid var(--wire); padding-bottom: 3px; }
     .screen .tx { font-size: 22px; color: var(--graphite); max-width: 190px; word-break: break-all; white-space: pre-wrap; }
@@ -188,7 +247,7 @@
         </fieldset>
         <fieldset>
           <legend>keyboard</legend>
-          <div class="keys"><b>↑ ↓</b> UP DOWN · <b>Enter</b> START · <b>Esc</b> BACK · <b>L</b> LIGHT</div>
+          <div class="keys"><b>1 3</b> or <b>↑ ↓</b> UP DOWN · <b>Enter</b> START · <b>Esc</b> BACK · <b>L</b> LIGHT</div>
         </fieldset>
         <fieldset>
           <legend>screen</legend>
@@ -229,7 +288,10 @@
       wpm: +$("wpm").value,
       sound: $("o-sound").checked, buzz: $("o-buzz").checked, flash: $("o-flash").checked,
     });
-    const app = createApp({ watch, screen: $("screen"), options });
+    /* the app turns an output on or off as the boxes here do */
+    const toggle = name => { const box = $(`o-${name}`); box.checked = !box.checked; };
+    const app = createApp({ watch, screen: $("screen"), options, toggle });
+    for (const id of ["o-sound", "o-buzz", "o-flash"]) $(id).addEventListener("change", () => app.redraw());
     window.app = app;   // for the checks
 
     for (const id of ["device", "keytype"]) $(id).addEventListener("change", () => app.redraw());

@@ -811,6 +811,7 @@ button {
 .tree .on.elbow,
 .signal .tree .on.elbow {
   position: relative;
+  display: inline-block;   /* a line's box, not the font's: the ┘ over it sits on the ┴'s own baseline */
   color: inherit;
 }
 .tree.live .on.elbow,

@@ -22,7 +22,7 @@
  *
  * The lists keep the content's own order, never alphabetical or by
  * use: A to Z is already in order, symbols and prosigns as the
- * reference's tables have them, the station before the game before
+ * reference's tables have them, the station before the games before
  * the reference. Nothing reshuffles, so a page is where it was.
  *
  * Too wide (a phone, a long trail): the middle crumbs fold, one at a
@@ -38,7 +38,7 @@ import { GROUPS } from "./nav-tables.js";
 import { siteOrigin } from "../core/where.js";
 
 /* the site's top level: what you came for first, a rule, then the small pages, the manual (help) first */
-const TOP = [["/", "STATION"], ["/hero/", "KEY HERO"], ["/ref/", "REF"], null,
+const TOP = [["/", "STATION"], ["/hero/", "KEY HERO"], ["/dash/", "KEY DASH"], ["/ref/", "REF"], null,
   ["/manual/", "MANUAL"], ["/design/", "DESIGN NOTES"], ["/privacy/", "PRIVACY"], ["/extension/", "EXTENSION"], ["/bookmarklet/", "BOOKMARKLET"]];
 
 /* the reference: its six tables in its own order, a rule, then the pages that gather */
@@ -106,6 +106,7 @@ function place(button) {
  *
  *   STATION
  *   KEY HERO
+ *   KEY DASH
  *   REF                 ▾
  *     ALL
  *     ALPHABET          ›

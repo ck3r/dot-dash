@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#1c1916">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <title>key dash · dot-da.sh</title>
+  <link rel="canonical" href="https://dot-da.sh/dash/">
+  <meta name="description" content="Key dash: a runner, and Morse coming at it a mark at a time. Jump a dot, duck a dash; the obstacles spell the letters.">
+  <meta name="title" content="key dash · dot-da.sh">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://dot-da.sh/dash/">
+  <meta property="og:title" content="key dash · dot-da.sh">
+  <meta property="og:description" content="Jump a dot, duck a dash: the obstacles spell the letters.">
+  <meta property="og:image" content="https://dot-da.sh/preview.png">
+  <meta property="twitter:card" content="summary_large_image">
+
+  <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
+  <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
+  <link rel="stylesheet" href="/css/base.css">
+  <!-- Key hero's page as it is (its top, settings, card, share menu
+       and keys: the same game furniture), and the run over it -->
+  <link rel="stylesheet" href="/css/hero.css">
+  <link rel="stylesheet" href="/css/dash.css">
+  <script type="module" src="/js/shared/nav.js"></script>
+</head>
+
+<body class="hero dash" data-state="ready">
+  <header class="top hero-top">
+    <nav class="crumbs" aria-label="where you are">
+      <ol>
+        <li><a href="/" class="home">dot-da.sh</a></li>
+        <li><h1 data-crumb="top"><span class="crumb-name">KEY DASH</span><span class="visually-hidden">: a Morse code runner</span></h1></li>
+      </ol>
+    </nav>
+    <div class="top-right">
+    <button type="button" id="share-toggle" class="share-toggle" aria-expanded="false" aria-controls="share">share</button>
+    <button type="button" class="profile" id="profile" disabled title="profile (to come)" aria-label="profile (to come)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3.2"/><path d="M6.4 18.6c1.3-2.2 3.3-3.4 5.6-3.4s4.3 1.2 5.6 3.4"/></svg></button>
+    </div>
+  </header>
+
+  <!-- share, as Key hero's (js/game/share.js): the text as a link that
+       opens here, and the run just played -->
+  <section id="share" class="share-menu" hidden aria-label="share">
+    <span class="frame-label">share</span>
+    <button type="button" class="close" aria-label="close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button>
+    <div class="rows">
+      <button type="button" data-do="copy-link" title="a link that opens Key dash with this text"><span>copy link</span><span class="peek"></span></button>
+      <button type="button" data-do="copy-result" title="the run just played, in a line, with the link"><span>copy result</span><span class="peek"></span></button>
+    </div>
+    <div class="rows">
+      <button type="button" data-do="share"><span>share…</span></button>
+    </div>
+    <div class="rows">
+      <a id="share-station" href="/">this text in the station ↗</a>
+    </div>
+    <p class="share-note" aria-live="polite"></p>
+    <p class="privacy">Morse is an encoding, not encryption.<br>Don't send anything private.</p>
+  </section>
+
+  <main>
+    <div class="stage">
+      <!--
+        the word coming, at the top; the run, each letter's stroke
+        letter riding in over its first mark and holding over the
+        runner till its last mark drags it off; the words done, below
+
+                    R A I N
+           ⌐R
+            ●     ▮   ▔▔▔▔▔   ▮    ·  a brass crumb, after each dash
+          ━━━━━━━━━━━━━━━━━━━━━━━
+                 THE  FOR
+      -->
+      <!-- tapped, the station's keyboard comes up in the keys' place, to
+           type a text of your own (js/game/typing.js) -->
+      <p class="word" id="word" title="type your own text"></p>
+      <p class="tip" id="tip" aria-live="polite">a key to run · <b>●</b> jumps a dot · <b>▬</b> held ducks a dash · let go as a dash ends for the <b class="b">brass crumbs</b></p>
+      <svg class="run" id="run" viewBox="0 0 420 200" aria-hidden="true">
+        <line class="ground" x1="0" y1="170" x2="420" y2="170"/>
+        <g class="letters"></g>
+        <g class="obstacles"></g>
+        <g class="runner"><circle cx="0" cy="-15" r="15"/></g>
+      </svg>
+      <p class="done" id="done" aria-label="words done" aria-live="off"></p>
+
+      <!-- down the right, as Key hero's: the gear and its tray, the
+           count, the bronze points, the strikes, restart, pause -->
+      <aside class="settings" aria-label="settings">
+        <div class="tray" id="tray" hidden>
+          <label class="pick">text <select id="song"></select></label>
+          <div class="flags">
+            <label class="check" title="the Ctrl keys as paddles: left is dit, right is dah (a VBand adapter)"><input type="checkbox" id="opt-ctrl"><span>ctrl</span></label>
+            <label class="check" title="the mouse as the key: left is dit, right is dah"><input type="checkbox" id="opt-mouse"><span>mouse</span></label>
+            <label class="check" title="dots red, dashes blue"><input type="checkbox" id="opt-color" checked><span>color</span></label>
+            <label class="check" title="the light theme: dark on paper"><input type="checkbox" id="opt-theme"><span>invert</span></label>
+            <label class="check" title="a wpm faster after every word cleared with no hit, up to 40"><input type="checkbox" id="opt-ramp"><span>ramp</span></label>
+          </div>
+          <div class="group">
+            <div class="pair">
+              <label class="fader"><output for="opt-wpm">5</output>
+                <input type="range" id="opt-wpm" min="5" max="40" value="5"><span>wpm</span></label>
+              <label class="fader"><output for="opt-fwpm">5</output>
+                <span class="track"><input type="range" id="opt-fwpm" min="5" max="40" value="5"><i class="cap" aria-hidden="true"></i></span><span title="Farnsworth: the speed overall, the spaces between letters stretched to make it">farns.</span></label>
+            </div>
+            <span class="group-name">speed</span>
+          </div>
+        </div>
+        <button type="button" id="gear" aria-expanded="false" aria-controls="tray" aria-label="settings" title="settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>
+          <i class="chevron" aria-hidden="true"></i>
+        </button>
+        <p class="score" id="score" title="marks cleared">0</p>
+        <!-- the brass crumbs in a row: three and it all goes bronze -->
+        <p id="bronze" role="img" aria-label="0 brass crumbs in a row"><i></i><i></i><i></i></p>
+        <p id="strikes" role="img" aria-label="0 of 3 strikes"><i></i><i></i><i></i></p>
+        <button type="button" id="restart" disabled title="start over, from the top: r">restart</button>
+        <button type="button" id="pause" disabled title="pause, and go on: esc, p or the space bar; r starts over">pause</button>
+      </aside>
+    </div>
+
+    <section class="result" id="card" role="dialog" hidden aria-labelledby="c-title">
+      <span class="frame-label" id="c-title">RESULTS</span>
+      <button type="button" class="close" id="card-close" aria-label="close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button>
+      <p class="percent"><b id="c-marks"></b> <span id="c-best"></span></p>
+      <dl>
+        <div><dt>letters clean</dt><dd id="c-letters"></dd></div>
+        <div><dt>words</dt><dd id="c-words"></dd></div>
+        <div><dt>crumbs</dt><dd id="c-bronze"></dd></div>
+        <div><dt>longest bronze</dt><dd id="c-streak"></dd></div>
+        <div><dt>speed at the end</dt><dd id="c-speed"></dd></div>
+      </dl>
+      <button type="button" id="again">again</button>
+      <span class="hint">or either key</span>
+    </section>
+
+    <!-- two keys, as Key hero's: the dit jumps, the dah held ducks -->
+    <section class="keybox" aria-label="the keys">
+      <button type="button" class="key" data-lane="." aria-label="dit: jump"><span class="mark">●</span><kbd>[</kbd></button>
+      <button type="button" class="key" data-lane="-" aria-label="dah: duck"><span class="mark">▬</span><kbd>]</kbd></button>
+    </section>
+    <!-- the station's text keyboard (js/shared/keyboard.js), in the keys'
+         place while a text of your own is typed -->
+    <div id="kbd" class="kbd" aria-label="keyboard" hidden></div>
+    <section id="hold-pop" class="result" role="dialog" aria-labelledby="hold-title" hidden>
+      <p id="hold-title"><b>hold for more</b></p>
+      <p>A key with a mark in its corner holds more: press and hold,
+      slide onto one, and let go. A quick tap is just the letter.</p>
+      <button type="button" class="close">close</button>
+    </section>
+  </main>
+
+  <script type="module" src="/js/dash/main.js"></script>
+</body>
+</html>
