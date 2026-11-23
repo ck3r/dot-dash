@@ -125,8 +125,16 @@
     </section>
 
     <!-- ───────────── one character: tap a node, or type it ───────────── -->
-    <section class="frame selected-frame" id="selected-frame" aria-labelledby="selected-label">
+    <section class="frame find-frame" aria-labelledby="find-label">
+      <h2 class="frame-label" id="find-label"><label for="ref-find">find</label></h2>
+      <input type="search" id="ref-find" placeholder="marks (.-), a name or what it means" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go">
+      <p class="find-none" hidden>nothing here matches</p>
+    </section>
+
+    <section hidden class="frame selected-frame" id="selected-frame" aria-labelledby="selected-label">
       <h2 class="frame-label" id="selected-label">selected character</h2>
+      <!-- its own page, on the frame's top edge at the right (js/ref/main.js) -->
+      <a id="selected-page" class="frame-corner" hidden>its page ›</a>
       <p id="selected-none" class="empty">none</p>
       <div id="selected-card" class="card" hidden></div>
     </section>
@@ -147,7 +155,7 @@
        station's player plays a message (js/ref/main.js)
 
          [x] cards    ▷ 2.8s ━━━━━━━━┃━━━━━━━ ⟲3 │ speed 5 wpm  consecutive   -->
-  <div class="chart-bar" data-group="alphabet numbers symbols">
+  <div class="chart-bar" data-group="alphabet numbers symbols prosigns">
     <div class="cards-switch">
       <label class="check box-only"><input type="checkbox" id="opt-cards"><span class="visually-hidden">characters as cards</span></label>
       <button type="button" id="cards-info" class="flag-word" aria-haspopup="dialog" aria-controls="cards-pop">cards</button>
@@ -285,20 +293,20 @@
     <label class="check box-after" title="prosigns with a bar over their letters, the old way, instead of brackets">bar<input type="checkbox" id="opt-bar" aria-label="prosigns as bar notation"></label>
   </div>
   <ul class="lists" data-list="prosigns" data-group="prosigns">
-    <li data-az="0" data-flow="2"><a href="/ref/prosigns/?/.-.-"><span class="code">.-.-</span><span class="label pro">&lt;AA&gt;</span><span class="means">new line</span></a></li>
-    <li data-az="1" data-flow="9"><a href="/ref/prosigns/?/.-.-."><span class="code">.-.-.</span><span class="label pro">&lt;AR&gt;</span><span class="means">end of message</span></a></li>
-    <li data-az="2" data-flow="3"><a href="/ref/prosigns/?/.-..."><span class="code">.-...</span><span class="label pro">&lt;AS&gt;</span><span class="means">wait</span></a></li>
-    <li data-az="3" data-flow="6"><a href="/ref/prosigns/?/-...-.-"><span class="code">-...-.-</span><span class="label pro">&lt;BK&gt;</span><span class="means">break: back to you</span></a></li>
-    <li data-az="4" data-flow="1"><a href="/ref/prosigns/?/-...-"><span class="code">-...-</span><span class="label pro">&lt;BT&gt;</span><span class="means">new paragraph, a pause</span></a></li>
-    <li data-az="5" data-flow="11"><a href="/ref/prosigns/?/-.-..-.."><span class="code">-.-..-..</span><span class="label pro">&lt;CL&gt;</span><span class="means">closing down</span></a></li>
-    <li data-az="6" data-flow="13"><a href="/ref/prosigns/?/-..---"><span class="code">-..---</span><span class="label pro">&lt;DO&gt;</span><span class="means">shift to Wabun (Japanese)</span></a></li>
-    <li data-az="7" data-flow="4"><a href="/ref/prosigns/?/........"><span class="code">........</span><span class="label pro">&lt;HH&gt;</span><span class="means">error</span></a></li>
-    <li data-az="8" data-flow="7"><a href="/ref/prosigns/?/-.-"><span class="code">-.-</span><span class="label pro">&lt;K&gt;</span><span class="means">over: any station</span></a></li>
-    <li data-az="9" data-flow="0"><a href="/ref/prosigns/?/-.-.-"><span class="code">-.-.-</span><span class="label pro">&lt;KA&gt;</span><span class="means">attention: a message starts</span></a></li>
-    <li data-az="10" data-flow="8"><a href="/ref/prosigns/?/-.--."><span class="code">-.--.</span><span class="label pro">&lt;KN&gt;</span><span class="means">over: the named station only</span></a></li>
-    <li data-az="11" data-flow="10"><a href="/ref/prosigns/?/...-.-"><span class="code">...-.-</span><span class="label pro">&lt;SK&gt;</span><span class="means">end of contact</span></a></li>
-    <li data-az="12" data-flow="5"><a href="/ref/prosigns/?/...-."><span class="code">...-.</span><span class="label pro">&lt;SN&gt;</span><span class="means">understood</span></a></li>
-    <li data-az="13" data-flow="12"><a href="/ref/prosigns/?/...---..."><span class="code">...---...</span><span class="label pro">&lt;SOS&gt;</span><span class="means">distress</span></a></li>
+    <li data-az="0" data-flow="2"><a href="/ref/aa/"><span class="code">.-.-</span><span class="label pro">&lt;AA&gt;</span><span class="means">new line</span></a></li>
+    <li data-az="1" data-flow="9"><a href="/ref/plus/#prosign"><span class="code">.-.-.</span><span class="label pro">&lt;AR&gt;</span><span class="means">end of message</span></a></li>
+    <li data-az="2" data-flow="3"><a href="/ref/ampersand/#prosign"><span class="code">.-...</span><span class="label pro">&lt;AS&gt;</span><span class="means">wait</span></a></li>
+    <li data-az="3" data-flow="6"><a href="/ref/bk/"><span class="code">-...-.-</span><span class="label pro">&lt;BK&gt;</span><span class="means">break: back to you</span></a></li>
+    <li data-az="4" data-flow="1"><a href="/ref/equals/#prosign"><span class="code">-...-</span><span class="label pro">&lt;BT&gt;</span><span class="means">new paragraph, a pause</span></a></li>
+    <li data-az="5" data-flow="11"><a href="/ref/cl/"><span class="code">-.-..-..</span><span class="label pro">&lt;CL&gt;</span><span class="means">closing down</span></a></li>
+    <li data-az="6" data-flow="13"><a href="/ref/do/"><span class="code">-..---</span><span class="label pro">&lt;DO&gt;</span><span class="means">shift to Wabun (Japanese)</span></a></li>
+    <li data-az="7" data-flow="4"><a href="/ref/hh/"><span class="code">........</span><span class="label pro">&lt;HH&gt;</span><span class="means">error</span></a></li>
+    <li data-az="8" data-flow="7"><a href="/ref/k/#prosign"><span class="code">-.-</span><span class="label pro">&lt;K&gt;</span><span class="means">over: any station</span></a></li>
+    <li data-az="9" data-flow="0"><a href="/ref/ka/"><span class="code">-.-.-</span><span class="label pro">&lt;KA&gt;</span><span class="means">attention: a message starts</span></a></li>
+    <li data-az="10" data-flow="8"><a href="/ref/open-bracket/#prosign"><span class="code">-.--.</span><span class="label pro">&lt;KN&gt;</span><span class="means">over: the named station only</span></a></li>
+    <li data-az="11" data-flow="10"><a href="/ref/sk/"><span class="code">...-.-</span><span class="label pro">&lt;SK&gt;</span><span class="means">end of contact</span></a></li>
+    <li data-az="12" data-flow="5"><a href="/ref/sn/"><span class="code">...-.</span><span class="label pro">&lt;SN&gt;</span><span class="means">understood</span></a></li>
+    <li data-az="13" data-flow="12"><a href="/ref/sos/"><span class="code">...---...</span><span class="label pro">&lt;SOS&gt;</span><span class="means">distress</span></a></li>
   </ul>
 
   <div class="heading-row" data-group="q-codes">
@@ -315,6 +323,18 @@
   <ul class="lists" data-list="abbreviations" data-group="abbreviations">
   
     </ul>
+  </div>
+
+  <!-- phrases: whole words people look up, each to play here, and ⋯
+       for the station, its .wav, a link (js/ref/phrases.js draws them
+       from core/phrases.js: the same rows as /ref/phrases/)
+
+       ▷  I love you                                        ⋯
+          .. / .-.. --- ...- . / -.-- --- ..-                       -->
+  <div class="phrases" data-group="phrases">
+    <h2><a href="/ref/phrases/">Phrases</a></h2>
+    <p class="cheat-note">A space is the gap between letters, a slash the gap between words.</p>
+    <ul class="phrase-list" id="phrase-list"></ul>
   </div>
 
 </div>

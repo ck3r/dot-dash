@@ -125,8 +125,16 @@
     </section>
 
     <!-- ───────────── one character: tap a node, or type it ───────────── -->
-    <section class="frame selected-frame" id="selected-frame" aria-labelledby="selected-label">
+    <section class="frame find-frame" aria-labelledby="find-label">
+      <h2 class="frame-label" id="find-label"><label for="ref-find">find</label></h2>
+      <input type="search" id="ref-find" placeholder="marks (.-), a name or what it means" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go">
+      <p class="find-none" hidden>nothing here matches</p>
+    </section>
+
+    <section hidden class="frame selected-frame" id="selected-frame" aria-labelledby="selected-label">
       <h2 class="frame-label" id="selected-label">selected character</h2>
+      <!-- its own page, on the frame's top edge at the right (js/ref/main.js) -->
+      <a id="selected-page" class="frame-corner" hidden>its page ›</a>
       <p id="selected-none" class="empty">none</p>
       <div id="selected-card" class="card" hidden></div>
     </section>
@@ -147,7 +155,7 @@
        station's player plays a message (js/ref/main.js)
 
          [x] cards    ▷ 2.8s ━━━━━━━━┃━━━━━━━ ⟲3 │ speed 5 wpm  consecutive   -->
-  <div class="chart-bar" data-group="alphabet numbers symbols">
+  <div class="chart-bar" data-group="alphabet numbers symbols prosigns">
     <div class="cards-switch">
       <label class="check box-only"><input type="checkbox" id="opt-cards"><span class="visually-hidden">characters as cards</span></label>
       <button type="button" id="cards-info" class="flag-word" aria-haspopup="dialog" aria-controls="cards-pop">cards</button>
@@ -228,34 +236,34 @@
   </div>
   <div class="group-row morse-letters" data-group="alphabet">
     <ul class="col-left">
-    <li><a href="/ref/chart/?/.-"><span class="code">.-</span><span class="say">Alfa</span><span class="label">A</span></a></li>
-    <li><a href="/ref/chart/?/-..."><span class="code">-...</span><span class="say">Bravo</span><span class="label">B</span></a></li>
-    <li><a href="/ref/chart/?/-.-."><span class="code">-.-.</span><span class="say">Charlie</span><span class="label">C</span></a></li>
-    <li><a href="/ref/chart/?/-.."><span class="code">-..</span><span class="say">Delta</span><span class="label">D</span></a></li>
-    <li><a href="/ref/chart/?/."><span class="code">.</span><span class="say">Echo</span><span class="label">E</span></a></li>
-    <li><a href="/ref/chart/?/..-."><span class="code">..-.</span><span class="say">Foxtrot</span><span class="label">F</span></a></li>
-    <li><a href="/ref/chart/?/--."><span class="code">--.</span><span class="say">Golf</span><span class="label">G</span></a></li>
-    <li><a href="/ref/chart/?/...."><span class="code">....</span><span class="say">Hotel</span><span class="label">H</span></a></li>
-    <li><a href="/ref/chart/?/.."><span class="code">..</span><span class="say">India</span><span class="label">I</span></a></li>
-    <li><a href="/ref/chart/?/.---"><span class="code">.---</span><span class="say">Juliett</span><span class="label">J</span></a></li>
-    <li><a href="/ref/chart/?/-.-"><span class="code">-.-</span><span class="say">Kilo</span><span class="label">K</span></a></li>
-    <li><a href="/ref/chart/?/.-.."><span class="code">.-..</span><span class="say">Lima</span><span class="label">L</span></a></li>
-    <li><a href="/ref/chart/?/--"><span class="code">--</span><span class="say">Mike</span><span class="label">M</span></a></li>
+    <li><a href="/ref/a/"><span class="code">.-</span><span class="say">Alfa</span><span class="label">A</span></a></li>
+    <li><a href="/ref/b/"><span class="code">-...</span><span class="say">Bravo</span><span class="label">B</span></a></li>
+    <li><a href="/ref/c/"><span class="code">-.-.</span><span class="say">Charlie</span><span class="label">C</span></a></li>
+    <li><a href="/ref/d/"><span class="code">-..</span><span class="say">Delta</span><span class="label">D</span></a></li>
+    <li><a href="/ref/e/"><span class="code">.</span><span class="say">Echo</span><span class="label">E</span></a></li>
+    <li><a href="/ref/f/"><span class="code">..-.</span><span class="say">Foxtrot</span><span class="label">F</span></a></li>
+    <li><a href="/ref/g/"><span class="code">--.</span><span class="say">Golf</span><span class="label">G</span></a></li>
+    <li><a href="/ref/h/"><span class="code">....</span><span class="say">Hotel</span><span class="label">H</span></a></li>
+    <li><a href="/ref/i/"><span class="code">..</span><span class="say">India</span><span class="label">I</span></a></li>
+    <li><a href="/ref/j/"><span class="code">.---</span><span class="say">Juliett</span><span class="label">J</span></a></li>
+    <li><a href="/ref/k/"><span class="code">-.-</span><span class="say">Kilo</span><span class="label">K</span></a></li>
+    <li><a href="/ref/l/"><span class="code">.-..</span><span class="say">Lima</span><span class="label">L</span></a></li>
+    <li><a href="/ref/m/"><span class="code">--</span><span class="say">Mike</span><span class="label">M</span></a></li>
     </ul>
     <ul class="col-right">
-    <li><a href="/ref/chart/?/-."><span class="label">N</span><span class="say">November</span><span class="code">-.</span></a></li>
-    <li><a href="/ref/chart/?/---"><span class="label">O</span><span class="say">Oscar</span><span class="code">---</span></a></li>
-    <li><a href="/ref/chart/?/.--."><span class="label">P</span><span class="say">Papa</span><span class="code">.--.</span></a></li>
-    <li><a href="/ref/chart/?/--.-"><span class="label">Q</span><span class="say">Quebec</span><span class="code">--.-</span></a></li>
-    <li><a href="/ref/chart/?/.-."><span class="label">R</span><span class="say">Romeo</span><span class="code">.-.</span></a></li>
-    <li><a href="/ref/chart/?/..."><span class="label">S</span><span class="say">Sierra</span><span class="code">...</span></a></li>
-    <li><a href="/ref/chart/?/-"><span class="label">T</span><span class="say">Tango</span><span class="code">-</span></a></li>
-    <li><a href="/ref/chart/?/..-"><span class="label">U</span><span class="say">Uniform</span><span class="code">..-</span></a></li>
-    <li><a href="/ref/chart/?/...-"><span class="label">V</span><span class="say">Victor</span><span class="code">...-</span></a></li>
-    <li><a href="/ref/chart/?/.--"><span class="label">W</span><span class="say">Whiskey</span><span class="code">.--</span></a></li>
-    <li><a href="/ref/chart/?/-..-"><span class="label">X</span><span class="say">X-ray</span><span class="code">-..-</span></a></li>
-    <li><a href="/ref/chart/?/-.--"><span class="label">Y</span><span class="say">Yankee</span><span class="code">-.--</span></a></li>
-    <li><a href="/ref/chart/?/--.."><span class="label">Z</span><span class="say">Zulu</span><span class="code">--..</span></a></li>
+    <li><a href="/ref/n/"><span class="label">N</span><span class="say">November</span><span class="code">-.</span></a></li>
+    <li><a href="/ref/o/"><span class="label">O</span><span class="say">Oscar</span><span class="code">---</span></a></li>
+    <li><a href="/ref/p/"><span class="label">P</span><span class="say">Papa</span><span class="code">.--.</span></a></li>
+    <li><a href="/ref/q/"><span class="label">Q</span><span class="say">Quebec</span><span class="code">--.-</span></a></li>
+    <li><a href="/ref/r/"><span class="label">R</span><span class="say">Romeo</span><span class="code">.-.</span></a></li>
+    <li><a href="/ref/s/"><span class="label">S</span><span class="say">Sierra</span><span class="code">...</span></a></li>
+    <li><a href="/ref/t/"><span class="label">T</span><span class="say">Tango</span><span class="code">-</span></a></li>
+    <li><a href="/ref/u/"><span class="label">U</span><span class="say">Uniform</span><span class="code">..-</span></a></li>
+    <li><a href="/ref/v/"><span class="label">V</span><span class="say">Victor</span><span class="code">...-</span></a></li>
+    <li><a href="/ref/w/"><span class="label">W</span><span class="say">Whiskey</span><span class="code">.--</span></a></li>
+    <li><a href="/ref/x/"><span class="label">X</span><span class="say">X-ray</span><span class="code">-..-</span></a></li>
+    <li><a href="/ref/y/"><span class="label">Y</span><span class="say">Yankee</span><span class="code">-.--</span></a></li>
+    <li><a href="/ref/z/"><span class="label">Z</span><span class="say">Zulu</span><span class="code">--..</span></a></li>
     </ul>
   </div>
 
@@ -265,44 +273,44 @@
   </div>
   <div class="group-row morse-numbers" data-group="numbers">
     <ul class="col-left">
-    <li><a href="/ref/chart/?/.----"><span class="code">.----</span><span class="say">Wun</span><span class="label">1</span></a></li>
-    <li><a href="/ref/chart/?/..---"><span class="code">..---</span><span class="say">Too</span><span class="label">2</span></a></li>
-    <li><a href="/ref/chart/?/...--"><span class="code">...--</span><span class="say">Tree</span><span class="label">3</span></a></li>
-    <li><a href="/ref/chart/?/....-"><span class="code">....-</span><span class="say">Fower</span><span class="label">4</span></a></li>
-    <li><a href="/ref/chart/?/....."><span class="code">.....</span><span class="say">Fife</span><span class="label">5</span></a></li>
+    <li><a href="/ref/1/"><span class="code">.----</span><span class="say">Wun</span><span class="label">1</span></a></li>
+    <li><a href="/ref/2/"><span class="code">..---</span><span class="say">Too</span><span class="label">2</span></a></li>
+    <li><a href="/ref/3/"><span class="code">...--</span><span class="say">Tree</span><span class="label">3</span></a></li>
+    <li><a href="/ref/4/"><span class="code">....-</span><span class="say">Fower</span><span class="label">4</span></a></li>
+    <li><a href="/ref/5/"><span class="code">.....</span><span class="say">Fife</span><span class="label">5</span></a></li>
     </ul>
     <ul class="col-right">
-    <li><a href="/ref/chart/?/-...."><span class="label">6</span><span class="say">Six</span><span class="code">-....</span></a></li>
-    <li><a href="/ref/chart/?/--..."><span class="label">7</span><span class="say">Seven</span><span class="code">--...</span></a></li>
-    <li><a href="/ref/chart/?/---.."><span class="label">8</span><span class="say">Ait</span><span class="code">---..</span></a></li>
-    <li><a href="/ref/chart/?/----."><span class="label">9</span><span class="say">Niner</span><span class="code">----.</span></a></li>
-    <li><a href="/ref/chart/?/-----"><span class="label">0</span><span class="say">Zero</span><span class="code">-----</span></a></li>
+    <li><a href="/ref/6/"><span class="label">6</span><span class="say">Six</span><span class="code">-....</span></a></li>
+    <li><a href="/ref/7/"><span class="label">7</span><span class="say">Seven</span><span class="code">--...</span></a></li>
+    <li><a href="/ref/8/"><span class="label">8</span><span class="say">Ait</span><span class="code">---..</span></a></li>
+    <li><a href="/ref/9/"><span class="label">9</span><span class="say">Niner</span><span class="code">----.</span></a></li>
+    <li><a href="/ref/0/"><span class="label">0</span><span class="say">Zero</span><span class="code">-----</span></a></li>
     </ul>
   </div>
 
   <h2 data-group="symbols"><a href="/ref/symbols/">Symbols</a></h2>
   <div class="group-row morse-symbols" data-group="symbols">
     <ul class="col-left">
-    <li><a href="/ref/chart/?/.-.-.-"><span class="code">.-.-.-</span><span class="label">.</span></a></li>
-    <li><a href="/ref/chart/?/--..--"><span class="code">--..--</span><span class="label">,</span></a></li>
-    <li><a href="/ref/chart/?/..--.."><span class="code">..--..</span><span class="label">?</span></a></li>
-    <li><a href="/ref/chart/?/-.-.--"><span class="code">-.-.--</span><span class="label">!</span></a></li>
-    <li><a href="/ref/chart/?/.----."><span class="code">.----.</span><span class="label">'</span></a></li>
-    <li><a href="/ref/chart/?/.-..-."><span class="code">.-..-.</span><span class="label">"</span></a></li>
-    <li><a href="/ref/chart/?/-.--."><span class="code">-.--.</span><span class="label">(</span></a></li>
-    <li><a href="/ref/chart/?/-.--.-"><span class="code">-.--.-</span><span class="label">)</span></a></li>
-    <li><a href="/ref/chart/?/.-..."><span class="code">.-...</span><span class="label">&amp;</span></a></li>
+    <li><a href="/ref/period/"><span class="code">.-.-.-</span><span class="label">.</span></a></li>
+    <li><a href="/ref/comma/"><span class="code">--..--</span><span class="label">,</span></a></li>
+    <li><a href="/ref/question-mark/"><span class="code">..--..</span><span class="label">?</span></a></li>
+    <li><a href="/ref/exclamation-mark/"><span class="code">-.-.--</span><span class="label">!</span></a></li>
+    <li><a href="/ref/apostrophe/"><span class="code">.----.</span><span class="label">'</span></a></li>
+    <li><a href="/ref/quote/"><span class="code">.-..-.</span><span class="label">"</span></a></li>
+    <li><a href="/ref/open-bracket/"><span class="code">-.--.</span><span class="label">(</span></a></li>
+    <li><a href="/ref/close-bracket/"><span class="code">-.--.-</span><span class="label">)</span></a></li>
+    <li><a href="/ref/ampersand/"><span class="code">.-...</span><span class="label">&amp;</span></a></li>
     </ul>
     <ul class="col-right">
-    <li><a href="/ref/chart/?/---..."><span class="label">:</span><span class="code">---...</span></a></li>
-    <li><a href="/ref/chart/?/-.-.-."><span class="label">;</span><span class="code">-.-.-.</span></a></li>
-    <li><a href="/ref/chart/?/-..-."><span class="label">/</span><span class="code">-..-.</span></a></li>
-    <li><a href="/ref/chart/?/..--.-"><span class="label">_</span><span class="code">..--.-</span></a></li>
-    <li><a href="/ref/chart/?/-...-"><span class="label">=</span><span class="code">-...-</span></a></li>
-    <li><a href="/ref/chart/?/.-.-."><span class="label">+</span><span class="code">.-.-.</span></a></li>
-    <li><a href="/ref/chart/?/-....-"><span class="label">-</span><span class="code">-....-</span></a></li>
-    <li><a href="/ref/chart/?/...-..-"><span class="label">$</span><span class="code">...-..-</span></a></li>
-    <li><a href="/ref/chart/?/.--.-."><span class="label">@</span><span class="code">.--.-.</span></a></li>
+    <li><a href="/ref/colon/"><span class="label">:</span><span class="code">---...</span></a></li>
+    <li><a href="/ref/semicolon/"><span class="label">;</span><span class="code">-.-.-.</span></a></li>
+    <li><a href="/ref/slash/"><span class="label">/</span><span class="code">-..-.</span></a></li>
+    <li><a href="/ref/underscore/"><span class="label">_</span><span class="code">..--.-</span></a></li>
+    <li><a href="/ref/equals/"><span class="label">=</span><span class="code">-...-</span></a></li>
+    <li><a href="/ref/plus/"><span class="label">+</span><span class="code">.-.-.</span></a></li>
+    <li><a href="/ref/hyphen/"><span class="label">-</span><span class="code">-....-</span></a></li>
+    <li><a href="/ref/dollar/"><span class="label">$</span><span class="code">...-..-</span></a></li>
+    <li><a href="/ref/at/"><span class="label">@</span><span class="code">.--.-.</span></a></li>
     </ul>
   </div>
 
@@ -336,20 +344,20 @@
     <label class="check box-after" title="prosigns with a bar over their letters, the old way, instead of brackets">bar<input type="checkbox" id="opt-bar" aria-label="prosigns as bar notation"></label>
   </div>
   <ul class="lists" data-list="prosigns" data-group="prosigns">
-    <li data-az="0" data-flow="2"><a href="/ref/chart/?/.-.-"><span class="code">.-.-</span><span class="label pro">&lt;AA&gt;</span><span class="means">new line</span></a></li>
-    <li data-az="1" data-flow="9"><a href="/ref/chart/?/.-.-."><span class="code">.-.-.</span><span class="label pro">&lt;AR&gt;</span><span class="means">end of message</span></a></li>
-    <li data-az="2" data-flow="3"><a href="/ref/chart/?/.-..."><span class="code">.-...</span><span class="label pro">&lt;AS&gt;</span><span class="means">wait</span></a></li>
-    <li data-az="3" data-flow="6"><a href="/ref/chart/?/-...-.-"><span class="code">-...-.-</span><span class="label pro">&lt;BK&gt;</span><span class="means">break: back to you</span></a></li>
-    <li data-az="4" data-flow="1"><a href="/ref/chart/?/-...-"><span class="code">-...-</span><span class="label pro">&lt;BT&gt;</span><span class="means">new paragraph, a pause</span></a></li>
-    <li data-az="5" data-flow="11"><a href="/ref/chart/?/-.-..-.."><span class="code">-.-..-..</span><span class="label pro">&lt;CL&gt;</span><span class="means">closing down</span></a></li>
-    <li data-az="6" data-flow="13"><a href="/ref/chart/?/-..---"><span class="code">-..---</span><span class="label pro">&lt;DO&gt;</span><span class="means">shift to Wabun (Japanese)</span></a></li>
-    <li data-az="7" data-flow="4"><a href="/ref/chart/?/........"><span class="code">........</span><span class="label pro">&lt;HH&gt;</span><span class="means">error</span></a></li>
-    <li data-az="8" data-flow="7"><a href="/ref/chart/?/-.-"><span class="code">-.-</span><span class="label pro">&lt;K&gt;</span><span class="means">over: any station</span></a></li>
-    <li data-az="9" data-flow="0"><a href="/ref/chart/?/-.-.-"><span class="code">-.-.-</span><span class="label pro">&lt;KA&gt;</span><span class="means">attention: a message starts</span></a></li>
-    <li data-az="10" data-flow="8"><a href="/ref/chart/?/-.--."><span class="code">-.--.</span><span class="label pro">&lt;KN&gt;</span><span class="means">over: the named station only</span></a></li>
-    <li data-az="11" data-flow="10"><a href="/ref/chart/?/...-.-"><span class="code">...-.-</span><span class="label pro">&lt;SK&gt;</span><span class="means">end of contact</span></a></li>
-    <li data-az="12" data-flow="5"><a href="/ref/chart/?/...-."><span class="code">...-.</span><span class="label pro">&lt;SN&gt;</span><span class="means">understood</span></a></li>
-    <li data-az="13" data-flow="12"><a href="/ref/chart/?/...---..."><span class="code">...---...</span><span class="label pro">&lt;SOS&gt;</span><span class="means">distress</span></a></li>
+    <li data-az="0" data-flow="2"><a href="/ref/aa/"><span class="code">.-.-</span><span class="label pro">&lt;AA&gt;</span><span class="means">new line</span></a></li>
+    <li data-az="1" data-flow="9"><a href="/ref/plus/#prosign"><span class="code">.-.-.</span><span class="label pro">&lt;AR&gt;</span><span class="means">end of message</span></a></li>
+    <li data-az="2" data-flow="3"><a href="/ref/ampersand/#prosign"><span class="code">.-...</span><span class="label pro">&lt;AS&gt;</span><span class="means">wait</span></a></li>
+    <li data-az="3" data-flow="6"><a href="/ref/bk/"><span class="code">-...-.-</span><span class="label pro">&lt;BK&gt;</span><span class="means">break: back to you</span></a></li>
+    <li data-az="4" data-flow="1"><a href="/ref/equals/#prosign"><span class="code">-...-</span><span class="label pro">&lt;BT&gt;</span><span class="means">new paragraph, a pause</span></a></li>
+    <li data-az="5" data-flow="11"><a href="/ref/cl/"><span class="code">-.-..-..</span><span class="label pro">&lt;CL&gt;</span><span class="means">closing down</span></a></li>
+    <li data-az="6" data-flow="13"><a href="/ref/do/"><span class="code">-..---</span><span class="label pro">&lt;DO&gt;</span><span class="means">shift to Wabun (Japanese)</span></a></li>
+    <li data-az="7" data-flow="4"><a href="/ref/hh/"><span class="code">........</span><span class="label pro">&lt;HH&gt;</span><span class="means">error</span></a></li>
+    <li data-az="8" data-flow="7"><a href="/ref/k/#prosign"><span class="code">-.-</span><span class="label pro">&lt;K&gt;</span><span class="means">over: any station</span></a></li>
+    <li data-az="9" data-flow="0"><a href="/ref/ka/"><span class="code">-.-.-</span><span class="label pro">&lt;KA&gt;</span><span class="means">attention: a message starts</span></a></li>
+    <li data-az="10" data-flow="8"><a href="/ref/open-bracket/#prosign"><span class="code">-.--.</span><span class="label pro">&lt;KN&gt;</span><span class="means">over: the named station only</span></a></li>
+    <li data-az="11" data-flow="10"><a href="/ref/sk/"><span class="code">...-.-</span><span class="label pro">&lt;SK&gt;</span><span class="means">end of contact</span></a></li>
+    <li data-az="12" data-flow="5"><a href="/ref/sn/"><span class="code">...-.</span><span class="label pro">&lt;SN&gt;</span><span class="means">understood</span></a></li>
+    <li data-az="13" data-flow="12"><a href="/ref/sos/"><span class="code">...---...</span><span class="label pro">&lt;SOS&gt;</span><span class="means">distress</span></a></li>
   </ul>
 
   <div class="heading-row" data-group="q-codes">
@@ -358,77 +366,89 @@
   </div>
   <p class="cheat-note" data-group="q-codes">Three letters for a whole sentence. Sent with <b>?</b> they ask instead.</p>
   <ul class="lists" data-list="q-codes" data-group="q-codes">
-    <li data-az="0" data-flow="0"><a href="/ref/chart/?/_--.-_.-._.-.._"><span class="code">--.- .-. .-..</span><span class="label">QRL</span><span class="means">this frequency is in use</span></a></li>
-    <li data-az="0" data-flow="0" data-ask><a href="/ref/chart/?/_--.-_.-._.-.._..--.._"><span class="code">--.- .-. .-.. ..--..</span><span class="label">QRL?</span><span class="means">is this frequency in use?</span></a></li>
-    <li data-az="1" data-flow="4"><a href="/ref/chart/?/_--.-_.-._--_"><span class="code">--.- .-. --</span><span class="label">QRM</span><span class="means">man-made interference</span></a></li>
-    <li data-az="1" data-flow="4" data-ask><a href="/ref/chart/?/_--.-_.-._--_..--.._"><span class="code">--.- .-. -- ..--..</span><span class="label">QRM?</span><span class="means">is there interference?</span></a></li>
-    <li data-az="2" data-flow="5"><a href="/ref/chart/?/_--.-_.-._-._"><span class="code">--.- .-. -.</span><span class="label">QRN</span><span class="means">static, natural noise</span></a></li>
-    <li data-az="2" data-flow="5" data-ask><a href="/ref/chart/?/_--.-_.-._-._..--.._"><span class="code">--.- .-. -. ..--..</span><span class="label">QRN?</span><span class="means">are you troubled by static?</span></a></li>
-    <li data-az="3" data-flow="8"><a href="/ref/chart/?/_--.-_.-._---_"><span class="code">--.- .-. ---</span><span class="label">QRO</span><span class="means">increase power</span></a></li>
-    <li data-az="3" data-flow="8" data-ask><a href="/ref/chart/?/_--.-_.-._---_..--.._"><span class="code">--.- .-. --- ..--..</span><span class="label">QRO?</span><span class="means">shall I increase power?</span></a></li>
-    <li data-az="4" data-flow="9"><a href="/ref/chart/?/_--.-_.-._.--._"><span class="code">--.- .-. .--.</span><span class="label">QRP</span><span class="means">reduce power; low power</span></a></li>
-    <li data-az="4" data-flow="9" data-ask><a href="/ref/chart/?/_--.-_.-._.--._..--.._"><span class="code">--.- .-. .--. ..--..</span><span class="label">QRP?</span><span class="means">shall I reduce power?</span></a></li>
-    <li data-az="5" data-flow="7"><a href="/ref/chart/?/_--.-_.-._--.-_"><span class="code">--.- .-. --.-</span><span class="label">QRQ</span><span class="means">send faster</span></a></li>
-    <li data-az="5" data-flow="7" data-ask><a href="/ref/chart/?/_--.-_.-._--.-_..--.._"><span class="code">--.- .-. --.- ..--..</span><span class="label">QRQ?</span><span class="means">shall I send faster?</span></a></li>
-    <li data-az="6" data-flow="6"><a href="/ref/chart/?/_--.-_.-._..._"><span class="code">--.- .-. ...</span><span class="label">QRS</span><span class="means">send slower</span></a></li>
-    <li data-az="6" data-flow="6" data-ask><a href="/ref/chart/?/_--.-_.-._..._..--.._"><span class="code">--.- .-. ... ..--..</span><span class="label">QRS?</span><span class="means">shall I send slower?</span></a></li>
-    <li data-az="7" data-flow="18"><a href="/ref/chart/?/_--.-_.-._-_"><span class="code">--.- .-. -</span><span class="label">QRT</span><span class="means">stop sending; closing down</span></a></li>
-    <li data-az="7" data-flow="18" data-ask><a href="/ref/chart/?/_--.-_.-._-_..--.._"><span class="code">--.- .-. - ..--..</span><span class="label">QRT?</span><span class="means">shall I stop sending?</span></a></li>
-    <li data-az="8" data-flow="13"><a href="/ref/chart/?/_--.-_.-._..-_"><span class="code">--.- .-. ..-</span><span class="label">QRU</span><span class="means">I have nothing for you</span></a></li>
-    <li data-az="8" data-flow="13" data-ask><a href="/ref/chart/?/_--.-_.-._..-_..--.._"><span class="code">--.- .-. ..- ..--..</span><span class="label">QRU?</span><span class="means">have you anything for me?</span></a></li>
-    <li data-az="9" data-flow="12"><a href="/ref/chart/?/_--.-_.-._...-_"><span class="code">--.- .-. ...-</span><span class="label">QRV</span><span class="means">I am ready</span></a></li>
-    <li data-az="9" data-flow="12" data-ask><a href="/ref/chart/?/_--.-_.-._...-_..--.._"><span class="code">--.- .-. ...- ..--..</span><span class="label">QRV?</span><span class="means">are you ready?</span></a></li>
-    <li data-az="10" data-flow="11"><a href="/ref/chart/?/_--.-_.-._-..-_"><span class="code">--.- .-. -..-</span><span class="label">QRX</span><span class="means">wait, stand by</span></a></li>
-    <li data-az="10" data-flow="11" data-ask><a href="/ref/chart/?/_--.-_.-._-..-_..--.._"><span class="code">--.- .-. -..- ..--..</span><span class="label">QRX?</span><span class="means">when will you call again?</span></a></li>
-    <li data-az="11" data-flow="1"><a href="/ref/chart/?/_--.-_.-._--.._"><span class="code">--.- .-. --..</span><span class="label">QRZ</span><span class="means">you are being called by …</span></a></li>
-    <li data-az="11" data-flow="1" data-ask><a href="/ref/chart/?/_--.-_.-._--.._..--.._"><span class="code">--.- .-. --.. ..--..</span><span class="label">QRZ?</span><span class="means">who is calling me?</span></a></li>
-    <li data-az="12" data-flow="3"><a href="/ref/chart/?/_--.-_..._-..._"><span class="code">--.- ... -...</span><span class="label">QSB</span><span class="means">your signal is fading</span></a></li>
-    <li data-az="12" data-flow="3" data-ask><a href="/ref/chart/?/_--.-_..._-..._..--.._"><span class="code">--.- ... -... ..--..</span><span class="label">QSB?</span><span class="means">is my signal fading?</span></a></li>
-    <li data-az="13" data-flow="10"><a href="/ref/chart/?/_--.-_..._-.-_"><span class="code">--.- ... -.-</span><span class="label">QSK</span><span class="means">I can hear you between my signals</span></a></li>
-    <li data-az="13" data-flow="10" data-ask><a href="/ref/chart/?/_--.-_..._-.-_..--.._"><span class="code">--.- ... -.- ..--..</span><span class="label">QSK?</span><span class="means">can you hear me between your signals?</span></a></li>
-    <li data-az="14" data-flow="15"><a href="/ref/chart/?/_--.-_..._.-.._"><span class="code">--.- ... .-..</span><span class="label">QSL</span><span class="means">I confirm receipt</span></a></li>
-    <li data-az="14" data-flow="15" data-ask><a href="/ref/chart/?/_--.-_..._.-.._..--.._"><span class="code">--.- ... .-.. ..--..</span><span class="label">QSL?</span><span class="means">can you confirm receipt?</span></a></li>
-    <li data-az="15" data-flow="16"><a href="/ref/chart/?/_--.-_..._---_"><span class="code">--.- ... ---</span><span class="label">QSO</span><span class="means">a contact, a conversation</span></a></li>
-    <li data-az="15" data-flow="16" data-ask><a href="/ref/chart/?/_--.-_..._---_..--.._"><span class="code">--.- ... --- ..--..</span><span class="label">QSO?</span><span class="means">can you make contact with …?</span></a></li>
-    <li data-az="16" data-flow="14"><a href="/ref/chart/?/_--.-_..._-.--_"><span class="code">--.- ... -.--</span><span class="label">QSY</span><span class="means">change frequency</span></a></li>
-    <li data-az="16" data-flow="14" data-ask><a href="/ref/chart/?/_--.-_..._-.--_..--.._"><span class="code">--.- ... -.-- ..--..</span><span class="label">QSY?</span><span class="means">shall I change frequency?</span></a></li>
-    <li data-az="17" data-flow="2"><a href="/ref/chart/?/_--.-_-_...._"><span class="code">--.- - ....</span><span class="label">QTH</span><span class="means">my location is …</span></a></li>
-    <li data-az="17" data-flow="2" data-ask><a href="/ref/chart/?/_--.-_-_...._..--.._"><span class="code">--.- - .... ..--..</span><span class="label">QTH?</span><span class="means">what is your location?</span></a></li>
-    <li data-az="18" data-flow="17"><a href="/ref/chart/?/_--.-_-_.-._"><span class="code">--.- - .-.</span><span class="label">QTR</span><span class="means">the correct time is …</span></a></li>
-    <li data-az="18" data-flow="17" data-ask><a href="/ref/chart/?/_--.-_-_.-._..--.._"><span class="code">--.- - .-. ..--..</span><span class="label">QTR?</span><span class="means">what is the correct time?</span></a></li>
+    <li data-az="0" data-flow="0"><a href="/ref/qrl/"><span class="code">--.- .-. .-..</span><span class="label">QRL</span><span class="means">this frequency is in use</span></a></li>
+    <li data-az="0" data-flow="0" data-ask><a href="/ref/qrl/"><span class="code">--.- .-. .-.. ..--..</span><span class="label">QRL?</span><span class="means">is this frequency in use?</span></a></li>
+    <li data-az="1" data-flow="4"><a href="/ref/qrm/"><span class="code">--.- .-. --</span><span class="label">QRM</span><span class="means">man-made interference</span></a></li>
+    <li data-az="1" data-flow="4" data-ask><a href="/ref/qrm/"><span class="code">--.- .-. -- ..--..</span><span class="label">QRM?</span><span class="means">is there interference?</span></a></li>
+    <li data-az="2" data-flow="5"><a href="/ref/qrn/"><span class="code">--.- .-. -.</span><span class="label">QRN</span><span class="means">static, natural noise</span></a></li>
+    <li data-az="2" data-flow="5" data-ask><a href="/ref/qrn/"><span class="code">--.- .-. -. ..--..</span><span class="label">QRN?</span><span class="means">are you troubled by static?</span></a></li>
+    <li data-az="3" data-flow="8"><a href="/ref/qro/"><span class="code">--.- .-. ---</span><span class="label">QRO</span><span class="means">increase power</span></a></li>
+    <li data-az="3" data-flow="8" data-ask><a href="/ref/qro/"><span class="code">--.- .-. --- ..--..</span><span class="label">QRO?</span><span class="means">shall I increase power?</span></a></li>
+    <li data-az="4" data-flow="9"><a href="/ref/qrp/"><span class="code">--.- .-. .--.</span><span class="label">QRP</span><span class="means">reduce power; low power</span></a></li>
+    <li data-az="4" data-flow="9" data-ask><a href="/ref/qrp/"><span class="code">--.- .-. .--. ..--..</span><span class="label">QRP?</span><span class="means">shall I reduce power?</span></a></li>
+    <li data-az="5" data-flow="7"><a href="/ref/qrq/"><span class="code">--.- .-. --.-</span><span class="label">QRQ</span><span class="means">send faster</span></a></li>
+    <li data-az="5" data-flow="7" data-ask><a href="/ref/qrq/"><span class="code">--.- .-. --.- ..--..</span><span class="label">QRQ?</span><span class="means">shall I send faster?</span></a></li>
+    <li data-az="6" data-flow="6"><a href="/ref/qrs/"><span class="code">--.- .-. ...</span><span class="label">QRS</span><span class="means">send slower</span></a></li>
+    <li data-az="6" data-flow="6" data-ask><a href="/ref/qrs/"><span class="code">--.- .-. ... ..--..</span><span class="label">QRS?</span><span class="means">shall I send slower?</span></a></li>
+    <li data-az="7" data-flow="18"><a href="/ref/qrt/"><span class="code">--.- .-. -</span><span class="label">QRT</span><span class="means">stop sending; closing down</span></a></li>
+    <li data-az="7" data-flow="18" data-ask><a href="/ref/qrt/"><span class="code">--.- .-. - ..--..</span><span class="label">QRT?</span><span class="means">shall I stop sending?</span></a></li>
+    <li data-az="8" data-flow="13"><a href="/ref/qru/"><span class="code">--.- .-. ..-</span><span class="label">QRU</span><span class="means">I have nothing for you</span></a></li>
+    <li data-az="8" data-flow="13" data-ask><a href="/ref/qru/"><span class="code">--.- .-. ..- ..--..</span><span class="label">QRU?</span><span class="means">have you anything for me?</span></a></li>
+    <li data-az="9" data-flow="12"><a href="/ref/qrv/"><span class="code">--.- .-. ...-</span><span class="label">QRV</span><span class="means">I am ready</span></a></li>
+    <li data-az="9" data-flow="12" data-ask><a href="/ref/qrv/"><span class="code">--.- .-. ...- ..--..</span><span class="label">QRV?</span><span class="means">are you ready?</span></a></li>
+    <li data-az="10" data-flow="11"><a href="/ref/qrx/"><span class="code">--.- .-. -..-</span><span class="label">QRX</span><span class="means">wait, stand by</span></a></li>
+    <li data-az="10" data-flow="11" data-ask><a href="/ref/qrx/"><span class="code">--.- .-. -..- ..--..</span><span class="label">QRX?</span><span class="means">when will you call again?</span></a></li>
+    <li data-az="11" data-flow="1"><a href="/ref/qrz/"><span class="code">--.- .-. --..</span><span class="label">QRZ</span><span class="means">you are being called by …</span></a></li>
+    <li data-az="11" data-flow="1" data-ask><a href="/ref/qrz/"><span class="code">--.- .-. --.. ..--..</span><span class="label">QRZ?</span><span class="means">who is calling me?</span></a></li>
+    <li data-az="12" data-flow="3"><a href="/ref/qsb/"><span class="code">--.- ... -...</span><span class="label">QSB</span><span class="means">your signal is fading</span></a></li>
+    <li data-az="12" data-flow="3" data-ask><a href="/ref/qsb/"><span class="code">--.- ... -... ..--..</span><span class="label">QSB?</span><span class="means">is my signal fading?</span></a></li>
+    <li data-az="13" data-flow="10"><a href="/ref/qsk/"><span class="code">--.- ... -.-</span><span class="label">QSK</span><span class="means">I can hear you between my signals</span></a></li>
+    <li data-az="13" data-flow="10" data-ask><a href="/ref/qsk/"><span class="code">--.- ... -.- ..--..</span><span class="label">QSK?</span><span class="means">can you hear me between your signals?</span></a></li>
+    <li data-az="14" data-flow="15"><a href="/ref/qsl/"><span class="code">--.- ... .-..</span><span class="label">QSL</span><span class="means">I confirm receipt</span></a></li>
+    <li data-az="14" data-flow="15" data-ask><a href="/ref/qsl/"><span class="code">--.- ... .-.. ..--..</span><span class="label">QSL?</span><span class="means">can you confirm receipt?</span></a></li>
+    <li data-az="15" data-flow="16"><a href="/ref/qso/"><span class="code">--.- ... ---</span><span class="label">QSO</span><span class="means">a contact, a conversation</span></a></li>
+    <li data-az="15" data-flow="16" data-ask><a href="/ref/qso/"><span class="code">--.- ... --- ..--..</span><span class="label">QSO?</span><span class="means">can you make contact with …?</span></a></li>
+    <li data-az="16" data-flow="14"><a href="/ref/qsy/"><span class="code">--.- ... -.--</span><span class="label">QSY</span><span class="means">change frequency</span></a></li>
+    <li data-az="16" data-flow="14" data-ask><a href="/ref/qsy/"><span class="code">--.- ... -.-- ..--..</span><span class="label">QSY?</span><span class="means">shall I change frequency?</span></a></li>
+    <li data-az="17" data-flow="2"><a href="/ref/qth/"><span class="code">--.- - ....</span><span class="label">QTH</span><span class="means">my location is …</span></a></li>
+    <li data-az="17" data-flow="2" data-ask><a href="/ref/qth/"><span class="code">--.- - .... ..--..</span><span class="label">QTH?</span><span class="means">what is your location?</span></a></li>
+    <li data-az="18" data-flow="17"><a href="/ref/qtr/"><span class="code">--.- - .-.</span><span class="label">QTR</span><span class="means">the correct time is …</span></a></li>
+    <li data-az="18" data-flow="17" data-ask><a href="/ref/qtr/"><span class="code">--.- - .-. ..--..</span><span class="label">QTR?</span><span class="means">what is the correct time?</span></a></li>
   </ul>
 
   <h2 data-group="abbreviations"><a href="/ref/abbreviations/">Abbreviations</a></h2>
   <p class="cheat-note" data-group="abbreviations">What operators send to save time; prosigns (above) and Q codes mix right in.</p>
   <ul class="lists" data-list="abbreviations" data-group="abbreviations">
-    <li data-az="0" data-flow="10"><a href="/ref/chart/?/_....._-._-._"><span class="code">..... -. -.</span><span class="label">5NN</span><span class="means">599, a perfect report (cut numbers)</span></a></li>
-    <li data-az="1" data-flow="24"><a href="/ref/chart/?/_--..._...--_"><span class="code">--... ...--</span><span class="label">73</span><span class="means">best regards</span></a></li>
-    <li data-az="2" data-flow="25"><a href="/ref/chart/?/_---.._---.._"><span class="code">---.. ---..</span><span class="label">88</span><span class="means">love and kisses</span></a></li>
-    <li data-az="3" data-flow="20"><a href="/ref/chart/?/_.-_--._-._"><span class="code">.- --. -.</span><span class="label">AGN</span><span class="means">again</span></a></li>
-    <li data-az="4" data-flow="15"><a href="/ref/chart/?/_.-_-._-_"><span class="code">.- -. -</span><span class="label">ANT</span><span class="means">antenna</span></a></li>
-    <li data-az="5" data-flow="21"><a href="/ref/chart/?/_-..._-.-_"><span class="code">-... -.-</span><span class="label">BK</span><span class="means">break, back to you</span></a></li>
-    <li data-az="6" data-flow="0"><a href="/ref/chart/?/_-.-._--.-_"><span class="code">-.-. --.-</span><span class="label">CQ</span><span class="means">calling any station</span></a></li>
-    <li data-az="7" data-flow="26"><a href="/ref/chart/?/_-.-._..-_.-.._"><span class="code">-.-. ..- .-..</span><span class="label">CUL</span><span class="means">see you later</span></a></li>
-    <li data-az="8" data-flow="1"><a href="/ref/chart/?/_-.._._"><span class="code">-.. .</span><span class="label">DE</span><span class="means">from; this is</span></a></li>
-    <li data-az="9" data-flow="12"><a href="/ref/chart/?/_._..._"><span class="code">. ...</span><span class="label">ES</span><span class="means">and</span></a></li>
-    <li data-az="10" data-flow="16"><a href="/ref/chart/?/_..-._-..._"><span class="code">..-. -...</span><span class="label">FB</span><span class="means">fine business: great</span></a></li>
-    <li data-az="11" data-flow="4"><a href="/ref/chart/?/_--._.-_"><span class="code">--. .-</span><span class="label">GA</span><span class="means">good afternoon</span></a></li>
-    <li data-az="12" data-flow="5"><a href="/ref/chart/?/_--._._"><span class="code">--. .</span><span class="label">GE</span><span class="means">good evening</span></a></li>
-    <li data-az="13" data-flow="3"><a href="/ref/chart/?/_--._--_"><span class="code">--. --</span><span class="label">GM</span><span class="means">good morning</span></a></li>
-    <li data-az="14" data-flow="22"><a href="/ref/chart/?/_...._.._"><span class="code">.... ..</span><span class="label">HI</span><span class="means">laughter</span></a></li>
-    <li data-az="15" data-flow="11"><a href="/ref/chart/?/_...._.-._"><span class="code">.... .-.</span><span class="label">HR</span><span class="means">here</span></a></li>
-    <li data-az="16" data-flow="2"><a href="/ref/chart/?/_-.-_"><span class="code">-.-</span><span class="label">K</span><span class="means">over, go ahead</span></a></li>
-    <li data-az="17" data-flow="17"><a href="/ref/chart/?/_---_--_"><span class="code">--- --</span><span class="label">OM</span><span class="means">old man: any operator</span></a></li>
-    <li data-az="18" data-flow="19"><a href="/ref/chart/?/_.--._..._._"><span class="code">.--. ... .</span><span class="label">PSE</span><span class="means">please</span></a></li>
-    <li data-az="19" data-flow="6"><a href="/ref/chart/?/_.-._"><span class="code">.-.</span><span class="label">R</span><span class="means">received, roger</span></a></li>
-    <li data-az="20" data-flow="14"><a href="/ref/chart/?/_.-._.._--._"><span class="code">.-. .. --.</span><span class="label">RIG</span><span class="means">radio</span></a></li>
-    <li data-az="21" data-flow="9"><a href="/ref/chart/?/_.-._..._-_"><span class="code">.-. ... -</span><span class="label">RST</span><span class="means">signal report: readability, strength, tone</span></a></li>
-    <li data-az="22" data-flow="7"><a href="/ref/chart/?/_-_-._-..-_"><span class="code">- -. -..-</span><span class="label">TNX</span><span class="means">thanks</span></a></li>
-    <li data-az="23" data-flow="23"><a href="/ref/chart/?/_-_..-_"><span class="code">- ..-</span><span class="label">TU</span><span class="means">thank you</span></a></li>
-    <li data-az="24" data-flow="8"><a href="/ref/chart/?/_..-_.-._"><span class="code">..- .-.</span><span class="label">UR</span><span class="means">your, you&#x27;re</span></a></li>
-    <li data-az="25" data-flow="13"><a href="/ref/chart/?/_.--_-..-_"><span class="code">.-- -..-</span><span class="label">WX</span><span class="means">weather</span></a></li>
-    <li data-az="26" data-flow="18"><a href="/ref/chart/?/_-.--_.-.._"><span class="code">-.-- .-..</span><span class="label">YL</span><span class="means">young lady: any operator</span></a></li>
+    <li data-az="0" data-flow="10"><a href="/ref/5nn/"><span class="code">..... -. -.</span><span class="label">5NN</span><span class="means">599, a perfect report (cut numbers)</span></a></li>
+    <li data-az="1" data-flow="24"><a href="/ref/73/"><span class="code">--... ...--</span><span class="label">73</span><span class="means">best regards</span></a></li>
+    <li data-az="2" data-flow="25"><a href="/ref/88/"><span class="code">---.. ---..</span><span class="label">88</span><span class="means">love and kisses</span></a></li>
+    <li data-az="3" data-flow="20"><a href="/ref/agn/"><span class="code">.- --. -.</span><span class="label">AGN</span><span class="means">again</span></a></li>
+    <li data-az="4" data-flow="15"><a href="/ref/ant/"><span class="code">.- -. -</span><span class="label">ANT</span><span class="means">antenna</span></a></li>
+    <li data-az="5" data-flow="21"><a href="/ref/bk/#abbreviation"><span class="code">-... -.-</span><span class="label">BK</span><span class="means">break, back to you</span></a></li>
+    <li data-az="6" data-flow="0"><a href="/ref/cq/"><span class="code">-.-. --.-</span><span class="label">CQ</span><span class="means">calling any station</span></a></li>
+    <li data-az="7" data-flow="26"><a href="/ref/cul/"><span class="code">-.-. ..- .-..</span><span class="label">CUL</span><span class="means">see you later</span></a></li>
+    <li data-az="8" data-flow="1"><a href="/ref/de/"><span class="code">-.. .</span><span class="label">DE</span><span class="means">from; this is</span></a></li>
+    <li data-az="9" data-flow="12"><a href="/ref/es/"><span class="code">. ...</span><span class="label">ES</span><span class="means">and</span></a></li>
+    <li data-az="10" data-flow="16"><a href="/ref/fb/"><span class="code">..-. -...</span><span class="label">FB</span><span class="means">fine business: great</span></a></li>
+    <li data-az="11" data-flow="4"><a href="/ref/ga/"><span class="code">--. .-</span><span class="label">GA</span><span class="means">good afternoon</span></a></li>
+    <li data-az="12" data-flow="5"><a href="/ref/ge/"><span class="code">--. .</span><span class="label">GE</span><span class="means">good evening</span></a></li>
+    <li data-az="13" data-flow="3"><a href="/ref/gm/"><span class="code">--. --</span><span class="label">GM</span><span class="means">good morning</span></a></li>
+    <li data-az="14" data-flow="22"><a href="/ref/hi/"><span class="code">.... ..</span><span class="label">HI</span><span class="means">laughter</span></a></li>
+    <li data-az="15" data-flow="11"><a href="/ref/hr/"><span class="code">.... .-.</span><span class="label">HR</span><span class="means">here</span></a></li>
+    <li data-az="16" data-flow="2"><a href="/ref/k/"><span class="code">-.-</span><span class="label">K</span><span class="means">over, go ahead</span></a></li>
+    <li data-az="17" data-flow="17"><a href="/ref/om/"><span class="code">--- --</span><span class="label">OM</span><span class="means">old man: any operator</span></a></li>
+    <li data-az="18" data-flow="19"><a href="/ref/pse/"><span class="code">.--. ... .</span><span class="label">PSE</span><span class="means">please</span></a></li>
+    <li data-az="19" data-flow="6"><a href="/ref/r/"><span class="code">.-.</span><span class="label">R</span><span class="means">received, roger</span></a></li>
+    <li data-az="20" data-flow="14"><a href="/ref/rig/"><span class="code">.-. .. --.</span><span class="label">RIG</span><span class="means">radio</span></a></li>
+    <li data-az="21" data-flow="9"><a href="/ref/rst/"><span class="code">.-. ... -</span><span class="label">RST</span><span class="means">signal report: readability, strength, tone</span></a></li>
+    <li data-az="22" data-flow="7"><a href="/ref/tnx/"><span class="code">- -. -..-</span><span class="label">TNX</span><span class="means">thanks</span></a></li>
+    <li data-az="23" data-flow="23"><a href="/ref/tu/"><span class="code">- ..-</span><span class="label">TU</span><span class="means">thank you</span></a></li>
+    <li data-az="24" data-flow="8"><a href="/ref/ur/"><span class="code">..- .-.</span><span class="label">UR</span><span class="means">your, you&#x27;re</span></a></li>
+    <li data-az="25" data-flow="13"><a href="/ref/wx/"><span class="code">.-- -..-</span><span class="label">WX</span><span class="means">weather</span></a></li>
+    <li data-az="26" data-flow="18"><a href="/ref/yl/"><span class="code">-.-- .-..</span><span class="label">YL</span><span class="means">young lady: any operator</span></a></li>
   </ul>
+  </div>
+
+  <!-- phrases: whole words people look up, each to play here, and ⋯
+       for the station, its .wav, a link (js/ref/phrases.js draws them
+       from core/phrases.js: the same rows as /ref/phrases/)
+
+       ▷  I love you                                        ⋯
+          .. / .-.. --- ...- . / -.-- --- ..-                       -->
+  <div class="phrases" data-group="phrases">
+    <h2><a href="/ref/phrases/">Phrases</a></h2>
+    <p class="cheat-note">A space is the gap between letters, a slash the gap between words.</p>
+    <ul class="phrase-list" id="phrase-list"></ul>
   </div>
 
 </div>

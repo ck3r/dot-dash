@@ -573,7 +573,7 @@ body[data-input="text"] .incoming { outline-color: var(--brass); }
    road's, waiting at the bar */
 .now {
   position: absolute;
-  left: 0;
+  left: 2.2rem;               /* after the gear */
   bottom: 0.5rem;
   display: flex;
   align-items: center;
@@ -797,6 +797,73 @@ body[data-input="text"] .incoming { outline-color: var(--brass); }
 }
 
 /*
+ * ---------- the gear and its settings ----------
+ *
+ * As the station's: the gear at the left, just over the keys, and the
+ * settings in the keys' place, their height, while open (the keys, or
+ * the text keyboard, put by). Key dash keeps the tray up the side
+ * (.settings .tray, above).
+ *
+ *    ⚙ > wor
+ *   ┌──────────────────────────────────┐
+ *   │ text  hello ▾                    │
+ *   │ [ ] ctrl    [x] color    10  10  │
+ *   │ [ ] mouse   [ ] invert   ┃   ┃   │
+ *   │ [ ] ramp                 speed   │
+ *   └──────────────────────────────────┘
+ */
+.corner-gear {
+  position: absolute;
+  left: 0;
+  bottom: 0.35rem;
+  display: flex;
+  align-items: center;
+  padding: 0.15rem 0.2rem;
+  color: var(--graphite);
+  z-index: 2;
+}
+.corner-gear svg {
+  width: 1.3rem;
+  height: 1.3rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+@media (hover: hover) { .corner-gear:hover { color: var(--brass); background: transparent; } }
+.corner-gear[aria-expanded="true"] { color: var(--paper); }
+
+.tray-slot {
+  flex: none;
+  height: var(--input-h);
+  display: grid;
+  grid-template-columns: 1fr minmax(6rem, 30%);
+  grid-template-rows: auto 1fr;
+  gap: 0.9rem 1.5rem;
+  padding: 0.6rem 0.2rem 0.4rem;
+  border-top: 1px solid var(--wire);
+  font-size: var(--fs-s);
+}
+.tray-slot[hidden] { display: none; }
+.tray-slot .pick { grid-column: 1; }
+.tray-slot .flags {
+  grid-column: 1;
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  align-content: start;
+  gap: 0.55rem 3ch;
+}
+.tray-slot .check { display: block; }
+.tray-slot .check span { color: var(--graphite); }
+@media (hover: hover) {
+  .tray-slot .check:hover::before,
+  .tray-slot .check:hover span { color: var(--brass); }
+}
+.tray-slot .group { grid-column: 2; grid-row: 1 / -1; }
+body.tray-open :is(.keybox, .kbd) { display: none; }
+
+/*
  * ---------- the speed ----------
  *
  * The station's faders (station.css), a pair with its name under it:
@@ -932,6 +999,11 @@ body[data-input="text"] .incoming { outline-color: var(--brass); }
 }
 
 .result[hidden] { display: none; }
+
+/* a win (js/game/win.js): the border keys V, ...-, in brass, then
+   stays brass; grey between its marks while it keys */
+.result.won { border-color: var(--brass); }
+.result.won.keying:not(.mark) { border-color: var(--graphite); }
 
 .result .frame-label { left: 0.8rem; font-size: var(--fs-s); }
 
@@ -1299,4 +1371,44 @@ body[data-input="text"] .keybox { display: none; }
    and the notes come down it flat or not */
 @media (prefers-reduced-motion: reduce) {
   .incoming .rows, .incoming .run, .incoming b { transition: none; }
+}
+
+/*
+ * ---------- the toast ----------
+ *
+ * The station's (station.css .toast, shared/dom.js toast): a short note
+ * in the middle of the page, here a link's settings with "keep".
+ */
+.toast {
+  position: fixed;
+  z-index: 12;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0.3rem 0.8rem;
+  border: 1px solid var(--wire);
+  background: var(--bakelite);
+  color: var(--brass);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+.toast[hidden] { display: none; }
+.toast.acts {
+  white-space: normal;
+  width: max-content;
+  max-width: min(22rem, 90vw);
+  text-align: center;
+  line-height: 1.6;
+}
+.toast-act {
+  border: 1px solid var(--brass);
+  background: transparent;
+  color: var(--paper);
+  padding: 0 0.6rem;
+  margin-left: 0.4rem;
+  font: inherit;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .toast-act:hover { background: var(--brass); color: var(--bakelite); }
 }

@@ -26,6 +26,8 @@ import { timeline } from "../shared/playback.js";
 import { say } from "../shared/voice.js";
 import { createTrace } from "../shared/trace.js";
 import { lightSyllable } from "../core/stair.js";
+import { PAGES } from "./pages.js";
+import { renderPhrases } from "./phrases.js";
 
 
 const WPM = 20;
@@ -55,12 +57,19 @@ try { strokeRound = localStorage.getItem("dot-dash:stroke-round") === "1"; } cat
  *   tree       the letters (the tree's own page: the chart hidden)
  */
 const FOCUS = document.body.dataset.focus ?? null;
+/* a group's page starts with its own set alone, pruned, and its own
+   rows of the tree lit: the rest of the way there greyed (the letters
+   are rows 1 to 4, the numbers 5, the symbols 5 to 7)
+
+     ●─.─E─.─I─.─S─.─H─.─5      /ref/numbers/: only ─5 lit
+ */
 const FOCUS_TREE = {
-  alphabet: { "#opt-letters": true, "#opt-numbers": "off", "#opt-symbols": false },
-  numbers: { "#opt-letters": true, "#opt-numbers": "on", "#opt-symbols": false },
-  symbols: { "#opt-letters": true, "#opt-numbers": "off", "#opt-symbols": true },
+  alphabet: { "#opt-letters": true, "#opt-numbers": "off", "#opt-symbols": false, "#opt-prune": true },
+  numbers: { "#opt-letters": false, "#opt-numbers": "on", "#opt-symbols": false, "#opt-prune": true },
+  symbols: { "#opt-letters": false, "#opt-numbers": "off", "#opt-symbols": true, "#opt-prune": true },
   tree: { "#opt-letters": true, "#opt-numbers": "off", "#opt-symbols": false }
 }[FOCUS] ?? {};
+const FOCUS_ROWS = { alphabet: [1, 4], numbers: [5, 5], symbols: [5, 7] }[FOCUS] ?? null;
 const fixed = id => id in FOCUS_TREE;
 for (const [id, value] of Object.entries(FOCUS_TREE)) {
   if (typeof value === "boolean") $(id).checked = value;
@@ -133,6 +142,12 @@ function drawTrees() {
   trees.forEach(tree => tree.render(model, compactMode()));
   for (const s of document.querySelectorAll(".tree-frame .tree .lbl[data-code]")) {
     s.classList.toggle("selected", s.dataset.code === selected);
+  }
+  /* (the group's rows only while its own sets are the ones showing) */
+  const own = FOCUS_ROWS && Object.entries(FOCUS_TREE).every(([id, v]) => (typeof v === "boolean" ? $(id).checked : $(id).value) === v);
+  for (const s of document.querySelectorAll(".tree-frame .tree [data-code]")) {
+    const row = s.dataset.code.length;
+    s.classList.toggle("off-row", !!own && (row < FOCUS_ROWS[0] || row > FOCUS_ROWS[1]));
   }
 }
 
@@ -272,6 +287,10 @@ function renderSelected() {
   $("#selected-none").hidden = !!selected;
   $("#selected-card").hidden = !selected;
   $("#selected-label").textContent = selected ? `about ${selected === morse.NAME_CODE ? "dot-da.sh" : morse.DECODE[selected] ?? selected}` : "selected character";
+  /* the one chosen has a page of its own: a way there, top right */
+  const page = selected && PAGES[selected];
+  $("#selected-page").hidden = !page;
+  if (page) $("#selected-page").href = `/ref/${page}/`;
   if (selected) {
     /* its name says itself, as on the station (no volume here: full) */
     renderCard($("#selected-card"), selected, { say: (ch, part) => say(ch, 1, { syllables: i => lightSyllable(part, i) }).catch(() => { }) });
@@ -643,7 +662,7 @@ for (const code of document.querySelectorAll(".morse-code .code")) {
         const name = link.querySelector(".label").textContent;
         /* with cut on, a number as it's sent cut (4 and 6 have no cut) */
         const cut = g === 1 && $("#opt-chart-cut").checked && morse.codeOf(name, { cut: true }) !== morse.ENCODE[name];
-        const code = cut ? morse.codeOf(name, { cut: true }) : link.getAttribute("href").replace(/^\/ref\/(?:[a-z-]+\/)?\?\//, "");   // /ref/?/.- , or a group page's /ref/alphabet/?/.-
+        const code = cut ? morse.codeOf(name, { cut: true }) : (link.getAttribute("href").match(/\?\/(.+)$/)?.[1] ?? link.querySelector(".code").textContent);   // /ref/?/.- , or (a group page's, to its own page: /ref/a/) its marks
         const { el, letter } = renderTile(code, { name, strokes: $("#opt-strokes").checked, cut, round: strokeRound });
         letter?.at(Infinity);
         if (letter) strokeLetters.set(letter.el, { letter, code });
@@ -910,3 +929,54 @@ if (cutView) requestAnimationFrame(() => $(".tree-frame").scrollIntoView({ block
 
 /* installable, and usable offline (shared/offline.js) */
 keepOffline();
+
+/*
+ * Find (a group's page, in the selected character's place): the
+ * entries below narrowed to what's typed. Marks find by their marks
+ * (".-" finds A and the rest that start with it, spaces between a
+ * word's letters or not), anything else by name, how it's said or
+ * what it means. Enter goes to the first one's page.
+ *
+ *   ┌ find ──────────────┐        ┌ the alphabet ───────┐
+ *   │ .--                │   →    │ .--   W   .--.  P   │ …
+ *   └────────────────────┘        └─────────────────────┘
+ */
+{
+  const box = $("#ref-find");
+  if (box) {
+    const entries = () => [...document.querySelectorAll(".morse-code li:not(.phrase)")].filter(li => li.querySelector("a"));
+    /* a card is its list entry's, drawn: read from the entry (its meaning too) */
+    const entryOf = li => li.querySelector(".code") ? li
+      : [...document.querySelectorAll(".morse-code :is(.group-row, .lists) li")].find(e => e.querySelector("a")?.href === li.querySelector("a").href) ?? li;
+    const marksOf = li => (entryOf(li).querySelector(".code")?.textContent ?? "").replace(/\s/g, "");
+    const wordsOf = li => [".label", ".say", ".means"].map(q => entryOf(li).querySelector(q)?.textContent ?? "").join(" ").toLowerCase();
+    const shows = li => !!li.querySelector("a").offsetParent;   // (a list's li is display: contents: its link is the box)
+    const run = () => {
+      const q = box.value.trim().toLowerCase();
+      const marks = /^[.\-\s/_]+$/.test(q) ? q.replace(/[\s/_]/g, "") : null;
+      let any = false;
+      for (const li of entries()) {
+        const hit = !q || (marks ? marksOf(li).startsWith(marks) : wordsOf(li).includes(q));
+        li.classList.toggle("unfound", !hit);
+        if (hit && shows(li)) any = true;
+      }
+      $(".find-frame .find-none").hidden = !q || any;
+    };
+    box.addEventListener("input", run);
+    box.addEventListener("keydown", event => {
+      if (event.key === "Escape" && box.value) { box.value = ""; run(); return; }
+      if (event.key !== "Enter") return;
+      const first = entries().find(li => !li.classList.contains("unfound") && shows(li));
+      if (first) location.href = first.querySelector("a").href;
+    });
+    /* the cards are drawn again from the lists: narrowed the same way */
+    for (const id of ["#opt-cards", "#opt-order", "#opt-chart-order", "#opt-ask"]) $(id)?.addEventListener("change", () => setTimeout(run));
+  }
+}
+
+/* the phrases, under the abbreviations (js/ref/phrases.js): on the
+   reference and the whole chart (a group's page has them hidden) */
+{
+  const list = $("#phrase-list");
+  if (list && (!FOCUS || FOCUS === "chart")) renderPhrases(list);
+}

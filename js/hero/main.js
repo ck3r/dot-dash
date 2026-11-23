@@ -39,6 +39,8 @@ import { createStrikes } from "../game/strikes.js";
 import { createTexts } from "../game/texts.js";
 import { createTyping } from "../game/typing.js";
 import { createShare } from "../game/share.js";
+import { createWin } from "../game/win.js";
+import { applyLinked, withSettings } from "../game/link.js";
 import { format } from "../core/morse.js";
 import { siteOrigin } from "../core/where.js";
 import { chart } from "../game/chart.js";
@@ -89,6 +91,8 @@ const look = createLook({ ctrl: $("#opt-ctrl"), mouse: $("#opt-mouse"), color: $
    missed, and the next is a wpm faster (the whole song's clock runs
    faster, so farns. keeps its share), up to 40 */
 const ramp = keptBox($("#opt-ramp"), "dot-dash:hero-ramp", { change: load });
+/* a link's settings (the speed, ramp) for this visit, over what's kept */
+applyLinked({ wpm: $("#opt-wpm"), fwpm: $("#opt-fwpm"), ramp: $("#opt-ramp"), show: () => speed.show() });
 
 /* the station's tone, at the pitch set there */
 const sound = createSound();
@@ -120,7 +124,8 @@ const typing = createTyping({
  * (a challenge: the same words, random's draw too), the run just
  * keyed in a line, and the text in the station.
  */
-const linkHere = () => (words.length ? `${siteOrigin()}/hero/?/${format(words)}` : "");
+/* the text and the settings it's played at, so a run shared is the same run */
+const linkHere = () => withSettings(words.length ? `${siteOrigin()}/hero/?/${format(words)}` : "", { wpm: speed.wpm(), fwpm: speed.fwpm(), ramp: ramp() });
 const share = createShare({
   toggle: $("#share-toggle"),
   menu: $("#share"),
@@ -157,7 +162,11 @@ function load() {
   streak();
 }
 
+/* a song finished, no three strikes: V for victory, on the card's border and the tab */
+const win = createWin({ frame: $("#card") });
+
 function setState(next) {
+  if (next !== "done") win.rest();
   state = next;
   document.body.dataset.state = next;
   $("#pause").textContent = next === "paused" ? "go on" : "pause";
@@ -242,6 +251,7 @@ function carry(lane, at) {
 /* ---------- the run ---------- */
 
 function start(stamp) {
+  setTray(false);
   if (state === "paused") { heldAt = clock.now(); clock.rewind(RUN_UP); }
   clock.start(stamp);
   setState("running");
@@ -315,6 +325,7 @@ function finish() {
   result = `Key hero: ${texts.name() === "random" ? "random words" : texts.name()} at ${Math.round(wpm * clock.rate)} wpm, ${percent}%, longest run ×${best}${out ? " (three strikes)" : ""}.`;
   doneAt = performance.now();
   setState("done");
+  if (!out) win.key();
   $("#again").focus({ preventScroll: true });
 }
 
@@ -397,17 +408,27 @@ document.fonts?.ready.then(() => { if (state === "ready") load(); });
 
 /* ---------- the controls ---------- */
 
-/* the gear: the settings, open or shut, and kept that way */
+/*
+ * The gear, as the station's: the settings in the keys' place, shut to
+ * start (the keys are what you came for). A tap anywhere else shuts
+ * them, as the station's popups go; so does a song starting.
+ *
+ *    ⚙ > word                    ⚙ > word
+ *   ┌────────┬────────┐   →    ┌ text ▾  [x] color   ┃ ┃ ┐
+ *   │   ●    │   ▬    │        │ [ ] ctrl [ ] ramp   speed │
+ */
 const setTray = open => {
   $("#tray").hidden = !open;
   $("#gear").setAttribute("aria-expanded", String(open));
+  document.body.classList.toggle("tray-open", open);
 };
-setTray(kept("dot-dash:hero-tray") === "1");
+setTray(false);
 $("#gear").addEventListener("click", () => {
-  const open = $("#tray").hidden;
-  setTray(open);
-  keep("dot-dash:hero-tray", open ? "1" : "0");
+  setTray($("#tray").hidden);
   $("#gear").blur();
+});
+document.addEventListener("pointerdown", event => {
+  if (!$("#tray").hidden && !event.target.closest("#tray, #gear")) setTray(false);
 });
 
 $("#pause").addEventListener("click", event => {

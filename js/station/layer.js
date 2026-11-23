@@ -382,17 +382,33 @@ export function createLayer({
     pop.hidden = false;
     $("#about-pop .close").focus({ preventScroll: true });
   }
+  /*
+   * The column's (i), or the whole column on a short screen, tapped:
+   *
+   *   a character showing     its card
+   *   nothing yet             the reference (the (i)'s own link: /ref/)
+   *   marks that aren't one   a word saying so, and nothing opens
+   *                           (....... is no character: no card for it)
+   */
+  const valid = code => !!DECODE[code] || code === NAME_CODE;
+  function tapInfo(part) {
+    const code = about.current();
+    if (!code) return open($("#tree-info").href, "_blank", "noopener");
+    if (!valid(code)) return flash(part, "not a valid Morse character", 1600);
+    openAbout(code);
+  }
   $("#tree-info").addEventListener("click", event => {
-    /* a plain tap opens the card; a middle click or ⌘/Ctrl-click still opens the page */
-    if (!about.current() || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) return;
+    /* a plain tap; a middle click or ⌘/Ctrl-click still opens the page */
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) return;
+    if (!about.current()) return;      // its link: the reference
     event.preventDefault();
-    openAbout(about.current());
+    tapInfo($("#tree-info"));
   });
   /* a phone on its side (as short as station.css's SHORT SCREENS): the
      column is too small to aim at its parts (the ><, the marks, the
-     name, its own (i)), so the whole of it is one button, the card.
-     Caught on the way down, before any of them hears it; with no
-     character yet, a tap does nothing rather than open the tree:
+     name, its own (i)), so the whole of it is one button, the (i)'s
+     (tapInfo, above). Caught on the way down, before any of them
+     hears it, the tree included:
 
        ┌──────┐
        │ ><   │
@@ -405,7 +421,7 @@ export function createLayer({
     if (!short.matches || event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    if (about.current()) openAbout(about.current());
+    tapInfo($(".tree-edge"));
   }, true);
   $("#about-pop .close").addEventListener("click", () => openAbout(null));
   /* a character in the card: its own card */

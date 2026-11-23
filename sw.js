@@ -22,7 +22,7 @@
  * Bump VERSION to clear the old cache after a big change.
  */
 
-const VERSION = "dot-dash-22";
+const VERSION = "dot-dash-24";
 
 /* fetched on install, so the first offline open works too */
 const CORE = [
@@ -38,10 +38,13 @@ const CORE = [
   "/js/station/rx.js", "/js/core/rx-decoder.js", "/js/station/rx-worklet.js", "/js/core/rx-light.js", "/js/station/rx-eye.js",
   /* key hero (/hero), and what it shares with the station */
   "/hero/", "/css/hero.css", "/js/hero/main.js", "/js/hero/road.js", "/js/hero/message.js", "/js/core/judge.js", "/js/core/keymap.js",
-  "/js/game/store.js", "/js/game/clock.js", "/js/game/speed.js", "/js/game/look.js", "/js/game/paddles.js", "/js/game/strikes.js", "/js/game/texts.js", "/js/game/typing.js", "/js/game/chart.js", "/js/game/share.js",
+  "/js/game/store.js", "/js/game/clock.js", "/js/game/speed.js", "/js/game/look.js", "/js/game/paddles.js", "/js/game/strikes.js", "/js/game/texts.js", "/js/game/typing.js", "/js/game/chart.js", "/js/game/share.js", "/js/game/link.js",
+  "/js/game/win.js",
+  /* key dash (/dash): Key hero's page, its own run */
+  "/dash/", "/css/dash.css", "/js/dash/main.js",
   /* a character's own page (/ref/k/): what every one of them needs; the pages and their
      pictures are kept as they're visited (there are dozens, and most are never opened) */
-  "/css/ref-item.css", "/js/ref/item.js", "/js/ref/pages.js"
+  "/css/ref-item.css", "/js/ref/item.js", "/js/ref/pages.js", "/js/ref/phrases.js", "/js/core/phrases.js"
 ];
 
 self.addEventListener("install", event => {

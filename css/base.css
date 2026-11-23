@@ -225,8 +225,10 @@ body:not(.tx, .hero) > .top::before {
   z-index: -1;
   top: calc(-1 * var(--bar-top));
   bottom: -0.6rem;
-  left: calc(50% - 50vw);
-  right: calc(50% - 50vw);
+  /* the page's width, edge to edge: cqw (:root's), not vw, which counts
+     a desktop's scrollbar and ran 8px past it (a sideways scroll) */
+  left: calc(50% - 50cqw);
+  right: calc(50% - 50cqw);
   border-bottom: 1px solid transparent;
   background: var(--bakelite);
   transition: border-color 0.15s;
@@ -259,8 +261,13 @@ body:not(.tx, .hero) > .top.stuck::before { border-bottom-color: var(--wire); }
   flex: none;
 }
 
-/* where you are gives way last: a long name ends in … */
+/* where you are gives way last: a long name ends in … (with a section
+   after it, the heading stays whole: the section gives way, down to
+   "#", then the crumbs before it fold) */
 .crumbs li:last-child { flex: 0 1 auto; }
+.crumbs li.section { flex: 0 100 auto; min-width: 5.5ch; }   /* "#" and its chevron, always */
+.crumbs li:has(> h1) { flex: 0 0.01 auto; }   /* (gives way too, but last) */
+.crumbs li.section .crumb-name { min-width: 0; }
 
 .top .crumbs li + li { margin: 0; }
 
@@ -285,6 +292,11 @@ body:not(.tx, .hero) > .top.stuck::before { border-bottom-color: var(--wire); }
   text-decoration: none;
   color: var(--paper);
 }
+
+/* short of room, the name is the logo: the switch (js/shared/nav.js) */
+.crumbs .home-logo { display: none; width: 1.55rem; height: 1.65rem; align-self: center; }
+.crumbs.tight .home { display: inline-flex; font-size: 0; }
+.crumbs.tight .home-logo { display: block; }
 
 .top .crumbs h1 {
   min-width: 0;
@@ -329,6 +341,16 @@ body:not(.tx, .hero) > .top.stuck::before { border-bottom-color: var(--wire); }
   padding-bottom: 1px;
 }
 .crumbs h1 .crumb { max-width: 100%; }
+
+/* the section you're reading (js/shared/nav.js): "#" and its name */
+.crumbs li.section .crumb { max-width: 100%; }
+.crumbs li.section .crumb-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0;
+}
+.crumbs li.section .crumb-name[hidden] { display: none; }
+.crumb-hash { flex: none; color: var(--brass); }
 
 .crumb-chev {
   flex: none;
@@ -568,6 +590,48 @@ body:not(.tx, .hero) > .top.stuck::before { border-bottom-color: var(--wire); }
   line-height: 1.5;
 }
 
+/* a frame's way elsewhere, on its top edge at the right, as its label
+   sits at the left:   ┌ about A ──────────── its page › ┐   */
+.frame-corner {
+  position: absolute;
+  top: -0.75em;
+  right: 1rem;
+  padding: 0 0.6ch;
+  background: var(--bakelite);
+  color: var(--graphite);
+  font-size: 15px;
+  line-height: 1.5;
+  text-decoration: none;
+}
+.frame-corner[hidden] { display: none; }
+@media (hover: hover) { .frame-corner:hover { color: var(--brass); background: var(--bakelite); } }
+.frame-corner:focus-visible { color: var(--brass); outline: 1px dashed var(--brass); outline-offset: 2px; }
+
+/* by a section's heading, on hover: a brass # that copies its link
+   (js/shared/nav.js), on the frame's top edge just left of the label,
+   so the label never moves
+
+     ─ # ┌ keying ─────────     */
+.frame > .anchor {
+  position: absolute;
+  top: -0.75em;
+  right: calc(100% - 1rem);
+  padding: 0 0.4ch;
+  background: var(--bakelite);
+  color: var(--brass);
+  font-size: 15px;
+  line-height: 1.5;
+  text-decoration: none;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.12s linear;
+}
+@media (hover: hover) {
+  .frame:hover > .anchor { opacity: 1; }
+  .frame > .anchor:hover { background: var(--bakelite); color: var(--brass); }
+}
+.frame > .anchor:focus-visible { opacity: 1; outline: 1px dashed var(--brass); outline-offset: 2px; }
+
 /* graphite: unlinked nodes in the about card (overview.js) */
 .empty {
   color: var(--graphite);
@@ -739,6 +803,11 @@ button {
 }
 
 .tree .blank {
+  color: var(--dim);
+}
+
+/* a group's page: the way to its rows greyed, its rows lit (js/ref/main.js) */
+.tree .off-row:not(.on) {
   color: var(--dim);
 }
 
@@ -1351,6 +1420,8 @@ body.tree-expanded { overflow: hidden; }
   margin: 0.8rem 0 1.8rem;
   list-style: none;
 }
+/* (a group's page: the other groups' grids are empty, and take no room) */
+.morse-code.cards .tile-grid:empty { display: none; }
 .morse-code.cards :is(.morse-letters, .morse-numbers, .morse-symbols, .lists[data-list="prosigns"]) { display: none; }
 .list-grid > .tile-grid { grid-column: 1 / -1; contain: inline-size; }
 .tile-grid a { display: block; color: inherit; text-decoration: none; }
@@ -1450,6 +1521,112 @@ body[data-focus="symbols"] [data-group]:not([data-group~="symbols"]),
 body[data-focus="prosigns"] [data-group]:not([data-group~="prosigns"]),
 body[data-focus="q-codes"] [data-group]:not([data-group~="q-codes"]),
 body[data-focus="abbreviations"] [data-group]:not([data-group~="abbreviations"]) { display: none; }
+/* the prosigns' page: cards too (its tiles have nothing to draw, so no
+   stroke player), and as cards the grid takes the frame's width: with
+   its lists hidden it has nothing else to be as wide as (it was one
+   tile wide, a column) */
+body[data-focus="prosigns"] .stroke-player { display: none; }
+body[data-focus="prosigns"] .morse-code.cards .list-grid { width: 100%; }
+/* a group's find box (js/ref/main.js): the entries it doesn't match go */
+.find-frame input {
+  width: 100%;
+  padding: 0.3rem 0;
+  border: 0;
+  border-bottom: 1px solid var(--wire);
+  background: transparent;
+  color: var(--paper);
+  font: inherit;
+}
+.find-frame input::placeholder { color: var(--wire); }
+.find-frame input:focus-visible { outline: none; border-bottom-color: var(--brass); }
+@media (hover: hover) { .find-frame input:hover { border-bottom-color: var(--brass); } }
+.find-none { margin: 0.6rem 0 0; color: var(--graphite); }
+.morse-code :is(li, .lists li).unfound { display: none; }
+/* on a group's page the lead says what the group is, the frames' width */
+body[data-focus] .ref-lead { max-width: none; }
+/*
+ * Phrases (js/ref/phrases.js): a row each, its words over its Morse,
+ * play at the left, ⋯ at the right (the station, a .wav, a link).
+ *
+ *   ▷  I love you                                        ⋯
+ *      .. / .-.. --- ...- . / -.-- --- ..-
+ *      (a note, where it has one)
+ */
+.morse-code .phrases { max-width: 38rem; margin: 2.5rem auto 0; }
+.morse-code .phrases h2 { margin-top: 0; }
+.phrase-list { list-style: none; margin: 0.6rem 0 0; padding: 0; }
+.morse-code .phrase a { display: inline; padding: 0; line-height: inherit; }   /* not the lists' rows (.morse-code li a) */
+.phrase {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 1.2ch;
+  row-gap: 0.15rem;
+  align-items: center;
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--wire);
+}
+.phrase:last-child { border-bottom: 1px solid var(--wire); }
+.notes ul.phrase-list li.phrase { padding-left: 0; text-indent: 0; margin: 0; }   /* (a page to read: not its list's bullets) */
+.notes ul.phrase-list li.phrase::before { content: none; }
+.phrase > * { grid-column: 2; }
+.phrase-play, .phrase-more { grid-row: 1; }
+.phrase-play { grid-column: 1; }
+.phrase-more { grid-column: 3; }
+.phrase-play, .phrase-more {
+  display: inline-flex;
+  padding: 0.25rem;
+  border: 0;
+  background: transparent;
+  color: var(--graphite);
+  cursor: pointer;
+}
+.phrase-play .ico, .phrase-more .ico { width: 1.1rem; height: 1.1rem; }
+.phrase.playing .phrase-play { color: var(--paper); }
+@media (hover: hover) {
+  .phrase-play:hover, .phrase-more:hover { color: var(--brass); background: transparent; }
+}
+.phrase-play:focus-visible, .phrase-more:focus-visible { outline: 1px dashed var(--brass); outline-offset: 1px; }
+.phrase-more[aria-expanded="true"] { color: var(--paper); }
+.phrase-text { grid-row: 1; justify-self: start; color: var(--paper); font-weight: 700; text-decoration: none; }
+@media (hover: hover) { .phrase-text:hover { color: var(--brass); background: transparent; } }
+.phrase-code { font-family: var(--mono); letter-spacing: 0.08em; overflow-wrap: anywhere; color: var(--graphite); }
+.phrase-code i { font-style: normal; transition: color 0.05s linear; }
+.signal .phrase-code .dot { color: var(--dot); }
+.signal .phrase-code .dash { color: var(--dash); }
+.phrase-code i.sounding { color: var(--paper); }
+.phrase-note { color: var(--graphite); font-size: 0.85em; }
+.phrase-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% - 0.3rem);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  min-width: 12ch;
+  padding: 0.3rem 0;
+  background: var(--bakelite);
+  border: 1px solid var(--graphite);
+}
+.phrase-menu[hidden] { display: none; }
+.morse-code .phrase-menu :is(a, button),
+.phrase-menu :is(a, button) {
+  display: block;
+  padding: 0.35rem 1.2ch;
+  border: 0;
+  background: transparent;
+  color: var(--graphite);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+@media (hover: hover) { .phrase-menu :is(a, button):hover { color: var(--brass); background: transparent; } }
+.phrase-said { margin: 0; padding: 0 1.2ch; color: var(--paper); font-size: 0.85em; }
+.phrase-said:empty { display: none; }
+
+/* a list's page has no chart above its order menu to keep apart from */
+body:is([data-focus="prosigns"], [data-focus="q-codes"], [data-focus="abbreviations"]) .list-options { margin-top: 0; }
 
 /* a heading with its group's switch at the right edge:
      Letters ···························· [ ] stroke        */

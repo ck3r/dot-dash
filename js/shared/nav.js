@@ -8,27 +8,36 @@
  * The trail is the address's: /ref/k/ is REF / K. (K is a letter, a
  * prosign and an abbreviation, so no one table is its parent.)
  *
- * Every crumb but the name opens its siblings: the pages at its own
- * level, itself among them, marked. So REF lists STATION, KEY HERO,
- * REF …, and K lists what's in REF, its tables (folders), with the
- * one it's in already open and K marked there. The name is a plain
- * link home.
+ * The crumbs on the way are links: REF goes to /ref/. The heading,
+ * where you are, opens the menu: the whole site, the same on every
+ * page, with the folders you're in already open and this page marked.
+ * So on K: STATION, KEY HERO, REF ▾ (its tables), ALPHABET ▾ (A to Z,
+ * K marked). The name is a plain link home. (The reference's tables'
+ * members come from npm run ref, js/shared/nav-tables.js.)
+ *
+ * A page in sections (the manual, how it works: frames with ids) has
+ * one more crumb after its heading, the section you're reading,
+ * following the scroll ("#" alone above the first); it opens the
+ * page's sections. Each section's heading has a brass # by it, on
+ * hover, that copies a link to it.
+ *
+ *   dot-da.sh / MANUAL ▾ / # keying ▾
  *
  * The page writes its crumbs as plain links (and its heading as an
- * h1), so they work with no script; this turns each into a button.
- * Each says which list it belongs to (data-crumb): "top", "ref", or a
- * group of the reference ("alphabet"), whose members npm run ref
- * writes into js/shared/nav-tables.js.
+ * h1), so they work with no script.
  *
  * The lists keep the content's own order, never alphabetical or by
  * use: A to Z is already in order, symbols and prosigns as the
  * reference's tables have them, the station before the games before
  * the reference. Nothing reshuffles, so a page is where it was.
  *
- * Too wide (a phone, a long trail): the middle crumbs fold, one at a
- * time from the left, into "…", which opens them.
+ * Too wide (a phone, a long trail), giving way in turn: the section's
+ * name shortens; the name becomes the logo, the switch; the middle
+ * crumbs fold, one at a time from the left, into "…", which opens
+ * them; and last the heading ends in …
  *
- *   dot-da.sh / … / K ▾                           share  (◯)
+ *   dot-da.sh / REF / K ▾ / # prosign ▾          share  (◯)
+ *   ⌐o / … / K ▾ / # prosign ▾                   share  (◯)
  *
  * A page with no share of its own (the station's and Key hero's are
  * theirs) gets one here: its link, copied or handed to the phone; and
@@ -46,14 +55,15 @@ const REF = [["alphabet", "ALPHABET"], ["numbers", "NUMBERS"], ["symbols", "SYMB
   ["q-codes", "Q CODES"], ["abbreviations", "ABBREVIATIONS"], null,
   ["chart", "CHART"], ["tree", "TREE"], ["phrases", "PHRASES"], ["how-it-works", "HOW IT WORKS"]].map(r => r && [`/ref/${r[0]}/`, r[1]]);
 
-const LISTS = { top: TOP, ref: REF, ...GROUPS };
-
 /* a page with pages under it, and which: REF its tables, a table its members */
 const UNDER = { "/ref/": REF, ...Object.fromEntries(Object.entries(GROUPS).map(([slug, rows]) => [`/ref/${slug}/`, rows])) };
 
 const CHEV = `<svg class="crumb-chev" viewBox="0 0 12 8" aria-hidden="true"><path d="M1.5 1.8 6 6.2l4.5-4.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 const here = () => location.pathname.replace(/index\.html$/, "");
+
+/* the switch, the site's mark (js/shared/logo.js draws the icons; this is the pages' own inline one) */
+const SWITCH = `<svg class="home-logo" viewBox="0 0 73 79" fill="none" aria-hidden="true"><circle cx="13.66" cy="52.81" r="7" stroke="currentColor" stroke-width="6"/><rect x="16.02" y="47.22" width="56" height="7" rx="3.5" fill="currentColor" transform="rotate(-30 13.66 52.81)"/></svg>`;
 
 function make(tag, props = {}, html = "") {
   const e = Object.assign(document.createElement(tag), props);
@@ -118,6 +128,11 @@ const SUB = `<svg class="crumb-sub" viewBox="0 0 8 12" aria-hidden="true"><path 
 /* the page a link is to, its section aside: K's prosign (/ref/k/#prosign) is K's page */
 const page = href => href.split("#")[0];
 
+/* a folder holds a page if it's the folder's own, or under it, however deep */
+function holds(href, current) {
+  return page(href) === current || !!UNDER[href]?.some(r => r && page(r[0]) !== href && holds(r[0], current));
+}
+
 function listOf(list, current) {
   const short = list.every(r => !r || r[1].length <= 6);
   const ul = make("ul", { className: short ? "crumb-list grid" : "crumb-list" });
@@ -132,7 +147,8 @@ function listOf(list, current) {
       open.append(make("span", { textContent: label }));
       open.insertAdjacentHTML("beforeend", SUB);
       open.setAttribute("aria-expanded", "false");
-      if (href === current) open.setAttribute("aria-current", "page");
+      /* this page, or the way to it (REF on K's page) */
+      if (holds(href, current)) open.setAttribute("aria-current", href === current ? "page" : "true");
       let sub = null;
       open.addEventListener("click", () => {
         sub ??= li.appendChild(Object.assign(listOf([[href, "ALL", "page"], ...under], current), { hidden: true }));
@@ -141,8 +157,9 @@ function listOf(list, current) {
         open.setAttribute("aria-expanded", String(!sub.hidden));
       });
       li.append(open);
-      /* the folder you're in opens already, so where you are shows */
-      if (under.some(r => r && page(r[0]) === current)) open.click();
+      /* the folders you're in open already, so where you are shows
+         (K's three: the alphabet, the prosigns, the abbreviations) */
+      if (holds(href, current)) open.click();
     } else {
       const a = make("a", { href, textContent: label });
       if (page(href) === current) a.setAttribute("aria-current", "page");
@@ -169,47 +186,141 @@ function crumbButton(label, listId) {
 
 function wire(nav) {
   const list = nav.querySelector("ol");
-  /* each crumb: a link (an ancestor) or the heading (where you are) */
+  /* each crumb: a link (an ancestor, to its page) or the heading (where
+     you are: the whole site's menu) */
   for (const el of [...list.querySelectorAll("[data-crumb]")]) {
-    const listId = el.dataset.crumb, rows = LISTS[listId];
-    if (!rows) continue;
+    const listId = el.dataset.crumb;
+    el.removeAttribute("data-crumb");
     if (el.tagName === "H1") {
       const b = crumbButton([...el.childNodes], listId);
       b.insertAdjacentHTML("beforeend", CHEV);
-      b.addEventListener("click", () => open(b, pages(rows, here())));
-      el.removeAttribute("data-crumb");
+      b.addEventListener("click", () => open(b, pages(TOP, here())));
       el.append(b);
     } else {
-      const href = el.getAttribute("href");
-      const b = crumbButton([...el.childNodes], listId);
-      b.dataset.href = href;
-      b.addEventListener("click", () => open(b, pages(rows, href)));
-      el.replaceWith(b);
+      el.classList.add("crumb");
+      el.dataset.href = el.getAttribute("href");
     }
   }
+  sectionCrumb(list);
 
-  /* the fold: "…" after the name, holding the middle crumbs once they don't fit */
+  /* the name, and the logo it becomes when there's no room for it */
+  const home = nav.querySelector(".home");
+  if (home && !home.querySelector(".home-logo")) {
+    home.insertAdjacentHTML("afterbegin", SWITCH);
+    home.setAttribute("aria-label", "dot-da.sh");
+  }
+
+  /* the fold: "…" after the name, holding the middle crumbs once they
+     don't fit (never the heading, nor the section after it) */
   const crumbs = [...list.children];
-  if (crumbs.length > 3) {
-    const li = make("li", { className: "fold", hidden: true });
+  const middle = crumbs.slice(1).filter(c => !c.querySelector("h1") && !c.classList.contains("section"));
+  const fold = make("li", { className: "fold", hidden: true });
+  if (middle.length) {
     const b = crumbButton(["…"], "fold");
     b.setAttribute("aria-label", "more of the trail");
     b.addEventListener("click", () => open(b, pages(
       crumbs.filter(c => c.classList.contains("folded")).map(c => { const x = c.querySelector(".crumb"); return [x.dataset.href, x.textContent]; }), null)));
-    li.append(b);
-    crumbs[0].after(li);
-    const middle = crumbs.slice(1, -1);
-    const fit = () => {
-      for (const c of middle) c.classList.remove("folded");
-      li.hidden = true;
-      for (const c of middle) {
-        if (nav.scrollWidth <= nav.clientWidth + 1) break;
-        c.classList.add("folded");
-        li.hidden = false;
-      }
-    };
-    fit();
-    new ResizeObserver(fit).observe(nav.closest("header"));
+    fold.append(b);
+    crumbs[0].after(fold);
+  }
+  /* short of room: the line runs over, or the heading's name is cut;
+     for the logo, the section's name cut too (the room is its) */
+  const cut = n => n && n.scrollWidth > n.clientWidth + 1;
+  const heading = nav.querySelector("h1 .crumb-name"), section = nav.querySelector("li.section .crumb-name");
+  const short = () => nav.scrollWidth > nav.clientWidth + 1 || cut(heading);
+  const fit = () => {
+    nav.classList.remove("tight");
+    for (const c of middle) c.classList.remove("folded");
+    fold.hidden = true;
+    if (!short() && !cut(section)) return;
+    nav.classList.add("tight");
+    for (const c of middle) {
+      if (!short()) break;
+      c.classList.add("folded");
+      fold.hidden = false;
+    }
+  };
+  fit();
+  new ResizeObserver(fit).observe(nav.closest("header"));
+  document.fonts?.ready.then(fit);   // (measured again in the bar's own type)
+  list.addEventListener("crumbs-change", fit);
+}
+
+/*
+ * A page in sections: its frames with an id, each under its heading
+ * (section.frame#keying > h2.frame-label). Two or more make a page
+ * worth a crumb for them.
+ */
+function sectionsOf() {
+  const list = [...document.querySelectorAll("main section.frame[id] > h2.frame-label")]
+    .map(h => ({ id: h.parentElement.id, name: h.textContent.trim(), el: h.parentElement }));
+  return list.length >= 2 ? list : [];
+}
+
+/* the link to a section, as it's shared (the app's pages too: core/where.js) */
+const linkTo = id => siteOrigin() + location.href.replace(/#.*$/, "").slice(location.origin.length) + `#${id}`;
+
+/*
+ * The section crumb: the last section whose top has passed under the
+ * bar, or "#" alone above the first. It opens the page's sections.
+ *
+ *   ┌ keying ────┐ ← its top under the bar: # keying
+ */
+function sectionCrumb(list) {
+  const all = sectionsOf();
+  if (!all.length) return;
+  const li = make("li", { className: "section" });
+  const b = crumbButton([make("span", { className: "crumb-hash", textContent: "#" })], "sections");
+  const name = make("span", { className: "crumb-name" });
+  b.append(name);
+  b.insertAdjacentHTML("beforeend", CHEV);
+  b.setAttribute("aria-label", "this page's sections");
+  li.append(b);
+  list.append(li);
+
+  let at;
+  const follow = () => {
+    const line = list.closest("header").getBoundingClientRect().bottom + 24;
+    let now = null;
+    for (const s of all) if (s.el.getBoundingClientRect().top <= line) now = s;
+    /* the foot of the page: its last section, though it can't reach the bar */
+    if (scrollY > 0 && innerHeight + scrollY >= document.documentElement.scrollHeight - 2) now = all.at(-1);
+    if (now === at) return;
+    at = now;
+    name.textContent = now ? now.name : "";
+    name.hidden = !now;
+    list.dispatchEvent(new Event("crumbs-change"));   // (room for it: the bar fits itself again)
+  };
+  let queued = false;
+  addEventListener("scroll", () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; follow(); }); } }, { passive: true });
+  addEventListener("hashchange", () => requestAnimationFrame(follow));
+  follow();
+
+  b.addEventListener("click", () => open(b, box => {
+    const ul = make("ul", { className: "crumb-list" });
+    for (const s of all) {
+      const a = make("a", { href: `#${s.id}`, textContent: s.name }), row = make("li");
+      if (s === at) a.setAttribute("aria-current", "location");
+      a.addEventListener("click", () => close());
+      row.append(a);
+      ul.append(row);
+    }
+    box.append(ul);
+  }));
+
+  /* by each section's heading, on hover: a brass #, copying its link
+     (the heading's own text untouched: a page's data reads it) */
+  for (const s of all) {
+    const a = make("a", { className: "anchor", href: `#${s.id}`, textContent: "#", title: "copy a link to this section" });
+    a.setAttribute("aria-label", `copy a link to ${s.name}`);
+    a.addEventListener("click", async e => {
+      e.preventDefault();
+      history.replaceState(null, "", `#${s.id}`);
+      try { await navigator.clipboard.writeText(linkTo(s.id)); a.textContent = "copied"; } catch { a.textContent = "#"; }
+      clearTimeout(a.back);
+      a.back = setTimeout(() => { a.textContent = "#"; }, 1200);
+    });
+    s.el.prepend(a);
   }
 }
 

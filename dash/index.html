@@ -9,14 +9,18 @@
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <title>key dash · dot-da.sh</title>
   <link rel="canonical" href="https://dot-da.sh/dash/">
-  <meta name="description" content="Key dash: a runner, and Morse coming at it a mark at a time. Jump a dot, duck a dash; the obstacles spell the letters.">
+  <meta name="description" content="Key dash, a Morse code game: a runner, and Morse coming at it a mark at a time. Jump a dot, duck a dash; the obstacles spell the letters.">
   <meta name="title" content="key dash · dot-da.sh">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://dot-da.sh/dash/">
   <meta property="og:title" content="key dash · dot-da.sh">
-  <meta property="og:description" content="Jump a dot, duck a dash: the obstacles spell the letters.">
+  <meta property="og:description" content="A Morse code game: jump a dot, duck a dash, and the obstacles spell the letters.">
   <meta property="og:image" content="https://dot-da.sh/preview.png">
   <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://dot-da.sh/dash/">
+  <meta property="twitter:title" content="key dash · dot-da.sh">
+  <meta property="twitter:description" content="A Morse code game: jump a dot, duck a dash, and the obstacles spell the letters.">
+  <meta property="twitter:image" content="https://dot-da.sh/preview.png">
 
   <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
   <script>try { if (localStorage.getItem("dot-dash:theme") === "light") document.documentElement.classList.add("light"); } catch { }</script>
@@ -33,7 +37,7 @@
     <nav class="crumbs" aria-label="where you are">
       <ol>
         <li><a href="/" class="home">dot-da.sh</a></li>
-        <li><h1 data-crumb="top"><span class="crumb-name">KEY DASH</span><span class="visually-hidden">: a Morse code runner</span></h1></li>
+        <li><h1 data-crumb="top"><span class="crumb-name">KEY DASH</span><span class="visually-hidden">: a Morse code game, a runner</span></h1></li>
       </ol>
     </nav>
     <div class="top-right">
@@ -151,6 +155,9 @@
       <button type="button" class="close">close</button>
     </section>
   </main>
+
+  <!-- a short note, as the station's (shared/dom.js toast): a link's settings, keep -->
+  <p id="toast" class="toast" aria-live="polite" hidden></p>
 
   <script type="module" src="/js/dash/main.js"></script>
 </body>

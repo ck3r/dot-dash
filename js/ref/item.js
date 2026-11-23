@@ -18,10 +18,19 @@
  *
  * A word (a Q code: /ref/qrz/) has no one card: its letters' tiles in
  * a row, drawn again the same way (overview.js renderWord).
+ *
+ * The tab keys it too, as the station's does a message
+ * (js/shared/tab-keyer.js): the page's own title as it loads, for a
+ * search engine and a bookmark, then the marks, the title guessing
+ * along the tree, and back to its own title once they're done.
+ *
+ *   K in Morse code · dot-da.sh  →  T  →  N  →  K  →  K in Morse code · dot-da.sh
  */
 import { renderCard, renderWord } from "../shared/overview.js";
 import { PAGES } from "./pages.js";
 import { say } from "../shared/voice.js";
+import { encode } from "../core/morse.js";
+import * as keyer from "../shared/tab-keyer.js";
 
 /* a word's page (/ref/qrz/) has its letters' tiles there instead */
 const card = document.querySelector("#item-card"), word = document.querySelector("#item-word");
@@ -44,4 +53,18 @@ if (card) {
   /* its name says itself, as in the reference (no volume here: full) */
   renderCard(card, card.dataset.code, { say: ch => say(ch).catch(() => { }) });
   point();
+}
+
+{
+  const own = document.title;
+  const words = card ? [[card.dataset.code]] : word ? encode(word.dataset.word) : null;
+  const START_MS = 600, HOLD_MS = 1500;   // the page settled first; then its last guess held a moment
+  if (words) {
+    let back = null;
+    keyer.on(event => {
+      if (event.type === "start") clearTimeout(back);   // (keying again: back in view)
+      if (event.type === "end") back = setTimeout(() => { document.title = own; }, HOLD_MS);
+    });
+    setTimeout(() => keyer.play(words), START_MS);
+  }
 }

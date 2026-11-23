@@ -34,7 +34,8 @@ To answer "what is X in Morse": fetch the .json and give the `morse`, with the `
 - [The whole chart](https://dot-da.sh/ref/chart/) on one page, and its parts: [alphabet](https://dot-da.sh/ref/alphabet/), [numbers](https://dot-da.sh/ref/numbers/), [symbols](https://dot-da.sh/ref/symbols/), [prosigns](https://dot-da.sh/ref/prosigns/), [Q codes](https://dot-da.sh/ref/q-codes/), [abbreviations](https://dot-da.sh/ref/abbreviations/).
 - [How Morse code works](https://dot-da.sh/ref/how-it-works/): short answers on units and gaps, speed, prosigns, Q codes, cut numbers, learning.
 - [Common phrases](https://dot-da.sh/ref/phrases/): I love you, hello, help and others, as Morse, with sound.
-- [Key hero](https://dot-da.sh/hero/): a game for the sending hand: Morse comes down a road, key each mark in time. `https://dot-da.sh/hero/?/hi+k` opens it with that text (the same forms as a message link).
+- [Key hero](https://dot-da.sh/hero/): a Morse code game for the sending hand: Morse comes down a road, key each mark in time. `https://dot-da.sh/hero/?/hi+k` opens it with that text (the same forms as a message link).
+- [Key dash](https://dot-da.sh/dash/): a Morse code game, a runner: each letter comes at it a mark at a time, a dot a hurdle to jump with the dit key, a dash a beam to duck with the dah key held. `https://dot-da.sh/dash/?/hi+k` opens it with that text; a shared link carries its speed after "#" (`#wpm12.farns8.ramp`).
 - [Operator's manual](https://dot-da.sh/manual/): how to use the station (keying, typing, playing, receiving, sharing, the settings, the app) and troubleshooting, each problem at its own anchor (`#no-vibration`, `#no-sound`, `#permission-refused`, `#links-in-browser` …).
 - [Design notes](https://dot-da.sh/design/): why it looks and behaves as it does.
 - [Browser extension](https://dot-da.sh/extension/): text on any page as Morse, played and copied there, or sent to the station; for Chrome, Edge and Firefox.

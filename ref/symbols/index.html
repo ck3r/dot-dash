@@ -125,8 +125,16 @@
     </section>
 
     <!-- ───────────── one character: tap a node, or type it ───────────── -->
-    <section class="frame selected-frame" id="selected-frame" aria-labelledby="selected-label">
+    <section class="frame find-frame" aria-labelledby="find-label">
+      <h2 class="frame-label" id="find-label"><label for="ref-find">find</label></h2>
+      <input type="search" id="ref-find" placeholder="marks (.-), a name or what it means" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go">
+      <p class="find-none" hidden>nothing here matches</p>
+    </section>
+
+    <section hidden class="frame selected-frame" id="selected-frame" aria-labelledby="selected-label">
       <h2 class="frame-label" id="selected-label">selected character</h2>
+      <!-- its own page, on the frame's top edge at the right (js/ref/main.js) -->
+      <a id="selected-page" class="frame-corner" hidden>its page ›</a>
       <p id="selected-none" class="empty">none</p>
       <div id="selected-card" class="card" hidden></div>
     </section>
@@ -147,7 +155,7 @@
        station's player plays a message (js/ref/main.js)
 
          [x] cards    ▷ 2.8s ━━━━━━━━┃━━━━━━━ ⟲3 │ speed 5 wpm  consecutive   -->
-  <div class="chart-bar" data-group="alphabet numbers symbols">
+  <div class="chart-bar" data-group="alphabet numbers symbols prosigns">
     <div class="cards-switch">
       <label class="check box-only"><input type="checkbox" id="opt-cards"><span class="visually-hidden">characters as cards</span></label>
       <button type="button" id="cards-info" class="flag-word" aria-haspopup="dialog" aria-controls="cards-pop">cards</button>
@@ -249,26 +257,26 @@
   <h2 data-group="symbols">Symbols</h2>
   <div class="group-row morse-symbols" data-group="symbols">
     <ul class="col-left">
-    <li><a href="/ref/symbols/?/.-.-.-"><span class="code">.-.-.-</span><span class="label">.</span></a></li>
-    <li><a href="/ref/symbols/?/--..--"><span class="code">--..--</span><span class="label">,</span></a></li>
-    <li><a href="/ref/symbols/?/..--.."><span class="code">..--..</span><span class="label">?</span></a></li>
-    <li><a href="/ref/symbols/?/-.-.--"><span class="code">-.-.--</span><span class="label">!</span></a></li>
-    <li><a href="/ref/symbols/?/.----."><span class="code">.----.</span><span class="label">'</span></a></li>
-    <li><a href="/ref/symbols/?/.-..-."><span class="code">.-..-.</span><span class="label">"</span></a></li>
-    <li><a href="/ref/symbols/?/-.--."><span class="code">-.--.</span><span class="label">(</span></a></li>
-    <li><a href="/ref/symbols/?/-.--.-"><span class="code">-.--.-</span><span class="label">)</span></a></li>
-    <li><a href="/ref/symbols/?/.-..."><span class="code">.-...</span><span class="label">&amp;</span></a></li>
+    <li><a href="/ref/period/"><span class="code">.-.-.-</span><span class="label">.</span></a></li>
+    <li><a href="/ref/comma/"><span class="code">--..--</span><span class="label">,</span></a></li>
+    <li><a href="/ref/question-mark/"><span class="code">..--..</span><span class="label">?</span></a></li>
+    <li><a href="/ref/exclamation-mark/"><span class="code">-.-.--</span><span class="label">!</span></a></li>
+    <li><a href="/ref/apostrophe/"><span class="code">.----.</span><span class="label">'</span></a></li>
+    <li><a href="/ref/quote/"><span class="code">.-..-.</span><span class="label">"</span></a></li>
+    <li><a href="/ref/open-bracket/"><span class="code">-.--.</span><span class="label">(</span></a></li>
+    <li><a href="/ref/close-bracket/"><span class="code">-.--.-</span><span class="label">)</span></a></li>
+    <li><a href="/ref/ampersand/"><span class="code">.-...</span><span class="label">&amp;</span></a></li>
     </ul>
     <ul class="col-right">
-    <li><a href="/ref/symbols/?/---..."><span class="label">:</span><span class="code">---...</span></a></li>
-    <li><a href="/ref/symbols/?/-.-.-."><span class="label">;</span><span class="code">-.-.-.</span></a></li>
-    <li><a href="/ref/symbols/?/-..-."><span class="label">/</span><span class="code">-..-.</span></a></li>
-    <li><a href="/ref/symbols/?/..--.-"><span class="label">_</span><span class="code">..--.-</span></a></li>
-    <li><a href="/ref/symbols/?/-...-"><span class="label">=</span><span class="code">-...-</span></a></li>
-    <li><a href="/ref/symbols/?/.-.-."><span class="label">+</span><span class="code">.-.-.</span></a></li>
-    <li><a href="/ref/symbols/?/-....-"><span class="label">-</span><span class="code">-....-</span></a></li>
-    <li><a href="/ref/symbols/?/...-..-"><span class="label">$</span><span class="code">...-..-</span></a></li>
-    <li><a href="/ref/symbols/?/.--.-."><span class="label">@</span><span class="code">.--.-.</span></a></li>
+    <li><a href="/ref/colon/"><span class="label">:</span><span class="code">---...</span></a></li>
+    <li><a href="/ref/semicolon/"><span class="label">;</span><span class="code">-.-.-.</span></a></li>
+    <li><a href="/ref/slash/"><span class="label">/</span><span class="code">-..-.</span></a></li>
+    <li><a href="/ref/underscore/"><span class="label">_</span><span class="code">..--.-</span></a></li>
+    <li><a href="/ref/equals/"><span class="label">=</span><span class="code">-...-</span></a></li>
+    <li><a href="/ref/plus/"><span class="label">+</span><span class="code">.-.-.</span></a></li>
+    <li><a href="/ref/hyphen/"><span class="label">-</span><span class="code">-....-</span></a></li>
+    <li><a href="/ref/dollar/"><span class="label">$</span><span class="code">...-..-</span></a></li>
+    <li><a href="/ref/at/"><span class="label">@</span><span class="code">.--.-.</span></a></li>
     </ul>
   </div>
 
@@ -319,6 +327,18 @@
   <ul class="lists" data-list="abbreviations" data-group="abbreviations">
   
     </ul>
+  </div>
+
+  <!-- phrases: whole words people look up, each to play here, and ⋯
+       for the station, its .wav, a link (js/ref/phrases.js draws them
+       from core/phrases.js: the same rows as /ref/phrases/)
+
+       ▷  I love you                                        ⋯
+          .. / .-.. --- ...- . / -.-- --- ..-                       -->
+  <div class="phrases" data-group="phrases">
+    <h2><a href="/ref/phrases/">Phrases</a></h2>
+    <p class="cheat-note">A space is the gap between letters, a slash the gap between words.</p>
+    <ul class="phrase-list" id="phrase-list"></ul>
   </div>
 
 </div>

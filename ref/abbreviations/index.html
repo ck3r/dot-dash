@@ -125,8 +125,16 @@
     </section>
 
     <!-- ───────────── one character: tap a node, or type it ───────────── -->
-    <section class="frame selected-frame" id="selected-frame" aria-labelledby="selected-label">
+    <section class="frame find-frame" aria-labelledby="find-label">
+      <h2 class="frame-label" id="find-label"><label for="ref-find">find</label></h2>
+      <input type="search" id="ref-find" placeholder="marks (.-), a name or what it means" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go">
+      <p class="find-none" hidden>nothing here matches</p>
+    </section>
+
+    <section hidden class="frame selected-frame" id="selected-frame" aria-labelledby="selected-label">
       <h2 class="frame-label" id="selected-label">selected character</h2>
+      <!-- its own page, on the frame's top edge at the right (js/ref/main.js) -->
+      <a id="selected-page" class="frame-corner" hidden>its page ›</a>
       <p id="selected-none" class="empty">none</p>
       <div id="selected-card" class="card" hidden></div>
     </section>
@@ -147,7 +155,7 @@
        station's player plays a message (js/ref/main.js)
 
          [x] cards    ▷ 2.8s ━━━━━━━━┃━━━━━━━ ⟲3 │ speed 5 wpm  consecutive   -->
-  <div class="chart-bar" data-group="alphabet numbers symbols">
+  <div class="chart-bar" data-group="alphabet numbers symbols prosigns">
     <div class="cards-switch">
       <label class="check box-only"><input type="checkbox" id="opt-cards"><span class="visually-hidden">characters as cards</span></label>
       <button type="button" id="cards-info" class="flag-word" aria-haspopup="dialog" aria-controls="cards-pop">cards</button>
@@ -300,34 +308,46 @@
   <h2 data-group="abbreviations">Abbreviations</h2>
   <p class="cheat-note" data-group="abbreviations">What operators send to save time; prosigns (above) and Q codes mix right in.</p>
   <ul class="lists" data-list="abbreviations" data-group="abbreviations">
-    <li data-az="0" data-flow="10"><a href="/ref/abbreviations/?/_....._-._-._"><span class="code">..... -. -.</span><span class="label">5NN</span><span class="means">599, a perfect report (cut numbers)</span></a></li>
-    <li data-az="1" data-flow="24"><a href="/ref/abbreviations/?/_--..._...--_"><span class="code">--... ...--</span><span class="label">73</span><span class="means">best regards</span></a></li>
-    <li data-az="2" data-flow="25"><a href="/ref/abbreviations/?/_---.._---.._"><span class="code">---.. ---..</span><span class="label">88</span><span class="means">love and kisses</span></a></li>
-    <li data-az="3" data-flow="20"><a href="/ref/abbreviations/?/_.-_--._-._"><span class="code">.- --. -.</span><span class="label">AGN</span><span class="means">again</span></a></li>
-    <li data-az="4" data-flow="15"><a href="/ref/abbreviations/?/_.-_-._-_"><span class="code">.- -. -</span><span class="label">ANT</span><span class="means">antenna</span></a></li>
-    <li data-az="5" data-flow="21"><a href="/ref/abbreviations/?/_-..._-.-_"><span class="code">-... -.-</span><span class="label">BK</span><span class="means">break, back to you</span></a></li>
-    <li data-az="6" data-flow="0"><a href="/ref/abbreviations/?/_-.-._--.-_"><span class="code">-.-. --.-</span><span class="label">CQ</span><span class="means">calling any station</span></a></li>
-    <li data-az="7" data-flow="26"><a href="/ref/abbreviations/?/_-.-._..-_.-.._"><span class="code">-.-. ..- .-..</span><span class="label">CUL</span><span class="means">see you later</span></a></li>
-    <li data-az="8" data-flow="1"><a href="/ref/abbreviations/?/_-.._._"><span class="code">-.. .</span><span class="label">DE</span><span class="means">from; this is</span></a></li>
-    <li data-az="9" data-flow="12"><a href="/ref/abbreviations/?/_._..._"><span class="code">. ...</span><span class="label">ES</span><span class="means">and</span></a></li>
-    <li data-az="10" data-flow="16"><a href="/ref/abbreviations/?/_..-._-..._"><span class="code">..-. -...</span><span class="label">FB</span><span class="means">fine business: great</span></a></li>
-    <li data-az="11" data-flow="4"><a href="/ref/abbreviations/?/_--._.-_"><span class="code">--. .-</span><span class="label">GA</span><span class="means">good afternoon</span></a></li>
-    <li data-az="12" data-flow="5"><a href="/ref/abbreviations/?/_--._._"><span class="code">--. .</span><span class="label">GE</span><span class="means">good evening</span></a></li>
-    <li data-az="13" data-flow="3"><a href="/ref/abbreviations/?/_--._--_"><span class="code">--. --</span><span class="label">GM</span><span class="means">good morning</span></a></li>
-    <li data-az="14" data-flow="22"><a href="/ref/abbreviations/?/_...._.._"><span class="code">.... ..</span><span class="label">HI</span><span class="means">laughter</span></a></li>
-    <li data-az="15" data-flow="11"><a href="/ref/abbreviations/?/_...._.-._"><span class="code">.... .-.</span><span class="label">HR</span><span class="means">here</span></a></li>
-    <li data-az="16" data-flow="2"><a href="/ref/abbreviations/?/_-.-_"><span class="code">-.-</span><span class="label">K</span><span class="means">over, go ahead</span></a></li>
-    <li data-az="17" data-flow="17"><a href="/ref/abbreviations/?/_---_--_"><span class="code">--- --</span><span class="label">OM</span><span class="means">old man: any operator</span></a></li>
-    <li data-az="18" data-flow="19"><a href="/ref/abbreviations/?/_.--._..._._"><span class="code">.--. ... .</span><span class="label">PSE</span><span class="means">please</span></a></li>
-    <li data-az="19" data-flow="6"><a href="/ref/abbreviations/?/_.-._"><span class="code">.-.</span><span class="label">R</span><span class="means">received, roger</span></a></li>
-    <li data-az="20" data-flow="14"><a href="/ref/abbreviations/?/_.-._.._--._"><span class="code">.-. .. --.</span><span class="label">RIG</span><span class="means">radio</span></a></li>
-    <li data-az="21" data-flow="9"><a href="/ref/abbreviations/?/_.-._..._-_"><span class="code">.-. ... -</span><span class="label">RST</span><span class="means">signal report: readability, strength, tone</span></a></li>
-    <li data-az="22" data-flow="7"><a href="/ref/abbreviations/?/_-_-._-..-_"><span class="code">- -. -..-</span><span class="label">TNX</span><span class="means">thanks</span></a></li>
-    <li data-az="23" data-flow="23"><a href="/ref/abbreviations/?/_-_..-_"><span class="code">- ..-</span><span class="label">TU</span><span class="means">thank you</span></a></li>
-    <li data-az="24" data-flow="8"><a href="/ref/abbreviations/?/_..-_.-._"><span class="code">..- .-.</span><span class="label">UR</span><span class="means">your, you&#x27;re</span></a></li>
-    <li data-az="25" data-flow="13"><a href="/ref/abbreviations/?/_.--_-..-_"><span class="code">.-- -..-</span><span class="label">WX</span><span class="means">weather</span></a></li>
-    <li data-az="26" data-flow="18"><a href="/ref/abbreviations/?/_-.--_.-.._"><span class="code">-.-- .-..</span><span class="label">YL</span><span class="means">young lady: any operator</span></a></li>
+    <li data-az="0" data-flow="10"><a href="/ref/5nn/"><span class="code">..... -. -.</span><span class="label">5NN</span><span class="means">599, a perfect report (cut numbers)</span></a></li>
+    <li data-az="1" data-flow="24"><a href="/ref/73/"><span class="code">--... ...--</span><span class="label">73</span><span class="means">best regards</span></a></li>
+    <li data-az="2" data-flow="25"><a href="/ref/88/"><span class="code">---.. ---..</span><span class="label">88</span><span class="means">love and kisses</span></a></li>
+    <li data-az="3" data-flow="20"><a href="/ref/agn/"><span class="code">.- --. -.</span><span class="label">AGN</span><span class="means">again</span></a></li>
+    <li data-az="4" data-flow="15"><a href="/ref/ant/"><span class="code">.- -. -</span><span class="label">ANT</span><span class="means">antenna</span></a></li>
+    <li data-az="5" data-flow="21"><a href="/ref/bk/#abbreviation"><span class="code">-... -.-</span><span class="label">BK</span><span class="means">break, back to you</span></a></li>
+    <li data-az="6" data-flow="0"><a href="/ref/cq/"><span class="code">-.-. --.-</span><span class="label">CQ</span><span class="means">calling any station</span></a></li>
+    <li data-az="7" data-flow="26"><a href="/ref/cul/"><span class="code">-.-. ..- .-..</span><span class="label">CUL</span><span class="means">see you later</span></a></li>
+    <li data-az="8" data-flow="1"><a href="/ref/de/"><span class="code">-.. .</span><span class="label">DE</span><span class="means">from; this is</span></a></li>
+    <li data-az="9" data-flow="12"><a href="/ref/es/"><span class="code">. ...</span><span class="label">ES</span><span class="means">and</span></a></li>
+    <li data-az="10" data-flow="16"><a href="/ref/fb/"><span class="code">..-. -...</span><span class="label">FB</span><span class="means">fine business: great</span></a></li>
+    <li data-az="11" data-flow="4"><a href="/ref/ga/"><span class="code">--. .-</span><span class="label">GA</span><span class="means">good afternoon</span></a></li>
+    <li data-az="12" data-flow="5"><a href="/ref/ge/"><span class="code">--. .</span><span class="label">GE</span><span class="means">good evening</span></a></li>
+    <li data-az="13" data-flow="3"><a href="/ref/gm/"><span class="code">--. --</span><span class="label">GM</span><span class="means">good morning</span></a></li>
+    <li data-az="14" data-flow="22"><a href="/ref/hi/"><span class="code">.... ..</span><span class="label">HI</span><span class="means">laughter</span></a></li>
+    <li data-az="15" data-flow="11"><a href="/ref/hr/"><span class="code">.... .-.</span><span class="label">HR</span><span class="means">here</span></a></li>
+    <li data-az="16" data-flow="2"><a href="/ref/k/"><span class="code">-.-</span><span class="label">K</span><span class="means">over, go ahead</span></a></li>
+    <li data-az="17" data-flow="17"><a href="/ref/om/"><span class="code">--- --</span><span class="label">OM</span><span class="means">old man: any operator</span></a></li>
+    <li data-az="18" data-flow="19"><a href="/ref/pse/"><span class="code">.--. ... .</span><span class="label">PSE</span><span class="means">please</span></a></li>
+    <li data-az="19" data-flow="6"><a href="/ref/r/"><span class="code">.-.</span><span class="label">R</span><span class="means">received, roger</span></a></li>
+    <li data-az="20" data-flow="14"><a href="/ref/rig/"><span class="code">.-. .. --.</span><span class="label">RIG</span><span class="means">radio</span></a></li>
+    <li data-az="21" data-flow="9"><a href="/ref/rst/"><span class="code">.-. ... -</span><span class="label">RST</span><span class="means">signal report: readability, strength, tone</span></a></li>
+    <li data-az="22" data-flow="7"><a href="/ref/tnx/"><span class="code">- -. -..-</span><span class="label">TNX</span><span class="means">thanks</span></a></li>
+    <li data-az="23" data-flow="23"><a href="/ref/tu/"><span class="code">- ..-</span><span class="label">TU</span><span class="means">thank you</span></a></li>
+    <li data-az="24" data-flow="8"><a href="/ref/ur/"><span class="code">..- .-.</span><span class="label">UR</span><span class="means">your, you&#x27;re</span></a></li>
+    <li data-az="25" data-flow="13"><a href="/ref/wx/"><span class="code">.-- -..-</span><span class="label">WX</span><span class="means">weather</span></a></li>
+    <li data-az="26" data-flow="18"><a href="/ref/yl/"><span class="code">-.-- .-..</span><span class="label">YL</span><span class="means">young lady: any operator</span></a></li>
   </ul>
+  </div>
+
+  <!-- phrases: whole words people look up, each to play here, and ⋯
+       for the station, its .wav, a link (js/ref/phrases.js draws them
+       from core/phrases.js: the same rows as /ref/phrases/)
+
+       ▷  I love you                                        ⋯
+          .. / .-.. --- ...- . / -.-- --- ..-                       -->
+  <div class="phrases" data-group="phrases">
+    <h2><a href="/ref/phrases/">Phrases</a></h2>
+    <p class="cheat-note">A space is the gap between letters, a slash the gap between words.</p>
+    <ul class="phrase-list" id="phrase-list"></ul>
   </div>
 
 </div>

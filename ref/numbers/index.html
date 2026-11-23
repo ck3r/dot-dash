@@ -125,8 +125,16 @@
     </section>
 
     <!-- ───────────── one character: tap a node, or type it ───────────── -->
-    <section class="frame selected-frame" id="selected-frame" aria-labelledby="selected-label">
+    <section class="frame find-frame" aria-labelledby="find-label">
+      <h2 class="frame-label" id="find-label"><label for="ref-find">find</label></h2>
+      <input type="search" id="ref-find" placeholder="marks (.-), a name or what it means" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go">
+      <p class="find-none" hidden>nothing here matches</p>
+    </section>
+
+    <section hidden class="frame selected-frame" id="selected-frame" aria-labelledby="selected-label">
       <h2 class="frame-label" id="selected-label">selected character</h2>
+      <!-- its own page, on the frame's top edge at the right (js/ref/main.js) -->
+      <a id="selected-page" class="frame-corner" hidden>its page ›</a>
       <p id="selected-none" class="empty">none</p>
       <div id="selected-card" class="card" hidden></div>
     </section>
@@ -147,7 +155,7 @@
        station's player plays a message (js/ref/main.js)
 
          [x] cards    ▷ 2.8s ━━━━━━━━┃━━━━━━━ ⟲3 │ speed 5 wpm  consecutive   -->
-  <div class="chart-bar" data-group="alphabet numbers symbols">
+  <div class="chart-bar" data-group="alphabet numbers symbols prosigns">
     <div class="cards-switch">
       <label class="check box-only"><input type="checkbox" id="opt-cards"><span class="visually-hidden">characters as cards</span></label>
       <button type="button" id="cards-info" class="flag-word" aria-haspopup="dialog" aria-controls="cards-pop">cards</button>
@@ -240,18 +248,18 @@
   </div>
   <div class="group-row morse-numbers" data-group="numbers">
     <ul class="col-left">
-    <li><a href="/ref/numbers/?/.----"><span class="code">.----</span><span class="say">Wun</span><span class="label">1</span></a></li>
-    <li><a href="/ref/numbers/?/..---"><span class="code">..---</span><span class="say">Too</span><span class="label">2</span></a></li>
-    <li><a href="/ref/numbers/?/...--"><span class="code">...--</span><span class="say">Tree</span><span class="label">3</span></a></li>
-    <li><a href="/ref/numbers/?/....-"><span class="code">....-</span><span class="say">Fower</span><span class="label">4</span></a></li>
-    <li><a href="/ref/numbers/?/....."><span class="code">.....</span><span class="say">Fife</span><span class="label">5</span></a></li>
+    <li><a href="/ref/1/"><span class="code">.----</span><span class="say">Wun</span><span class="label">1</span></a></li>
+    <li><a href="/ref/2/"><span class="code">..---</span><span class="say">Too</span><span class="label">2</span></a></li>
+    <li><a href="/ref/3/"><span class="code">...--</span><span class="say">Tree</span><span class="label">3</span></a></li>
+    <li><a href="/ref/4/"><span class="code">....-</span><span class="say">Fower</span><span class="label">4</span></a></li>
+    <li><a href="/ref/5/"><span class="code">.....</span><span class="say">Fife</span><span class="label">5</span></a></li>
     </ul>
     <ul class="col-right">
-    <li><a href="/ref/numbers/?/-...."><span class="label">6</span><span class="say">Six</span><span class="code">-....</span></a></li>
-    <li><a href="/ref/numbers/?/--..."><span class="label">7</span><span class="say">Seven</span><span class="code">--...</span></a></li>
-    <li><a href="/ref/numbers/?/---.."><span class="label">8</span><span class="say">Ait</span><span class="code">---..</span></a></li>
-    <li><a href="/ref/numbers/?/----."><span class="label">9</span><span class="say">Niner</span><span class="code">----.</span></a></li>
-    <li><a href="/ref/numbers/?/-----"><span class="label">0</span><span class="say">Zero</span><span class="code">-----</span></a></li>
+    <li><a href="/ref/6/"><span class="label">6</span><span class="say">Six</span><span class="code">-....</span></a></li>
+    <li><a href="/ref/7/"><span class="label">7</span><span class="say">Seven</span><span class="code">--...</span></a></li>
+    <li><a href="/ref/8/"><span class="label">8</span><span class="say">Ait</span><span class="code">---..</span></a></li>
+    <li><a href="/ref/9/"><span class="label">9</span><span class="say">Niner</span><span class="code">----.</span></a></li>
+    <li><a href="/ref/0/"><span class="label">0</span><span class="say">Zero</span><span class="code">-----</span></a></li>
     </ul>
   </div>
 
@@ -311,6 +319,18 @@
   <ul class="lists" data-list="abbreviations" data-group="abbreviations">
   
     </ul>
+  </div>
+
+  <!-- phrases: whole words people look up, each to play here, and ⋯
+       for the station, its .wav, a link (js/ref/phrases.js draws them
+       from core/phrases.js: the same rows as /ref/phrases/)
+
+       ▷  I love you                                        ⋯
+          .. / .-.. --- ...- . / -.-- --- ..-                       -->
+  <div class="phrases" data-group="phrases">
+    <h2><a href="/ref/phrases/">Phrases</a></h2>
+    <p class="cheat-note">A space is the gap between letters, a slash the gap between words.</p>
+    <ul class="phrase-list" id="phrase-list"></ul>
   </div>
 
 </div>

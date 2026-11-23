@@ -9,7 +9,7 @@
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <title>key hero · dot-da.sh</title>
   <link rel="canonical" href="https://dot-da.sh/hero/">
-  <meta name="description" content="Key hero: Morse notes come down a road, key each one as it reaches the line. Two keys, your own timing, your own tone.">
+  <meta name="description" content="Key hero, a Morse code game: notes come down a road, key each one as it reaches the line. Two keys, your own timing, your own tone.">
   <!-- the card a shared link shows. For a link with a text in it
        (/hero/?/hi+k) the Worker rewrites these, as it does the
        station's (services/worker/src/preview.js): the text's own card -->
@@ -17,12 +17,12 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://dot-da.sh/hero/">
   <meta property="og:title" content="key hero · dot-da.sh">
-  <meta property="og:description" content="Morse comes down a road: key each mark as it reaches the line.">
+  <meta property="og:description" content="A Morse code game: Morse comes down a road, key each mark as it reaches the line.">
   <meta property="og:image" content="https://dot-da.sh/preview.png">
   <meta property="twitter:card" content="summary_large_image">
   <meta property="twitter:url" content="https://dot-da.sh/hero/">
   <meta property="twitter:title" content="key hero · dot-da.sh">
-  <meta property="twitter:description" content="Morse comes down a road: key each mark as it reaches the line.">
+  <meta property="twitter:description" content="A Morse code game: Morse comes down a road, key each mark as it reaches the line.">
   <meta property="twitter:image" content="https://dot-da.sh/preview.png">
 
   <link id="favicon" rel="icon" type="image/svg+xml" href="/switch.svg">
@@ -120,34 +120,15 @@
 
       <p id="note"></p>
 
+      <!-- the gear, where the station's is: at the left, just over the
+           keys; the settings open in the keys' place (below) -->
+      <button type="button" id="gear" class="corner-gear" aria-expanded="false" aria-controls="tray" aria-label="settings" title="settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="6.6"/><path d="M12 2.6v2.8M12 18.6v2.8M2.6 12h2.8M18.6 12h2.8M5.4 5.4l2 2M16.6 16.6l2 2M18.6 5.4l-2 2M7.4 16.6l-2 2"/></svg>
+      </button>
+
       <!-- down the right, from the foot up: pause, nearest the thumb,
-           restart, the strikes and the run of notes keyed, and the gear -->
-      <aside class="settings" aria-label="settings">
-        <!-- the settings open upward from the gear, and are out of
-             the way while a song is played -->
-        <div class="tray" id="tray" hidden>
-          <label class="pick">text <select id="song"></select></label>
-          <div class="flags">
-            <label class="check" title="the Ctrl keys as paddles: left is dit, right is dah (a VBand adapter)"><input type="checkbox" id="opt-ctrl"><span>ctrl</span></label>
-            <label class="check" title="the mouse as the key: left is dit, right is dah"><input type="checkbox" id="opt-mouse"><span>mouse</span></label>
-            <label class="check" title="dots red, dashes blue"><input type="checkbox" id="opt-color" checked><span>color</span></label>
-            <label class="check" title="the light theme: dark on paper"><input type="checkbox" id="opt-theme"><span>invert</span></label>
-            <label class="check" title="a wpm faster after every word keyed with no letter missed, up to 40"><input type="checkbox" id="opt-ramp"><span>ramp</span></label>
-          </div>
-          <div class="group">
-            <div class="pair">
-              <label class="fader"><output for="opt-wpm">10</output>
-                <input type="range" id="opt-wpm" min="5" max="40" value="10"><span>wpm</span></label>
-              <label class="fader"><output for="opt-fwpm">10</output>
-                <span class="track"><input type="range" id="opt-fwpm" min="5" max="40" value="10"><i class="cap" aria-hidden="true"></i></span><span title="Farnsworth: the speed overall, the spaces between letters stretched to make it">farns.</span></label>
-            </div>
-            <span class="group-name">speed</span>
-          </div>
-        </div>
-        <button type="button" id="gear" aria-expanded="false" aria-controls="tray" aria-label="settings" title="settings">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>
-          <i class="chevron" aria-hidden="true"></i>
-        </button>
+           restart, the strikes and the run of notes keyed -->
+      <aside class="settings" aria-label="the run">
         <p id="streak" aria-hidden="true"></p>
         <!-- three strikes and the run is over: each box fills by thirds -->
         <p id="strikes" role="img" aria-label="0 of 3 strikes"><i></i><i></i><i></i></p>
@@ -185,6 +166,27 @@
       <button type="button" class="key" data-lane="." aria-label="dit"><span class="mark">●</span><kbd>[</kbd></button>
       <button type="button" class="key" data-lane="-" aria-label="dah"><span class="mark">▬</span><kbd>]</kbd></button>
     </section>
+    <!-- the settings, in the keys' place while they're open, as the
+         station's are in its slot: the text, the boxes, the speed -->
+    <div class="tray-slot" id="tray" role="group" aria-label="settings" hidden>
+      <label class="pick">text <select id="song"></select></label>
+      <div class="flags">
+        <label class="check" title="the Ctrl keys as paddles: left is dit, right is dah (a VBand adapter)"><input type="checkbox" id="opt-ctrl"><span>ctrl</span></label>
+        <label class="check" title="the mouse as the key: left is dit, right is dah"><input type="checkbox" id="opt-mouse"><span>mouse</span></label>
+        <label class="check" title="dots red, dashes blue"><input type="checkbox" id="opt-color" checked><span>color</span></label>
+        <label class="check" title="the light theme: dark on paper"><input type="checkbox" id="opt-theme"><span>invert</span></label>
+        <label class="check" title="a wpm faster after every word keyed with no letter missed, up to 40"><input type="checkbox" id="opt-ramp"><span>ramp</span></label>
+      </div>
+      <div class="group">
+        <div class="pair">
+          <label class="fader"><output for="opt-wpm">10</output>
+            <input type="range" id="opt-wpm" min="5" max="40" value="10"><span>wpm</span></label>
+          <label class="fader"><output for="opt-fwpm">10</output>
+            <span class="track"><input type="range" id="opt-fwpm" min="5" max="40" value="10"><i class="cap" aria-hidden="true"></i></span><span title="Farnsworth: the speed overall, the spaces between letters stretched to make it">farns.</span></label>
+        </div>
+        <span class="group-name">speed</span>
+      </div>
+    </div>
     <!-- the station's text keyboard (js/shared/keyboard.js), in the keys'
          place while a message of your own is typed -->
     <div id="kbd" class="kbd" aria-label="keyboard" hidden></div>
@@ -195,6 +197,9 @@
       <button type="button" class="close">close</button>
     </section>
   </main>
+
+  <!-- a short note, as the station's (shared/dom.js toast): a link's settings, keep -->
+  <p id="toast" class="toast" aria-live="polite" hidden></p>
 
   <script type="module" src="/js/hero/main.js"></script>
 </body>

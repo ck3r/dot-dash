@@ -72,6 +72,7 @@ import { createPaddles, chord } from "../game/paddles.js";
 import { createStrikes } from "../game/strikes.js";
 import { createTexts } from "../game/texts.js";
 import { createShare } from "../game/share.js";
+import { applyLinked, withSettings } from "../game/link.js";
 import { createTyping } from "../game/typing.js";
 
 const SONGS = ["SOS SOS SOS", "CQ CQ DE K", "PARIS PARIS", "TIME ITEM EMIT", "OMO MOM TOTO", "HELLO WORLD"];
@@ -128,6 +129,8 @@ const texts = createTexts({ list: $("#song"), texts: SONGS, bag: BAG, draw: 5, k
 const speed = createSpeed({ wpm: $("#opt-wpm"), fwpm: $("#opt-fwpm"), wpmKey: "dot-dash:dash-wpm", fwpmKey: "dot-dash:dash-fwpm", start: 5, change: load });
 const look = createLook({ ctrl: $("#opt-ctrl"), mouse: $("#opt-mouse"), color: $("#opt-color"), theme: $("#opt-theme") });
 const ramp = keptBox($("#opt-ramp"), "dot-dash:dash-ramp", { change: load });
+/* a link's settings (the speed, ramp) for this visit, over what's kept */
+applyLinked({ wpm: $("#opt-wpm"), fwpm: $("#opt-fwpm"), ramp: $("#opt-ramp"), show: () => speed.show() });
 const strikes = createStrikes({ element: $("#strikes") });
 
 /* the station's tone, at the pitch set there */
@@ -501,7 +504,8 @@ function release(lane) {
 
 /* share, as Key hero's: the text as a link that opens here (random's
    draw too), and the run just played */
-const linkHere = () => (words.length ? `${siteOrigin()}/dash/?/${format(words)}` : "");
+/* the text and the settings it's played at, so a run shared is the same run */
+const linkHere = () => withSettings(words.length ? `${siteOrigin()}/dash/?/${format(words)}` : "", { wpm: speed.wpm(), fwpm: speed.fwpm(), ramp: ramp() });
 const share = createShare({
   toggle: $("#share-toggle"),
   menu: $("#share"),

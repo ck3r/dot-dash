@@ -125,8 +125,16 @@
     </section>
 
     <!-- ───────────── one character: tap a node, or type it ───────────── -->
-    <section class="frame selected-frame" id="selected-frame" aria-labelledby="selected-label">
+    <section class="frame find-frame" aria-labelledby="find-label">
+      <h2 class="frame-label" id="find-label"><label for="ref-find">find</label></h2>
+      <input type="search" id="ref-find" placeholder="marks (.-), a name or what it means" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go">
+      <p class="find-none" hidden>nothing here matches</p>
+    </section>
+
+    <section hidden class="frame selected-frame" id="selected-frame" aria-labelledby="selected-label">
       <h2 class="frame-label" id="selected-label">selected character</h2>
+      <!-- its own page, on the frame's top edge at the right (js/ref/main.js) -->
+      <a id="selected-page" class="frame-corner" hidden>its page ›</a>
       <p id="selected-none" class="empty">none</p>
       <div id="selected-card" class="card" hidden></div>
     </section>
@@ -147,7 +155,7 @@
        station's player plays a message (js/ref/main.js)
 
          [x] cards    ▷ 2.8s ━━━━━━━━┃━━━━━━━ ⟲3 │ speed 5 wpm  consecutive   -->
-  <div class="chart-bar" data-group="alphabet numbers symbols">
+  <div class="chart-bar" data-group="alphabet numbers symbols prosigns">
     <div class="cards-switch">
       <label class="check box-only"><input type="checkbox" id="opt-cards"><span class="visually-hidden">characters as cards</span></label>
       <button type="button" id="cards-info" class="flag-word" aria-haspopup="dialog" aria-controls="cards-pop">cards</button>
@@ -228,34 +236,34 @@
   </div>
   <div class="group-row morse-letters" data-group="alphabet">
     <ul class="col-left">
-    <li><a href="/ref/alphabet/?/.-"><span class="code">.-</span><span class="say">Alfa</span><span class="label">A</span></a></li>
-    <li><a href="/ref/alphabet/?/-..."><span class="code">-...</span><span class="say">Bravo</span><span class="label">B</span></a></li>
-    <li><a href="/ref/alphabet/?/-.-."><span class="code">-.-.</span><span class="say">Charlie</span><span class="label">C</span></a></li>
-    <li><a href="/ref/alphabet/?/-.."><span class="code">-..</span><span class="say">Delta</span><span class="label">D</span></a></li>
-    <li><a href="/ref/alphabet/?/."><span class="code">.</span><span class="say">Echo</span><span class="label">E</span></a></li>
-    <li><a href="/ref/alphabet/?/..-."><span class="code">..-.</span><span class="say">Foxtrot</span><span class="label">F</span></a></li>
-    <li><a href="/ref/alphabet/?/--."><span class="code">--.</span><span class="say">Golf</span><span class="label">G</span></a></li>
-    <li><a href="/ref/alphabet/?/...."><span class="code">....</span><span class="say">Hotel</span><span class="label">H</span></a></li>
-    <li><a href="/ref/alphabet/?/.."><span class="code">..</span><span class="say">India</span><span class="label">I</span></a></li>
-    <li><a href="/ref/alphabet/?/.---"><span class="code">.---</span><span class="say">Juliett</span><span class="label">J</span></a></li>
-    <li><a href="/ref/alphabet/?/-.-"><span class="code">-.-</span><span class="say">Kilo</span><span class="label">K</span></a></li>
-    <li><a href="/ref/alphabet/?/.-.."><span class="code">.-..</span><span class="say">Lima</span><span class="label">L</span></a></li>
-    <li><a href="/ref/alphabet/?/--"><span class="code">--</span><span class="say">Mike</span><span class="label">M</span></a></li>
+    <li><a href="/ref/a/"><span class="code">.-</span><span class="say">Alfa</span><span class="label">A</span></a></li>
+    <li><a href="/ref/b/"><span class="code">-...</span><span class="say">Bravo</span><span class="label">B</span></a></li>
+    <li><a href="/ref/c/"><span class="code">-.-.</span><span class="say">Charlie</span><span class="label">C</span></a></li>
+    <li><a href="/ref/d/"><span class="code">-..</span><span class="say">Delta</span><span class="label">D</span></a></li>
+    <li><a href="/ref/e/"><span class="code">.</span><span class="say">Echo</span><span class="label">E</span></a></li>
+    <li><a href="/ref/f/"><span class="code">..-.</span><span class="say">Foxtrot</span><span class="label">F</span></a></li>
+    <li><a href="/ref/g/"><span class="code">--.</span><span class="say">Golf</span><span class="label">G</span></a></li>
+    <li><a href="/ref/h/"><span class="code">....</span><span class="say">Hotel</span><span class="label">H</span></a></li>
+    <li><a href="/ref/i/"><span class="code">..</span><span class="say">India</span><span class="label">I</span></a></li>
+    <li><a href="/ref/j/"><span class="code">.---</span><span class="say">Juliett</span><span class="label">J</span></a></li>
+    <li><a href="/ref/k/"><span class="code">-.-</span><span class="say">Kilo</span><span class="label">K</span></a></li>
+    <li><a href="/ref/l/"><span class="code">.-..</span><span class="say">Lima</span><span class="label">L</span></a></li>
+    <li><a href="/ref/m/"><span class="code">--</span><span class="say">Mike</span><span class="label">M</span></a></li>
     </ul>
     <ul class="col-right">
-    <li><a href="/ref/alphabet/?/-."><span class="label">N</span><span class="say">November</span><span class="code">-.</span></a></li>
-    <li><a href="/ref/alphabet/?/---"><span class="label">O</span><span class="say">Oscar</span><span class="code">---</span></a></li>
-    <li><a href="/ref/alphabet/?/.--."><span class="label">P</span><span class="say">Papa</span><span class="code">.--.</span></a></li>
-    <li><a href="/ref/alphabet/?/--.-"><span class="label">Q</span><span class="say">Quebec</span><span class="code">--.-</span></a></li>
-    <li><a href="/ref/alphabet/?/.-."><span class="label">R</span><span class="say">Romeo</span><span class="code">.-.</span></a></li>
-    <li><a href="/ref/alphabet/?/..."><span class="label">S</span><span class="say">Sierra</span><span class="code">...</span></a></li>
-    <li><a href="/ref/alphabet/?/-"><span class="label">T</span><span class="say">Tango</span><span class="code">-</span></a></li>
-    <li><a href="/ref/alphabet/?/..-"><span class="label">U</span><span class="say">Uniform</span><span class="code">..-</span></a></li>
-    <li><a href="/ref/alphabet/?/...-"><span class="label">V</span><span class="say">Victor</span><span class="code">...-</span></a></li>
-    <li><a href="/ref/alphabet/?/.--"><span class="label">W</span><span class="say">Whiskey</span><span class="code">.--</span></a></li>
-    <li><a href="/ref/alphabet/?/-..-"><span class="label">X</span><span class="say">X-ray</span><span class="code">-..-</span></a></li>
-    <li><a href="/ref/alphabet/?/-.--"><span class="label">Y</span><span class="say">Yankee</span><span class="code">-.--</span></a></li>
-    <li><a href="/ref/alphabet/?/--.."><span class="label">Z</span><span class="say">Zulu</span><span class="code">--..</span></a></li>
+    <li><a href="/ref/n/"><span class="label">N</span><span class="say">November</span><span class="code">-.</span></a></li>
+    <li><a href="/ref/o/"><span class="label">O</span><span class="say">Oscar</span><span class="code">---</span></a></li>
+    <li><a href="/ref/p/"><span class="label">P</span><span class="say">Papa</span><span class="code">.--.</span></a></li>
+    <li><a href="/ref/q/"><span class="label">Q</span><span class="say">Quebec</span><span class="code">--.-</span></a></li>
+    <li><a href="/ref/r/"><span class="label">R</span><span class="say">Romeo</span><span class="code">.-.</span></a></li>
+    <li><a href="/ref/s/"><span class="label">S</span><span class="say">Sierra</span><span class="code">...</span></a></li>
+    <li><a href="/ref/t/"><span class="label">T</span><span class="say">Tango</span><span class="code">-</span></a></li>
+    <li><a href="/ref/u/"><span class="label">U</span><span class="say">Uniform</span><span class="code">..-</span></a></li>
+    <li><a href="/ref/v/"><span class="label">V</span><span class="say">Victor</span><span class="code">...-</span></a></li>
+    <li><a href="/ref/w/"><span class="label">W</span><span class="say">Whiskey</span><span class="code">.--</span></a></li>
+    <li><a href="/ref/x/"><span class="label">X</span><span class="say">X-ray</span><span class="code">-..-</span></a></li>
+    <li><a href="/ref/y/"><span class="label">Y</span><span class="say">Yankee</span><span class="code">-.--</span></a></li>
+    <li><a href="/ref/z/"><span class="label">Z</span><span class="say">Zulu</span><span class="code">--..</span></a></li>
     </ul>
   </div>
 
@@ -327,6 +335,18 @@
   <ul class="lists" data-list="abbreviations" data-group="abbreviations">
   
     </ul>
+  </div>
+
+  <!-- phrases: whole words people look up, each to play here, and ⋯
+       for the station, its .wav, a link (js/ref/phrases.js draws them
+       from core/phrases.js: the same rows as /ref/phrases/)
+
+       ▷  I love you                                        ⋯
+          .. / .-.. --- ...- . / -.-- --- ..-                       -->
+  <div class="phrases" data-group="phrases">
+    <h2><a href="/ref/phrases/">Phrases</a></h2>
+    <p class="cheat-note">A space is the gap between letters, a slash the gap between words.</p>
+    <ul class="phrase-list" id="phrase-list"></ul>
   </div>
 
 </div>

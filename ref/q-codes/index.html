@@ -125,8 +125,16 @@
     </section>
 
     <!-- ───────────── one character: tap a node, or type it ───────────── -->
-    <section class="frame selected-frame" id="selected-frame" aria-labelledby="selected-label">
+    <section class="frame find-frame" aria-labelledby="find-label">
+      <h2 class="frame-label" id="find-label"><label for="ref-find">find</label></h2>
+      <input type="search" id="ref-find" placeholder="marks (.-), a name or what it means" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go">
+      <p class="find-none" hidden>nothing here matches</p>
+    </section>
+
+    <section hidden class="frame selected-frame" id="selected-frame" aria-labelledby="selected-label">
       <h2 class="frame-label" id="selected-label">selected character</h2>
+      <!-- its own page, on the frame's top edge at the right (js/ref/main.js) -->
+      <a id="selected-page" class="frame-corner" hidden>its page ›</a>
       <p id="selected-none" class="empty">none</p>
       <div id="selected-card" class="card" hidden></div>
     </section>
@@ -147,7 +155,7 @@
        station's player plays a message (js/ref/main.js)
 
          [x] cards    ▷ 2.8s ━━━━━━━━┃━━━━━━━ ⟲3 │ speed 5 wpm  consecutive   -->
-  <div class="chart-bar" data-group="alphabet numbers symbols">
+  <div class="chart-bar" data-group="alphabet numbers symbols prosigns">
     <div class="cards-switch">
       <label class="check box-only"><input type="checkbox" id="opt-cards"><span class="visually-hidden">characters as cards</span></label>
       <button type="button" id="cards-info" class="flag-word" aria-haspopup="dialog" aria-controls="cards-pop">cards</button>
@@ -294,44 +302,44 @@
   </div>
   <p class="cheat-note" data-group="q-codes">Three letters for a whole sentence. Sent with <b>?</b> they ask instead.</p>
   <ul class="lists" data-list="q-codes" data-group="q-codes">
-    <li data-az="0" data-flow="0"><a href="/ref/q-codes/?/_--.-_.-._.-.._"><span class="code">--.- .-. .-..</span><span class="label">QRL</span><span class="means">this frequency is in use</span></a></li>
-    <li data-az="0" data-flow="0" data-ask><a href="/ref/q-codes/?/_--.-_.-._.-.._..--.._"><span class="code">--.- .-. .-.. ..--..</span><span class="label">QRL?</span><span class="means">is this frequency in use?</span></a></li>
-    <li data-az="1" data-flow="4"><a href="/ref/q-codes/?/_--.-_.-._--_"><span class="code">--.- .-. --</span><span class="label">QRM</span><span class="means">man-made interference</span></a></li>
-    <li data-az="1" data-flow="4" data-ask><a href="/ref/q-codes/?/_--.-_.-._--_..--.._"><span class="code">--.- .-. -- ..--..</span><span class="label">QRM?</span><span class="means">is there interference?</span></a></li>
-    <li data-az="2" data-flow="5"><a href="/ref/q-codes/?/_--.-_.-._-._"><span class="code">--.- .-. -.</span><span class="label">QRN</span><span class="means">static, natural noise</span></a></li>
-    <li data-az="2" data-flow="5" data-ask><a href="/ref/q-codes/?/_--.-_.-._-._..--.._"><span class="code">--.- .-. -. ..--..</span><span class="label">QRN?</span><span class="means">are you troubled by static?</span></a></li>
-    <li data-az="3" data-flow="8"><a href="/ref/q-codes/?/_--.-_.-._---_"><span class="code">--.- .-. ---</span><span class="label">QRO</span><span class="means">increase power</span></a></li>
-    <li data-az="3" data-flow="8" data-ask><a href="/ref/q-codes/?/_--.-_.-._---_..--.._"><span class="code">--.- .-. --- ..--..</span><span class="label">QRO?</span><span class="means">shall I increase power?</span></a></li>
-    <li data-az="4" data-flow="9"><a href="/ref/q-codes/?/_--.-_.-._.--._"><span class="code">--.- .-. .--.</span><span class="label">QRP</span><span class="means">reduce power; low power</span></a></li>
-    <li data-az="4" data-flow="9" data-ask><a href="/ref/q-codes/?/_--.-_.-._.--._..--.._"><span class="code">--.- .-. .--. ..--..</span><span class="label">QRP?</span><span class="means">shall I reduce power?</span></a></li>
-    <li data-az="5" data-flow="7"><a href="/ref/q-codes/?/_--.-_.-._--.-_"><span class="code">--.- .-. --.-</span><span class="label">QRQ</span><span class="means">send faster</span></a></li>
-    <li data-az="5" data-flow="7" data-ask><a href="/ref/q-codes/?/_--.-_.-._--.-_..--.._"><span class="code">--.- .-. --.- ..--..</span><span class="label">QRQ?</span><span class="means">shall I send faster?</span></a></li>
-    <li data-az="6" data-flow="6"><a href="/ref/q-codes/?/_--.-_.-._..._"><span class="code">--.- .-. ...</span><span class="label">QRS</span><span class="means">send slower</span></a></li>
-    <li data-az="6" data-flow="6" data-ask><a href="/ref/q-codes/?/_--.-_.-._..._..--.._"><span class="code">--.- .-. ... ..--..</span><span class="label">QRS?</span><span class="means">shall I send slower?</span></a></li>
-    <li data-az="7" data-flow="18"><a href="/ref/q-codes/?/_--.-_.-._-_"><span class="code">--.- .-. -</span><span class="label">QRT</span><span class="means">stop sending; closing down</span></a></li>
-    <li data-az="7" data-flow="18" data-ask><a href="/ref/q-codes/?/_--.-_.-._-_..--.._"><span class="code">--.- .-. - ..--..</span><span class="label">QRT?</span><span class="means">shall I stop sending?</span></a></li>
-    <li data-az="8" data-flow="13"><a href="/ref/q-codes/?/_--.-_.-._..-_"><span class="code">--.- .-. ..-</span><span class="label">QRU</span><span class="means">I have nothing for you</span></a></li>
-    <li data-az="8" data-flow="13" data-ask><a href="/ref/q-codes/?/_--.-_.-._..-_..--.._"><span class="code">--.- .-. ..- ..--..</span><span class="label">QRU?</span><span class="means">have you anything for me?</span></a></li>
-    <li data-az="9" data-flow="12"><a href="/ref/q-codes/?/_--.-_.-._...-_"><span class="code">--.- .-. ...-</span><span class="label">QRV</span><span class="means">I am ready</span></a></li>
-    <li data-az="9" data-flow="12" data-ask><a href="/ref/q-codes/?/_--.-_.-._...-_..--.._"><span class="code">--.- .-. ...- ..--..</span><span class="label">QRV?</span><span class="means">are you ready?</span></a></li>
-    <li data-az="10" data-flow="11"><a href="/ref/q-codes/?/_--.-_.-._-..-_"><span class="code">--.- .-. -..-</span><span class="label">QRX</span><span class="means">wait, stand by</span></a></li>
-    <li data-az="10" data-flow="11" data-ask><a href="/ref/q-codes/?/_--.-_.-._-..-_..--.._"><span class="code">--.- .-. -..- ..--..</span><span class="label">QRX?</span><span class="means">when will you call again?</span></a></li>
-    <li data-az="11" data-flow="1"><a href="/ref/q-codes/?/_--.-_.-._--.._"><span class="code">--.- .-. --..</span><span class="label">QRZ</span><span class="means">you are being called by …</span></a></li>
-    <li data-az="11" data-flow="1" data-ask><a href="/ref/q-codes/?/_--.-_.-._--.._..--.._"><span class="code">--.- .-. --.. ..--..</span><span class="label">QRZ?</span><span class="means">who is calling me?</span></a></li>
-    <li data-az="12" data-flow="3"><a href="/ref/q-codes/?/_--.-_..._-..._"><span class="code">--.- ... -...</span><span class="label">QSB</span><span class="means">your signal is fading</span></a></li>
-    <li data-az="12" data-flow="3" data-ask><a href="/ref/q-codes/?/_--.-_..._-..._..--.._"><span class="code">--.- ... -... ..--..</span><span class="label">QSB?</span><span class="means">is my signal fading?</span></a></li>
-    <li data-az="13" data-flow="10"><a href="/ref/q-codes/?/_--.-_..._-.-_"><span class="code">--.- ... -.-</span><span class="label">QSK</span><span class="means">I can hear you between my signals</span></a></li>
-    <li data-az="13" data-flow="10" data-ask><a href="/ref/q-codes/?/_--.-_..._-.-_..--.._"><span class="code">--.- ... -.- ..--..</span><span class="label">QSK?</span><span class="means">can you hear me between your signals?</span></a></li>
-    <li data-az="14" data-flow="15"><a href="/ref/q-codes/?/_--.-_..._.-.._"><span class="code">--.- ... .-..</span><span class="label">QSL</span><span class="means">I confirm receipt</span></a></li>
-    <li data-az="14" data-flow="15" data-ask><a href="/ref/q-codes/?/_--.-_..._.-.._..--.._"><span class="code">--.- ... .-.. ..--..</span><span class="label">QSL?</span><span class="means">can you confirm receipt?</span></a></li>
-    <li data-az="15" data-flow="16"><a href="/ref/q-codes/?/_--.-_..._---_"><span class="code">--.- ... ---</span><span class="label">QSO</span><span class="means">a contact, a conversation</span></a></li>
-    <li data-az="15" data-flow="16" data-ask><a href="/ref/q-codes/?/_--.-_..._---_..--.._"><span class="code">--.- ... --- ..--..</span><span class="label">QSO?</span><span class="means">can you make contact with …?</span></a></li>
-    <li data-az="16" data-flow="14"><a href="/ref/q-codes/?/_--.-_..._-.--_"><span class="code">--.- ... -.--</span><span class="label">QSY</span><span class="means">change frequency</span></a></li>
-    <li data-az="16" data-flow="14" data-ask><a href="/ref/q-codes/?/_--.-_..._-.--_..--.._"><span class="code">--.- ... -.-- ..--..</span><span class="label">QSY?</span><span class="means">shall I change frequency?</span></a></li>
-    <li data-az="17" data-flow="2"><a href="/ref/q-codes/?/_--.-_-_...._"><span class="code">--.- - ....</span><span class="label">QTH</span><span class="means">my location is …</span></a></li>
-    <li data-az="17" data-flow="2" data-ask><a href="/ref/q-codes/?/_--.-_-_...._..--.._"><span class="code">--.- - .... ..--..</span><span class="label">QTH?</span><span class="means">what is your location?</span></a></li>
-    <li data-az="18" data-flow="17"><a href="/ref/q-codes/?/_--.-_-_.-._"><span class="code">--.- - .-.</span><span class="label">QTR</span><span class="means">the correct time is …</span></a></li>
-    <li data-az="18" data-flow="17" data-ask><a href="/ref/q-codes/?/_--.-_-_.-._..--.._"><span class="code">--.- - .-. ..--..</span><span class="label">QTR?</span><span class="means">what is the correct time?</span></a></li>
+    <li data-az="0" data-flow="0"><a href="/ref/qrl/"><span class="code">--.- .-. .-..</span><span class="label">QRL</span><span class="means">this frequency is in use</span></a></li>
+    <li data-az="0" data-flow="0" data-ask><a href="/ref/qrl/"><span class="code">--.- .-. .-.. ..--..</span><span class="label">QRL?</span><span class="means">is this frequency in use?</span></a></li>
+    <li data-az="1" data-flow="4"><a href="/ref/qrm/"><span class="code">--.- .-. --</span><span class="label">QRM</span><span class="means">man-made interference</span></a></li>
+    <li data-az="1" data-flow="4" data-ask><a href="/ref/qrm/"><span class="code">--.- .-. -- ..--..</span><span class="label">QRM?</span><span class="means">is there interference?</span></a></li>
+    <li data-az="2" data-flow="5"><a href="/ref/qrn/"><span class="code">--.- .-. -.</span><span class="label">QRN</span><span class="means">static, natural noise</span></a></li>
+    <li data-az="2" data-flow="5" data-ask><a href="/ref/qrn/"><span class="code">--.- .-. -. ..--..</span><span class="label">QRN?</span><span class="means">are you troubled by static?</span></a></li>
+    <li data-az="3" data-flow="8"><a href="/ref/qro/"><span class="code">--.- .-. ---</span><span class="label">QRO</span><span class="means">increase power</span></a></li>
+    <li data-az="3" data-flow="8" data-ask><a href="/ref/qro/"><span class="code">--.- .-. --- ..--..</span><span class="label">QRO?</span><span class="means">shall I increase power?</span></a></li>
+    <li data-az="4" data-flow="9"><a href="/ref/qrp/"><span class="code">--.- .-. .--.</span><span class="label">QRP</span><span class="means">reduce power; low power</span></a></li>
+    <li data-az="4" data-flow="9" data-ask><a href="/ref/qrp/"><span class="code">--.- .-. .--. ..--..</span><span class="label">QRP?</span><span class="means">shall I reduce power?</span></a></li>
+    <li data-az="5" data-flow="7"><a href="/ref/qrq/"><span class="code">--.- .-. --.-</span><span class="label">QRQ</span><span class="means">send faster</span></a></li>
+    <li data-az="5" data-flow="7" data-ask><a href="/ref/qrq/"><span class="code">--.- .-. --.- ..--..</span><span class="label">QRQ?</span><span class="means">shall I send faster?</span></a></li>
+    <li data-az="6" data-flow="6"><a href="/ref/qrs/"><span class="code">--.- .-. ...</span><span class="label">QRS</span><span class="means">send slower</span></a></li>
+    <li data-az="6" data-flow="6" data-ask><a href="/ref/qrs/"><span class="code">--.- .-. ... ..--..</span><span class="label">QRS?</span><span class="means">shall I send slower?</span></a></li>
+    <li data-az="7" data-flow="18"><a href="/ref/qrt/"><span class="code">--.- .-. -</span><span class="label">QRT</span><span class="means">stop sending; closing down</span></a></li>
+    <li data-az="7" data-flow="18" data-ask><a href="/ref/qrt/"><span class="code">--.- .-. - ..--..</span><span class="label">QRT?</span><span class="means">shall I stop sending?</span></a></li>
+    <li data-az="8" data-flow="13"><a href="/ref/qru/"><span class="code">--.- .-. ..-</span><span class="label">QRU</span><span class="means">I have nothing for you</span></a></li>
+    <li data-az="8" data-flow="13" data-ask><a href="/ref/qru/"><span class="code">--.- .-. ..- ..--..</span><span class="label">QRU?</span><span class="means">have you anything for me?</span></a></li>
+    <li data-az="9" data-flow="12"><a href="/ref/qrv/"><span class="code">--.- .-. ...-</span><span class="label">QRV</span><span class="means">I am ready</span></a></li>
+    <li data-az="9" data-flow="12" data-ask><a href="/ref/qrv/"><span class="code">--.- .-. ...- ..--..</span><span class="label">QRV?</span><span class="means">are you ready?</span></a></li>
+    <li data-az="10" data-flow="11"><a href="/ref/qrx/"><span class="code">--.- .-. -..-</span><span class="label">QRX</span><span class="means">wait, stand by</span></a></li>
+    <li data-az="10" data-flow="11" data-ask><a href="/ref/qrx/"><span class="code">--.- .-. -..- ..--..</span><span class="label">QRX?</span><span class="means">when will you call again?</span></a></li>
+    <li data-az="11" data-flow="1"><a href="/ref/qrz/"><span class="code">--.- .-. --..</span><span class="label">QRZ</span><span class="means">you are being called by …</span></a></li>
+    <li data-az="11" data-flow="1" data-ask><a href="/ref/qrz/"><span class="code">--.- .-. --.. ..--..</span><span class="label">QRZ?</span><span class="means">who is calling me?</span></a></li>
+    <li data-az="12" data-flow="3"><a href="/ref/qsb/"><span class="code">--.- ... -...</span><span class="label">QSB</span><span class="means">your signal is fading</span></a></li>
+    <li data-az="12" data-flow="3" data-ask><a href="/ref/qsb/"><span class="code">--.- ... -... ..--..</span><span class="label">QSB?</span><span class="means">is my signal fading?</span></a></li>
+    <li data-az="13" data-flow="10"><a href="/ref/qsk/"><span class="code">--.- ... -.-</span><span class="label">QSK</span><span class="means">I can hear you between my signals</span></a></li>
+    <li data-az="13" data-flow="10" data-ask><a href="/ref/qsk/"><span class="code">--.- ... -.- ..--..</span><span class="label">QSK?</span><span class="means">can you hear me between your signals?</span></a></li>
+    <li data-az="14" data-flow="15"><a href="/ref/qsl/"><span class="code">--.- ... .-..</span><span class="label">QSL</span><span class="means">I confirm receipt</span></a></li>
+    <li data-az="14" data-flow="15" data-ask><a href="/ref/qsl/"><span class="code">--.- ... .-.. ..--..</span><span class="label">QSL?</span><span class="means">can you confirm receipt?</span></a></li>
+    <li data-az="15" data-flow="16"><a href="/ref/qso/"><span class="code">--.- ... ---</span><span class="label">QSO</span><span class="means">a contact, a conversation</span></a></li>
+    <li data-az="15" data-flow="16" data-ask><a href="/ref/qso/"><span class="code">--.- ... --- ..--..</span><span class="label">QSO?</span><span class="means">can you make contact with …?</span></a></li>
+    <li data-az="16" data-flow="14"><a href="/ref/qsy/"><span class="code">--.- ... -.--</span><span class="label">QSY</span><span class="means">change frequency</span></a></li>
+    <li data-az="16" data-flow="14" data-ask><a href="/ref/qsy/"><span class="code">--.- ... -.-- ..--..</span><span class="label">QSY?</span><span class="means">shall I change frequency?</span></a></li>
+    <li data-az="17" data-flow="2"><a href="/ref/qth/"><span class="code">--.- - ....</span><span class="label">QTH</span><span class="means">my location is …</span></a></li>
+    <li data-az="17" data-flow="2" data-ask><a href="/ref/qth/"><span class="code">--.- - .... ..--..</span><span class="label">QTH?</span><span class="means">what is your location?</span></a></li>
+    <li data-az="18" data-flow="17"><a href="/ref/qtr/"><span class="code">--.- - .-.</span><span class="label">QTR</span><span class="means">the correct time is …</span></a></li>
+    <li data-az="18" data-flow="17" data-ask><a href="/ref/qtr/"><span class="code">--.- - .-. ..--..</span><span class="label">QTR?</span><span class="means">what is the correct time?</span></a></li>
   </ul>
 
   <h2 data-group="abbreviations"><a href="/ref/abbreviations/">Abbreviations</a></h2>
@@ -339,6 +347,18 @@
   <ul class="lists" data-list="abbreviations" data-group="abbreviations">
   
     </ul>
+  </div>
+
+  <!-- phrases: whole words people look up, each to play here, and ⋯
+       for the station, its .wav, a link (js/ref/phrases.js draws them
+       from core/phrases.js: the same rows as /ref/phrases/)
+
+       ▷  I love you                                        ⋯
+          .. / .-.. --- ...- . / -.-- --- ..-                       -->
+  <div class="phrases" data-group="phrases">
+    <h2><a href="/ref/phrases/">Phrases</a></h2>
+    <p class="cheat-note">A space is the gap between letters, a slash the gap between words.</p>
+    <ul class="phrase-list" id="phrase-list"></ul>
   </div>
 
 </div>
