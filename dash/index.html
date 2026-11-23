@@ -90,32 +90,15 @@
       </svg>
       <p class="done" id="done" aria-label="words done" aria-live="off"></p>
 
-      <!-- down the right, as Key hero's: the gear and its tray, the
-           count, the bronze points, the strikes, restart, pause -->
-      <aside class="settings" aria-label="settings">
-        <div class="tray" id="tray" hidden>
-          <label class="pick">text <select id="song"></select></label>
-          <div class="flags">
-            <label class="check" title="the Ctrl keys as paddles: left is dit, right is dah (a VBand adapter)"><input type="checkbox" id="opt-ctrl"><span>ctrl</span></label>
-            <label class="check" title="the mouse as the key: left is dit, right is dah"><input type="checkbox" id="opt-mouse"><span>mouse</span></label>
-            <label class="check" title="dots red, dashes blue"><input type="checkbox" id="opt-color" checked><span>color</span></label>
-            <label class="check" title="the light theme: dark on paper"><input type="checkbox" id="opt-theme"><span>invert</span></label>
-            <label class="check" title="a wpm faster after every word cleared with no hit, up to 40"><input type="checkbox" id="opt-ramp"><span>ramp</span></label>
-          </div>
-          <div class="group">
-            <div class="pair">
-              <label class="fader"><output for="opt-wpm">5</output>
-                <input type="range" id="opt-wpm" min="5" max="40" value="5"><span>wpm</span></label>
-              <label class="fader"><output for="opt-fwpm">5</output>
-                <span class="track"><input type="range" id="opt-fwpm" min="5" max="40" value="5"><i class="cap" aria-hidden="true"></i></span><span title="Farnsworth: the speed overall, the spaces between letters stretched to make it">farns.</span></label>
-            </div>
-            <span class="group-name">speed</span>
-          </div>
-        </div>
-        <button type="button" id="gear" aria-expanded="false" aria-controls="tray" aria-label="settings" title="settings">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>
-          <i class="chevron" aria-hidden="true"></i>
-        </button>
+      <!-- the gear, where the station's is (and Key hero's): at the left,
+           just over the keys; the settings open in the keys' place -->
+      <button type="button" id="gear" class="corner-gear" aria-expanded="false" aria-controls="tray" aria-label="settings" title="settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="6.6"/><path d="M12 2.6v2.8M12 18.6v2.8M2.6 12h2.8M18.6 12h2.8M5.4 5.4l2 2M16.6 16.6l2 2M18.6 5.4l-2 2M7.4 16.6l-2 2"/></svg>
+      </button>
+
+      <!-- down the right, as Key hero's: the count, the bronze points,
+           the strikes, restart, pause -->
+      <aside class="settings" aria-label="the run">
         <p class="score" id="score" title="marks cleared">0</p>
         <!-- the brass crumbs in a row: three and it all goes bronze -->
         <p id="bronze" role="img" aria-label="0 brass crumbs in a row"><i></i><i></i><i></i></p>
@@ -145,6 +128,26 @@
       <button type="button" class="key" data-lane="." aria-label="dit: jump"><span class="mark">●</span><kbd>[</kbd></button>
       <button type="button" class="key" data-lane="-" aria-label="dah: duck"><span class="mark">▬</span><kbd>]</kbd></button>
     </section>
+    <!-- the settings, in the keys' place while they're open, as Key hero's -->
+    <div class="tray-slot" id="tray" role="group" aria-label="settings" hidden>
+      <label class="pick">text <select id="song"></select></label>
+      <div class="flags">
+        <label class="check" title="the Ctrl keys as paddles: left is dit, right is dah (a VBand adapter)"><input type="checkbox" id="opt-ctrl"><span>ctrl</span></label>
+        <label class="check" title="the mouse as the key: left is dit, right is dah"><input type="checkbox" id="opt-mouse"><span>mouse</span></label>
+        <label class="check" title="dots red, dashes blue"><input type="checkbox" id="opt-color" checked><span>color</span></label>
+        <label class="check" title="the light theme: dark on paper"><input type="checkbox" id="opt-theme"><span>invert</span></label>
+        <label class="check" title="a wpm faster after every word cleared with no hit, up to 40"><input type="checkbox" id="opt-ramp"><span>ramp</span></label>
+      </div>
+      <div class="group">
+        <div class="pair">
+          <label class="fader"><output for="opt-wpm">5</output>
+            <input type="range" id="opt-wpm" min="5" max="40" value="5"><span>wpm</span></label>
+          <label class="fader"><output for="opt-fwpm">5</output>
+            <span class="track"><input type="range" id="opt-fwpm" min="5" max="40" value="5"><i class="cap" aria-hidden="true"></i></span><span title="Farnsworth: the speed overall, the spaces between letters stretched to make it">farns.</span></label>
+        </div>
+        <span class="group-name">speed</span>
+      </div>
+    </div>
     <!-- the station's text keyboard (js/shared/keyboard.js), in the keys'
          place while a text of your own is typed -->
     <div id="kbd" class="kbd" aria-label="keyboard" hidden></div>

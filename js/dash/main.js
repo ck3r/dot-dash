@@ -74,6 +74,7 @@ import { createTexts } from "../game/texts.js";
 import { createShare } from "../game/share.js";
 import { applyLinked, withSettings } from "../game/link.js";
 import { createTyping } from "../game/typing.js";
+import { createWin } from "../game/win.js";
 
 const SONGS = ["SOS SOS SOS", "CQ CQ DE K", "PARIS PARIS", "TIME ITEM EMIT", "OMO MOM TOTO", "HELLO WORLD"];
 /* what "random" draws from: short, common, and a few of the air's own */
@@ -153,7 +154,10 @@ let jumpAt = -1, air = 0, ducking = false;
 let marks = 0, clean = 0, cleared = 0, row = 0, bronze = false, taken = 0, longest = 0;
 let result = "";
 
-const setState = next => { state = next; document.body.dataset.state = next; };
+/* a run's win: a new best (it ends only on three strikes) keys V,
+   ...-, on the card's border and in the tab (js/game/win.js) */
+const win = createWin({ frame: $("#card") });
+const setState = next => { if (next !== "done") win.rest(); state = next; document.body.dataset.state = next; };
 const unit = () => 1200 / wpm;                       // ms
 const pxPerMs = () => U / unit();
 /* the jump lasts about two units' worth, as a dit and its gap: quick
@@ -448,6 +452,7 @@ function load() {
 }
 
 function run() {
+  setTray(false);
   setState("running");
   $("#restart").disabled = false;
   $("#pause").disabled = false;
@@ -473,6 +478,7 @@ function end() {
   if (marks > best) keep(BEST_KEY, String(marks));
   $("#c-marks").textContent = `${marks} marks`;
   $("#c-best").textContent = marks > best ? "your best" : best ? `best ${best}` : "";
+  if (marks > best && marks > 0) win.key();
   $("#c-letters").textContent = clean;
   $("#c-words").textContent = cleared;
   $("#c-bronze").textContent = taken;
@@ -555,20 +561,23 @@ createPaddles({
     return true;
   },
   off: typing.on,
-  clickable: ".settings, .result, .hero-top, .share-menu, .word, .kbd",
+  clickable: ".settings, .corner-gear, .tray-slot, .result, .hero-top, .share-menu, .word, .kbd",
 });
 
-/* the gear: the settings, open or shut, and kept that way */
-const setTray = open => {
+/* the gear, as Key hero's: the settings in the keys' place, shut to
+   start; a tap anywhere else shuts them, and so does a run starting */
+function setTray(open) {
   $("#tray").hidden = !open;
   $("#gear").setAttribute("aria-expanded", String(open));
-};
-setTray(kept("dot-dash:dash-tray") === "1");
+  document.body.classList.toggle("tray-open", open);
+}
+setTray(false);
 $("#gear").addEventListener("click", () => {
-  const open = $("#tray").hidden;
-  setTray(open);
-  keep("dot-dash:dash-tray", open ? "1" : "0");
+  setTray($("#tray").hidden);
   $("#gear").blur();
+});
+document.addEventListener("pointerdown", event => {
+  if (!$("#tray").hidden && !event.target.closest("#tray, #gear")) setTray(false);
 });
 $("#pause").addEventListener("click", () => { $("#pause").blur(); state === "running" ? pause() : run(); });
 $("#restart").addEventListener("click", () => { $("#restart").blur(); load(); });
