@@ -1365,7 +1365,11 @@ body[data-input="text"] .keybox { display: none; }
   overflow: visible;
 }
 
+/* a word under the text, not the results' × in the corner (above),
+   which would sit on the title */
 #hold-pop .close {
+  position: static;
+  align-self: start;      /* its own width in a short screen's column (base.css) */
   color: var(--paper);
   border: 1px solid var(--wire);
   padding: 0.3rem 2ch;

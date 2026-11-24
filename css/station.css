@@ -1632,18 +1632,20 @@ body.reading .caret { visibility: hidden; }
 .player button { flex: none; }
 .player .repeat { color: var(--wire); position: relative; }
 
-/* ×3 / ∞: in the middle of the arrow's circle, small, in brass (no
-   change in width; the circle is round the icon's middle) */
+/* ×3 / ∞: a badge on the arrow's corner, in brass, on a patch of the
+   page so it reads over the line (inside the circle it had 10px and
+   couldn't be read). Over the button, not in the row: no change in
+   width */
 .player .repeat::after {
   position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.6rem;
+  top: -0.2rem;
+  right: -0.25rem;
+  padding: 0 0.1rem;
+  font-size: 0.8rem;
   font-weight: 700;
   line-height: 1;
   color: var(--brass);
+  background: var(--bakelite);
   pointer-events: none;
 }
 
@@ -1653,6 +1655,11 @@ body.reading .caret { visibility: hidden; }
 
 /* repeat, with nothing to play: greyed like play (its ×3 / ∞ too) */
 .tx .player .repeat:disabled { color: var(--wire); cursor: default; }
+
+/* the pop-out: grey, paper while it's open (as repeat) */
+.player .pop { color: var(--wire); }
+.player .pop[aria-pressed="true"] { color: var(--paper); }
+.tx .player .pop:disabled { color: var(--wire); cursor: default; }
 
 /* the scrub bar: the signal drawn underneath, the range on top */
 .seek-wrap {
@@ -2991,6 +2998,13 @@ body:has(#train:not([hidden])) .pad {
   overflow-wrap: anywhere;
 }
 
+/* under it: where send goes, and the manual first */
+.report-note {
+  margin-top: 0.6rem;
+  color: var(--graphite);
+  font-size: var(--fs-xs);
+}
+
 /* marks named in a popup's text take the dot / dash colours */
 .signal .popup .dot  { color: var(--dot); }
 .signal .popup .dash { color: var(--dash); }
@@ -3114,13 +3128,15 @@ body:has(#train:not([hidden])) .pad {
 
 /* copy practice: the Koch characters so far, the newest in paper
    (the one being learned), between − and + */
-.profile-practice {
+.profile-practice,
+.profile-file {
   margin-top: 0.9rem;
   padding-top: 0.6rem;
   border-top: 1px dashed var(--wire);
 }
 
-.profile-practice .profile-since { margin-top: 0; }
+:is(.profile-practice, .profile-file) .profile-since { margin-top: 0; }
+.profile-file .actions { margin-top: 0.4rem; }
 
 .koch-row {
   display: flex;
@@ -3158,6 +3174,14 @@ body:has(#train:not([hidden])) .pad {
   background: transparent;
 }
 
+/* the report's send: a mailto link, dressed as the buttons beside it */
+.popup .actions a.quiet {
+  display: inline-block;
+  border: 1px solid;
+  text-decoration: none;
+  line-height: normal;
+}
+
 .quiet {
   align-self: flex-start;
   border-color: var(--wire);
@@ -3167,7 +3191,7 @@ body:has(#train:not([hidden])) .pad {
 }
 
 #lamp-go,
-#report-copy {
+#report-send {
   border-color: var(--paper);
   color: var(--paper);
 }
@@ -3177,7 +3201,8 @@ body:has(#train:not([hidden])) .pad {
   background: transparent;
 }
 
-.popup .popup-clear.armed {
+.popup .popup-clear.armed,
+#profile-load.armed {
   border-color: var(--brass);
   color: var(--brass);
 }
@@ -3792,7 +3817,7 @@ a.switch { text-decoration: none; }
   :root .tx .line .c.unsure .p.takes:hover { color: var(--brass); }
   :root .tx .chip:hover { border-color: var(--brass); }
   :root .tx .chip:hover .chip-name { color: var(--brass); }
-  :root .tx :is(.popup .actions button, .paste-bubble):not(:disabled):hover {
+  :root .tx :is(.popup .actions :is(button, a), .paste-bubble):not(:disabled):hover {
     border-color: var(--brass);
   }
   :root .tx .send:not(:disabled):hover {

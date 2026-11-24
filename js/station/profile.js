@@ -20,6 +20,8 @@
  *   │ │  ▒▓  │  dit: 412 presses    │
  *   │ └──────┘                      │
  *   │ [clear stats]                 │
+ *   │ on another device             │   the profile as a file (below)
+ *   │ [save to a file] [load a file]│
  *   │ copy practice, Koch order     │
  *   │ [−] K M R [+]       [▷ start] │   practise(words): js/station/main.js
  *   └───────────────────────────────┘
@@ -27,7 +29,7 @@
  * With a callsign, the ring holds its first character, in bold
  * (docs/roadmap.md, Profiles: the frame of brass marks comes later).
  */
-import { $, el } from "../shared/dom.js";
+import { $, el, toast } from "../shared/dom.js";
 import { KOCH, KOCH_MIN, groups } from "./practice.js";
 
 const KEY = "dot-dash:profile";
@@ -116,6 +118,7 @@ export function createProfile({ stats, wear, practise }) {
     call.value = profile.callsign;
     draw();
     resetClear();
+    resetLoad();
     $("#profile-pop .close").focus({ preventScroll: true });
   }
 
@@ -155,6 +158,83 @@ export function createProfile({ stats, wear, practise }) {
     clearButton.textContent = "tap again to clear your stats";
     armed = setTimeout(resetClear, 3000);
   });
+
+  /*
+   * The profile as a file: everything the site keeps on this device
+   * (localStorage, "dot-dash:…") but the messages, as JSON, to keep or
+   * to carry to another device and load there. Loading asks twice,
+   * replaces this device's, and reloads, so each part reads its own
+   * again. Nothing leaves the device but by the person's own hand.
+   *
+   *   { "dot-da.sh": "profile", "version": 1, "saved": "2026-11-24T…",
+   *     "keep": { "tx-settings": "{…}", "stats": "{…}", … } }
+   */
+  const PREFIX = "dot-dash:", MESSAGES = /^(tx-history|tx-line)$/;
+  function kept() {
+    const keep = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k?.startsWith(PREFIX) && !MESSAGES.test(k.slice(PREFIX.length))) keep[k.slice(PREFIX.length)] = localStorage.getItem(k);
+    }
+    return keep;
+  }
+  $("#profile-save").addEventListener("click", async () => {
+    let keep;
+    try { keep = kept(); } catch { toast("this browser keeps nothing here: nothing to save"); return; }
+    const now = new Date().toISOString();
+    const body = JSON.stringify({ "dot-da.sh": "profile", version: 1, saved: now, keep }, null, 1);
+    const name = (profile.callsign || now.slice(0, 10)).toLowerCase().replace(/\//g, "-");
+    const { save } = await import("../shared/files.js");
+    save(new Blob([body + "\n"], { type: "application/json" }), `dot-da.sh-profile_${name}.json`);
+    toast("profile saved to a file");
+  });
+
+  /* load: pick a file, then a second tap to replace (as clear asks) */
+  const loadButton = $("#profile-load"), picker = $("#profile-file");
+  let waiting = null;
+  function resetLoad() {
+    clearTimeout(waiting?.timer);
+    waiting = null;
+    loadButton.classList.remove("armed");
+    loadButton.textContent = "load a file";
+  }
+  loadButton.addEventListener("click", () => {
+    if (!waiting) { picker.value = ""; picker.click(); return; }
+    const { keep, from } = waiting;
+    resetLoad();
+    try {
+      for (const k of Object.keys(kept())) localStorage.removeItem(PREFIX + k);
+      for (const [k, v] of Object.entries(keep)) localStorage.setItem(PREFIX + k, v);
+      sessionStorage.setItem(PREFIX + "loaded", from);
+    } catch { toast("couldn't write to this browser's storage"); return; }
+    location.reload();
+  });
+  picker.addEventListener("change", async () => {
+    const file = picker.files?.[0];
+    if (!file) return;
+    let keep, saved;
+    try {
+      const data = JSON.parse(await file.text());
+      if (data?.["dot-da.sh"] !== "profile" || !data.keep || typeof data.keep !== "object") throw new Error();
+      keep = Object.fromEntries(Object.entries(data.keep)
+        .filter(([k, v]) => typeof v === "string" && /^[a-z0-9-]+$/.test(k) && !MESSAGES.test(k)));
+      saved = Date.parse(data.saved);
+    } catch { toast("that isn't a dot-da.sh profile"); return; }
+    let who = "";
+    try { who = JSON.parse(keep.profile).callsign ?? ""; } catch { }
+    const from = [who, isNaN(saved) ? "" : new Date(saved).toLocaleDateString("en-GB", DATE)].filter(Boolean).join(", ") || file.name;
+    waiting = { keep, from, timer: setTimeout(resetLoad, 6000) };
+    loadButton.classList.add("armed");
+    loadButton.textContent = `tap again: replace with ${from}`;
+  });
+  /* after the reload: say it worked */
+  try {
+    const from = sessionStorage.getItem(PREFIX + "loaded");
+    if (from) {
+      sessionStorage.removeItem(PREFIX + "loaded");
+      setTimeout(() => toast(`profile loaded: ${from}`, { ms: 3000 }), 300);
+    }
+  } catch { }
 
   /* copy practice: how many Koch characters, the newest in paper */
   function drawKoch() {

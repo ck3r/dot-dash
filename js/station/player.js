@@ -15,17 +15,21 @@
  *     retimed()         the pace changed: re-time what's loaded
  *   }
  */
-import { parse, namesFor, READING } from "../core/morse.js";
+import { namesFor, READING } from "../core/morse.js";
 import { createPlayer, timeline } from "../shared/playback.js";
 import { createTrace } from "../shared/trace.js";
 import { flashRate } from "../shared/outputs.js";
-import { morseOf, recOf, recOfEntry, readingOf, wordsOf } from "./state.js";
+import { morseOf, recOf, readingOf, wordsOf } from "./state.js";
 import { $, icon, toast } from "../shared/dom.js";
 import { createMediaControls } from "./media.js";
+import { inApp } from "../core/where.js";
+import { cardFrames } from "./card-art.js";
 import { voiceTimeline } from "../shared/voice.js";
+import { PIP_CSS, PIP_BODY, fillPip, pipShows, drawPip } from "../shared/pip.js";
 
 export function createPlayback({
   state, sound, keyer, tree, trainView, tab, timingNow, speedNote, choice, cancelTaps, setSignal,
+  buzzScript = () => false,
   wantsLamp, lampOk, askLamp, openLamp, closeLamp,
   drawLocal, drawTree, settleTape, fadeTape, followNode, inTree, REAL, isTreeOpen
 }) {
@@ -34,8 +38,7 @@ export function createPlayback({
    * PLAYBACK
    * ============================================================
    *
-   * Plays the current line, or the last message sent when the
-   * line is empty. While it plays, the line lights mark by mark
+   * Plays the current line (nothing when it's empty). While it plays, the line lights mark by mark
    * (like the main page), and the logo and both trees follow.
    * Keying anything stops it: the message has changed.
    */
@@ -60,6 +63,8 @@ export function createPlayback({
   });
 
   const media = createMediaControls();
+  /* the app's own pop-out (apps/mobile, PipPlugin): see THE POP-OUT */
+  const appPip = inApp() ? globalThis.Capacitor?.Plugins?.Pip ?? null : null;
 
   let repeatMode = "off";    // off / three / on
   let shown = null;          // last highlight applied
@@ -78,13 +83,13 @@ export function createPlayback({
     return words.length ? { words, rec: pretty() ? [] : recOf(state.tokens, state.took), entry: "current" } : null;
   }
 
+  /* what play plays: the line being written, only. With none, the
+     player rests greyed at 0 (play, the bar, repeat): it once played
+     the last message sent, which read as that message being pulled
+     back into the line */
   function playable() {
     const words = wordsOf(state.tokens);
     if (words.length) return { words, rec: pretty() ? [] : recOf(state.tokens, state.took), entry: "current" };
-    if (state.history.length) {
-      const last = state.history[state.history.length - 1];
-      return { words: parse(morseOf(last)), rec: pretty() ? [] : recOfEntry(last), entry: state.history.length - 1 };
-    }
     return null;
   }
 
@@ -151,12 +156,15 @@ export function createPlayback({
        so the caret (where typing goes) steps out until it's over */
     document.body.classList.toggle("playback", player.playing || (state.playKey !== null && player.position < player.duration));
     media.follow(player.playing, playable()?.words,   // the system's controls (js/station/media.js)
-      { position: player.position, duration: playable() ? player.duration : 0 });
+      { position: player.position, duration: playable() ? player.duration : 0, ...cardExtras() });
+    scriptBuzz();                                       // the app's motor, the whole message at once
+    pipFollow();                                        // the app's pop-out: its buttons, and small when left
     tab.playing(player.playing);                        // the tab's icon lit (js/station/tab.js)
     const can = !!playable();
     $("#play").disabled = !can;
     $("#seek").disabled = !can;
     $("#repeat").disabled = !can;      // greyed until there's something to play
+    $("#pop").disabled = !can && !pip;
     const playIcon = player.playing ? "pause" : "play";
     if ($("#play").dataset.icon !== playIcon) {
       $("#play").dataset.icon = playIcon;
@@ -217,6 +225,7 @@ export function createPlayback({
       cancelTaps();
       const note = speedNote();      // played slower than set (the flashlight)
       if (note) toast(note);
+      scriptBuzz(true);              // before play(): its first frame would buzz the first mark itself
       player.play();
       drawTree();     // every branch the message takes (station/tree.js)
       state.record("play", { entry: state.playEntry });
@@ -271,6 +280,61 @@ export function createPlayback({
       for (const m of l.querySelectorAll(".keyed")) m.classList.remove("keyed");
     }
     shown = null;
+  }
+
+  /*
+   * The app's motor, for playback. Buzzed mark by mark, ≋ follows the
+   * frames (showPlayback → setSignal), and a page out of sight gets
+   * none: the app put away or the screen off, the tone goes on (it's
+   * scheduled ahead on the audio clock) and the motor stops. So in the
+   * app the message is handed to the motor whole, from where it is,
+   * and the motor keeps its own time (BuzzPlugin play()). Again after
+   * anything that moves it (a seek, the speed, repeat); stopped with
+   * the player.
+   *
+   *   position ↓
+   *   ▁▁█▁███▁▁▁█▁█  ▁▁█▁███▁▁▁█▁█  ▁▁█▁███ …
+   *   └ this round ┘ └ the rest, or one to loop (repeat ∞) ┘
+   */
+  let buzzed = null;      // what the motor was given: { key, position, at }
+  function scriptBuzz(playing = player.playing) {
+    if (!inApp()) return;       // on the web ≋ follows the signal (Chrome cuts a long pattern short)
+    const p = playable();
+    if (!playing || !p) {
+      if (buzzed) buzzScript(null);
+      buzzed = null;
+      return;
+    }
+    const line = lineOf(p.words, p.rec);
+    const rounds = ROUNDS[repeatMode], gap = timingNow().word;
+    const key = [messageKey(), p.entry, line.duration, rounds, gap].join("|");
+    /* (just before play(): from the end it starts again, as play() does) */
+    const at = performance.now();
+    const position = !player.playing && player.position >= line.duration ? 0 : player.position;
+    if (buzzed?.key === key && Math.abs(buzzed.position + (at - buzzed.at) - position) < 100) return;
+    const plan = buzzSteps(line, position, rounds - player.round, line.duration + gap);
+    buzzed = buzzScript(plan.steps, plan.loop) ? { key, position, at } : null;
+  }
+
+  /* What the app's card shows beyond the browser's (js/station/media.js):
+     its loop, repeat, and its pictures (js/station/card-art.js), a frame
+     a letter, made when the message, its speed or its colours change */
+  function cardExtras() {
+    if (!inApp()) return {};
+    const p = playable();
+    if (!p) return {};
+    const line = lineOf(p.words, p.rec);
+    const t = timingNow();
+    const signal = document.body.classList.contains("signal");
+    return {
+      period: line.duration + t.word,
+      repeat: repeatMode,
+      art: {
+        key: [messageKey(), p.entry, line.duration, signal, JSON.stringify(readingNow())].join("|"),
+        frames: () => cardFrames(line, namesFor(p.words, readingNow()).flat(),
+          signal ? { dot: css("--dot"), dash: css("--dash") } : {})
+      }
+    };
   }
 
   /* every frame while playing (or when the scrub bar moves) */
@@ -405,7 +469,10 @@ export function createPlayback({
     try { localStorage.setItem("dot-dash:tx-repeat", repeatMode); } catch { }
   }
 
-  $("#repeat").addEventListener("click", () => setRepeat(NEXT[repeatMode]));
+  $("#repeat").addEventListener("click", () => {
+    setRepeat(NEXT[repeatMode]);
+    playerControls();     // the app's card and its motor hear of it (how many times through)
+  });
   try {
     const saved = localStorage.getItem("dot-dash:tx-repeat");
     setRepeat(saved === "1" ? "on" : saved ?? "three");   // "1" = the old on/off setting; new: ×3
@@ -599,6 +666,130 @@ export function createPlayback({
        app's own); seekto: its bar, dragged (seconds) */
     const seekto = details => seekTo((details.seekTime ?? 0) * 1000);
     for (const [name, fn] of [["play", play], ["pause", pause], ["stop", stopPlayback], ["seekto", seekto]]) media.handle(name, fn);
+    media.handle("repeat", () => $("#repeat").click());   // the app's card: off → three → on, as the button
+  }
+
+  /*
+   * ============================================================
+   * THE POP-OUT
+   * ============================================================
+   *
+   * ⧉ at the player's end: the message going out in a small window on
+   * top of the others, the extension card's own (js/shared/pip.js:
+   * the code, its character large, the switch, play, how far). It
+   * draws on its own frames, so it keeps up in a tab you've left; a
+   * click anywhere in it plays or pauses. Opening it plays.
+   */
+  const popButton = $("#pop");
+  let pip = null, cells = [], cellsOf = null;
+  if ("documentPictureInPicture" in window) popButton.hidden = false;
+  popButton.addEventListener("click", () => (pip ? pip.close() : appPip ? appPop() : popOut()));
+  async function popOut() {
+    if (!playable()) return;
+    try { pip = await documentPictureInPicture.requestWindow({ width: 340, height: 190 }); }
+    catch { pip = null; return; }
+    const d = fillPip(pip, {
+      title: "dot-da.sh",
+      classes: { light: document.documentElement.classList.contains("light"), plain: !document.body.classList.contains("signal") },
+      css: PIP_CSS, body: PIP_BODY
+    });
+    d.body.onclick = () => togglePlay();
+    pip.addEventListener("pagehide", () => {
+      pip = null;
+      popButton.setAttribute("aria-pressed", "false");
+      playerControls();
+    });
+    popButton.setAttribute("aria-pressed", "true");
+    if (!player.playing) togglePlay();      // popped out to hear it
+    pip.requestAnimationFrame(pipFrame);
+  }
+  /*
+   * In the app there's no Document Picture-in-Picture (not in a
+   * WebView): the app itself goes small (PipPlugin), by ⧉ or by being
+   * left while it plays, and while it's small the page shows the same
+   * pop-out over everything, in a frame of its own. The frame stands
+   * in for the window: fillPip and pipFrame draw into it as they would
+   * the browser's. Its buttons are Android's, over it: play or pause,
+   * and stop.
+   *
+   *   app small ──► "pip" on  ──► <iframe> over the page, the pop-out in it
+   *   app big   ──► "pip" off ──► the frame gone, the station as it was
+   */
+  let pipPlaying = null;
+  function pipFollow() {
+    if (!appPip || pipPlaying === player.playing) return;
+    pipPlaying = player.playing;
+    Promise.resolve(appPip.follow({ playing: player.playing })).catch(() => { });
+  }
+  if (appPip) {
+    Promise.resolve(appPip.info()).then(({ can } = {}) => { if (can) popButton.hidden = false; }, () => { });
+    appPip.addListener?.("pip", ({ on }) => (on ? pipShown() : pipGone()));
+  }
+  function appPop() {
+    if (!playable()) return;
+    if (!player.playing) togglePlay();      // popped out to hear it
+    Promise.resolve(appPip.enter()).catch(() => { });
+  }
+  function pipShown() {
+    if (pip) return;
+    const frame = document.createElement("iframe");
+    frame.className = "app-pip";
+    frame.setAttribute("aria-hidden", "true");
+    frame.style.cssText = "position:fixed;inset:0;width:100vw;height:100vh;border:0;z-index:2147483647;background:#1c1916";
+    document.body.append(frame);
+    const win = frame.contentWindow;
+    pip = {
+      frame,
+      document: win.document,
+      CSSStyleSheet: win.CSSStyleSheet,
+      requestAnimationFrame: f => requestAnimationFrame(f),
+      close: () => pipGone()
+    };
+    fillPip(pip, {
+      title: "dot-da.sh",
+      classes: { light: document.documentElement.classList.contains("light"), plain: !document.body.classList.contains("signal") },
+      css: PIP_CSS, body: PIP_BODY
+    });
+    /* Android draws its own play and stop over the window's foot, where
+       the pop-out's play is (and a tap in the window reaches Android,
+       not the page): ours keeps its place, so the time and bar don't
+       move, but isn't drawn */
+    const own = pip.document.createElement("style");
+    own.textContent = ".play { visibility: hidden; }";
+    pip.document.head.append(own);
+    popButton.setAttribute("aria-pressed", "true");
+    pip.requestAnimationFrame(pipFrame);
+  }
+  function pipGone() {
+    if (!pip?.frame) return;
+    pip.frame.remove();
+    pip = null;
+    popButton.setAttribute("aria-pressed", "false");
+    playerControls();
+  }
+
+  /* the letters loaded, as the pop-out reads them: when each starts
+     and ends, its code, its character as read, its word */
+  function pipCells() {
+    const line = player.line;
+    if (cellsOf === line) return cells;
+    cellsOf = line;
+    const p = playable();
+    const names = p ? namesFor(p.words, readingNow()).flat() : [];
+    const wordOf = p ? p.words.flatMap((w, i) => w.map(() => i)) : [];
+    cells = (line.letters ?? []).map((l, i) => ({ start: l.start, end: l.end, code: l.code, ch: names[i] ?? "", word: wordOf[i] ?? 0 }));
+    return cells;
+  }
+  function pipFrame() {
+    if (!pip) return;
+    const loaded = state.playKey !== null, pos = loaded ? player.position : 0, dur = loaded ? player.duration : 0;
+    drawPip(pip.document, pipShows(loaded ? pipCells() : [], pos, loaded && (player.playing || pos > 0)), {
+      playing: player.playing,
+      time: clock(pos) + "/" + clock(dur) + unitOf(dur),
+      done: dur ? pos / dur : 0,
+      down: player.playing && !!player.stateAt(pos).down
+    });
+    pip.requestAnimationFrame(pipFrame);
   }
 
   return {
@@ -613,4 +804,37 @@ export function createPlayback({
     isPlayerActive: () => playerActive,
     setPlayerActive
   };
+}
+
+/*
+ * The motor's steps for a message from `from` (ms into this round),
+ * for `rounds` rounds (this one included; Infinity loops), each
+ * `period` long (the message and the space after it): [ms, on, …],
+ * and the step to loop back to (-1: once). Rounded on the running
+ * total, so the lengths' rounding never adds up into drift.
+ */
+export function buzzSteps(line, from, rounds, period) {
+  const steps = [];
+  let done = 0;       // ms handed out so far (whole)
+  const to = (until, on) => {
+    const ms = Math.round(until) - done;
+    if (ms > 0) { steps.push(ms, on ? 1 : 0); done += ms; }
+  };
+  const round = (base, start, last) => {
+    for (const m of line.marks) {
+      if (m.end <= start) continue;
+      to(base + Math.max(m.start, start) - from, false);
+      to(base + m.end - from, true);
+    }
+    if (!last) to(base + period - from, false);
+  };
+  round(0, from, rounds <= 1);
+  let loop = -1;
+  if (rounds === Infinity) {
+    loop = steps.length / 2;
+    round(period, 0, false);
+  } else {
+    for (let r = 1; r < rounds; r++) round(r * period, 0, r === rounds - 1);
+  }
+  return { steps, loop };
 }

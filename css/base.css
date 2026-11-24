@@ -103,10 +103,12 @@ a {
 /* the fill on hover is this site's pages', not the station's: it has
    its own language (grey, brass to the pointer, paper when on; station.css).
    :where keeps the selector's weight as it was */
-:where(body:not(.tx)) a:hover {
-  background: var(--paper);
-  color: var(--bakelite);
-  text-decoration: none;
+@media (hover: hover) {   /* a touch leaves :hover behind: a tapped one stayed filled, its own paper text lost in it */
+  :where(body:not(.tx)) a:hover {
+    background: var(--paper);
+    color: var(--bakelite);
+    text-decoration: none;
+  }
 }
 
 :focus-visible {
@@ -266,7 +268,10 @@ body:not(.tx, .hero) > .top.stuck::before { border-bottom-color: var(--wire); }
    "#", then the crumbs before it fold) */
 .crumbs li:last-child { flex: 0 1 auto; }
 .crumbs li.section { flex: 0 100 auto; min-width: 5.5ch; }   /* "#" and its chevron, always */
-.crumbs li:has(> h1) { flex: 0 0.01 auto; }   /* (gives way too, but last) */
+.crumbs li:has(> h1) { flex: 0 1 auto; }   /* (gives way too, but last: 1 to the section's 100.
+                                            Not 0.01: left the only one to shrink, a factor
+                                            under 1 takes only that share of what's over, and
+                                            the section ran on under share) */
 .crumbs li.section .crumb-name { min-width: 0; }
 
 .top .crumbs li + li { margin: 0; }
@@ -403,6 +408,22 @@ body:not(.tx, .hero) > .top.stuck::before { border-bottom-color: var(--wire); }
 }
 
 .crumb-list { list-style: none; }
+
+/* the reference's copy menu (js/ref/copy-menu.js): a menu's look, by
+   the pointer, what's copied at the left and what it is at the right */
+.copy-menu {
+  position: fixed;
+  z-index: 40;
+  min-width: 12rem;
+  padding: 0.35rem 0;
+  border: 1px solid var(--graphite);
+  background: var(--bakelite);
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+}
+.copy-menu .copy-value { color: var(--paper); overflow: hidden; text-overflow: ellipsis; }
+.copy-menu .copy-what { color: var(--graphite); }
+.copy-menu button:focus-visible { outline: 1px dashed var(--brass); outline-offset: -3px; }
 
 /* a page's own list look (prose.css: a dot before each) isn't the menu's */
 .top .crumb-menu li {
@@ -709,9 +730,11 @@ button {
   cursor: pointer;
 }
 
-:where(body:not(.tx)) button:hover {   /* (not the station's: see a:hover) */
-  background: var(--paper);
-  color: var(--bakelite);
+@media (hover: hover) {   /* a touch leaves :hover behind: a tapped one stayed filled, its own paper text lost in it */
+  :where(body:not(.tx)) button:hover {   /* (not the station's: see a:hover) */
+    background: var(--paper);
+    color: var(--bakelite);
+  }
 }
 
 /* option rows: plain words, [x] checkboxes, underlined menus */
@@ -931,7 +954,36 @@ button {
 /* one tree at a time, as the layout menu says (horizontal until
    js/ref/main.js has read it); a wide one scrolls sideways */
 .tree-frame:not([data-layout="vertical"]) .tree-v,
-.tree-frame[data-layout="vertical"] .tree-h { display: none; }
+.tree-frame:not([data-layout="coin"]) .tree-coin,
+.tree-frame:is([data-layout="vertical"], [data-layout="coin"]) .tree-h { display: none; }
+
+/*
+ * The coin (js/ref/coin-tree.js): the grid tree, as the text trees
+ * look. Paper at rest; tracing (.live) the rest dims and the way
+ * lights; the landed or selected character on a paper patch. Each
+ * place a disc of the page's colour, so a line stops short of it.
+ */
+.tree-coin { white-space: normal; }
+.tree-coin svg { display: block; overflow: visible; }
+.tree-coin .line { stroke: var(--paper); stroke-width: 1; transition: stroke 0.08s linear; }
+.tree-coin .mark { fill: var(--paper); transition: fill 0.08s linear; }
+.tree-coin .disc { fill: var(--bakelite); }
+.tree-coin text { fill: var(--paper); font-family: var(--mono); font-size: 13px; font-synthesis: none; transition: fill 0.08s linear; }
+.tree-coin .lbl:not(.blank) { cursor: pointer; }
+.tree-coin .blank text { fill: var(--dim); }
+.tree-coin .stub { fill: none; stroke: var(--dim); stroke-width: 1; }
+.tree-coin .off-row:not(.on) text { fill: var(--dim); }   /* a group's page: the way to its rows greyed */
+.tree-coin .root { fill: var(--paper); }
+.tree-coin.live .step:not(.on) .line { stroke: var(--dim); }
+.tree-coin.live .step:not(.on) .mark,
+.tree-coin.live .root:not(.on) { fill: var(--dim); }
+.tree-coin.live .lbl:not(.on) text { fill: var(--dim); }
+.tree-coin .lbl.on text { font-weight: 700; }
+.signal .tree-coin .step.on.dot :is(.line, .mark) { stroke: var(--dot); fill: var(--dot); }
+.signal .tree-coin .step.on.dash :is(.line, .mark) { stroke: var(--dash); fill: var(--dash); }
+.signal .tree-coin .step.on .line { fill: none; }
+.tree-coin :is(.landed, .lbl.selected) .disc { fill: var(--paper); }
+.tree-coin :is(.landed, .lbl.selected) text { fill: var(--bakelite) !important; }
 
 /* the canvas: as wide as the tree (the frame at most), with replay
    at its top left and expand at its top right. They ride on a row
@@ -1362,7 +1414,7 @@ body.tree-expanded { overflow: hidden; }
   text-decoration: underline dotted;
   text-underline-offset: 0.25em;
 }
-:where(body:not(.tx)) .flag-word:hover { background: transparent; color: var(--brass); }
+@media (hover: hover) { :where(body:not(.tx)) .flag-word:hover { background: transparent; color: var(--brass); } }
 
 /* the chart's order (A–Z, most used first …), under the bar */
 .chart-options { justify-content: center; margin-bottom: 0.6rem; }
@@ -1401,7 +1453,7 @@ body.tree-expanded { overflow: hidden; }
 .stroke-player .play.on .i-pause { display: inline; }
 .stroke-player .repeat { position: relative; color: var(--wire); }
 .stroke-player .repeat[aria-pressed="true"] { color: var(--paper); }
-.stroke-player .repeat::after { position: absolute; right: 0; top: -0.3em; font-size: 0.7rem; font-weight: 700; line-height: 1; color: var(--brass); }
+.stroke-player .repeat::after { position: absolute; right: 0; top: -0.3em; font-size: 0.8rem; font-weight: 700; line-height: 1; color: var(--brass); }
 .stroke-player .repeat[data-repeat="three"]::after { content: "3"; }
 .stroke-player .repeat[data-repeat="on"]::after { content: "∞"; }
 .stroke-player .seek-wrap { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; }
@@ -1458,6 +1510,10 @@ body.tree-expanded { overflow: hidden; }
 .morse-code.cards :is(.morse-letters, .morse-numbers, .morse-symbols, .lists[data-list="prosigns"]) { display: none; }
 .list-grid > .tile-grid { grid-column: 1 / -1; contain: inline-size; }
 .tile-grid a { display: block; color: inherit; text-decoration: none; }
+/* the list's row padding (.morse-code li a, below) isn't a card's: it
+   set the link 0.5ch left of the card it holds, so a tap's highlight
+   (Android's) lit a strip beside the card and missed its right edge */
+.morse-code .tile-grid li a { display: block; padding: 0; }
 .tile-grid a:hover { background: transparent; }   /* not the page's paper block: it overran the border */
 .tile-grid .card-tile { font-size: 0.6rem; }
 @media (hover: hover) {
@@ -1495,7 +1551,7 @@ body.tree-expanded { overflow: hidden; }
 .ref-pop::backdrop { background: color-mix(in srgb, var(--bakelite) 60%, transparent); }
 .ref-pop .frame-label { left: 0.8rem; }
 .ref-pop .close { position: absolute; top: 0.1rem; right: 0.3rem; border: 0; padding: 0 0.3rem; color: var(--graphite); }
-:where(body:not(.tx)) .ref-pop .close:hover { background: transparent; color: var(--brass); }
+@media (hover: hover) { :where(body:not(.tx)) .ref-pop .close:hover { background: transparent; color: var(--brass); } }
 .ref-pop p + p, .ref-pop pre + p { margin-top: 0.6rem; }
 .cards-sketch { margin: 0.6rem 0; font-family: var(--mono); font-size: 0.85rem; line-height: 1.2; color: var(--graphite); white-space: pre; overflow-x: auto; }
 .cards-sketch b { color: var(--paper); }
@@ -1983,6 +2039,14 @@ body:not(.signal) :is(.morse-code, .card) .stroked .fill circle { fill: var(--pa
   height: 0;
   padding-block: 0;
   overflow: hidden;
+}
+/* finding (js/ref/main.js): both rows, so a question is found with
+   "ask" off (QRL? by "busy") and an answer with it on */
+.morse-code.finding[data-q="answer"] .lists li[data-ask] a,
+.morse-code.finding[data-q="ask"] .lists[data-list="q-codes"] li:not([data-ask]) a {
+  visibility: visible;
+  height: auto;
+  overflow: visible;
 }
 
 /* phones: the outer columns are narrow, so a long code (a Q code with

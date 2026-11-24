@@ -28,6 +28,8 @@ import { createTrace } from "../shared/trace.js";
 import { lightSyllable } from "../core/stair.js";
 import { PAGES } from "./pages.js";
 import { renderPhrases } from "./phrases.js";
+import { copyMenus } from "./copy-menu.js";
+import { createCoinTree } from "./coin-tree.js";
 
 
 const WPM = 20;
@@ -99,8 +101,10 @@ function getPayload() {
 
 const trees = [
   createTree($("#tree-h"), "horizontal", { follow: true }),   // wider than the frame: the trace keeps in view
-  createTree($("#tree-v"), "vertical", { follow: true })
+  createTree($("#tree-v"), "vertical", { follow: true }),
+  createCoinTree($("#tree-coin"))   // the coin's: every step along or down
 ];
+const coin = () => $("#opt-layout").value === "coin";
 
 let model = null;
 
@@ -139,6 +143,8 @@ function drawTrees() {
   trees[1].setLayout(branchy ? "branchesV" : "vertical");
   model = currentModel();
   $(".tree-frame").dataset.layout = $("#opt-layout").value;   // first: a tree measures its fit while it shows
+  /* the coin has one look and one size: style and size are the text trees' */
+  $("#opt-style").disabled = $("#opt-size").disabled = coin();
   trees.forEach(tree => tree.render(model, compactMode()));
   for (const s of document.querySelectorAll(".tree-frame .tree .lbl[data-code]")) {
     s.classList.toggle("selected", s.dataset.code === selected);
@@ -152,10 +158,25 @@ function drawTrees() {
 }
 
 /* the wide tree, wider than the frame: scrolled so its root is in
-   the middle (on load, and when the layout or the tree changes) */
+   the middle (on load, and when the layout or the tree changes). And
+   whenever the page is shown: come back to it (Back, or the app
+   brought up again) and it may be the page as it was left, the tree
+   still scrolled to the last letter it followed. Again once the
+   fonts are in (they can widen it) and if its box changes size,
+   unless the reader has moved it themselves */
 function centreTree() {
+  if (coin()) return trees[2].centre();
   const t = $("#tree-h");
   t.scrollLeft = (t.scrollWidth - t.clientWidth) / 2;
+}
+{
+  const t = $("#tree-h");
+  let theirs = false;
+  for (const type of ["pointerdown", "wheel", "keydown"]) t.addEventListener(type, () => { theirs = true; }, { passive: true });
+  const again = () => { if (!theirs) centreTree(); };
+  document.fonts?.ready.then(again);
+  new ResizeObserver(again).observe(t);
+  addEventListener("pageshow", event => { if (event.persisted) { theirs = false; centreTree(); } });
 }
 
 
@@ -198,6 +219,16 @@ function fitExpanded() {
   for (const pre of [$("#tree-h"), $("#tree-v")]) pre.style.fontSize = "";
   drawTrees();
   if (!expanded) return;
+  /* the coin: its picture scaled to the room, as far as three times */
+  if (coin()) {
+    const svg = $("#tree-coin svg"), pad = getComputedStyle($(".tree-wrap")), MARGIN = 32 + 2;
+    const w = innerWidth - MARGIN - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight);
+    const h = innerHeight - MARGIN - parseFloat(pad.paddingTop) - parseFloat(pad.paddingBottom);
+    const box = svg.viewBox.baseVal, k = Math.min(w / box.width, h / box.height, 3);
+    svg.setAttribute("width", Math.floor(box.width * k));
+    svg.setAttribute("height", Math.floor(box.height * k));
+    return;
+  }
   /* the room: the screen, less the popup's margin, border and padding
      (the popup itself hugs the tree, so it can't be the measure) */
   const pad = getComputedStyle($(".tree-wrap")), MARGIN = 32 + 2;
@@ -257,8 +288,9 @@ keyer.on(event => {
 /* Click a node to select it (and play just that character). */
 for (const tree of trees) {
   tree.element.addEventListener("click", event => {
-    const code = event.target.dataset?.code;
-    if (event.target.dataset?.kind === "lbl" && code && !event.target.classList.contains("blank")) {
+    const lbl = event.target.closest?.('[data-kind="lbl"]');   // (the coin's: a group round the letter)
+    const code = lbl?.dataset.code;
+    if (code && !lbl.classList.contains("blank")) {
       select(code);
     }
   });
@@ -719,7 +751,6 @@ for (const code of document.querySelectorAll(".morse-code .code")) {
   const box = $(".stroke-player");
   const play = box.querySelector(".play"), seek = box.querySelector(".seek"), repeat = box.querySelector(".repeat");
   const wpm = box.querySelector(".wpm"), turn = box.querySelector(".turn"), round = $("#opt-circles"), time = box.querySelector(".time");
-  const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
   const pressed = b => b.getAttribute("aria-pressed") === "true";
   const press = (b, on) => b.setAttribute("aria-pressed", String(on));
   const REST = 900;   // ms between rounds, every letter finished
@@ -859,7 +890,7 @@ for (const code of document.querySelectorAll(".morse-code .code")) {
   };
   strokes.addEventListener("change", () => {
     shown();
-    if (strokes.checked && !still()) { round_ = 0; start(0); }
+    if (strokes.checked) { round_ = 0; start(0); }   // ticked: asked for, so it plays even with less motion
   });
   for (const id of ["#opt-cards", "#opt-chart-cut", "#opt-chart-order"]) $(id).addEventListener("change", () => { if (strokes.checked) rest(); });
   shown();
@@ -935,7 +966,8 @@ keepOffline();
  * entries below narrowed to what's typed. Marks find by their marks
  * (".-" finds A and the rest that start with it, spaces between a
  * word's letters or not), anything else by name, how it's said or
- * what it means. Enter goes to the first one's page.
+ * what it means. Enter goes to the first one's page. A Q code's
+ * question and answer are both found, whichever "ask" shows.
  *
  *   ┌ find ──────────────┐        ┌ the alphabet ───────┐
  *   │ .--                │   →    │ .--   W   .--.  P   │ …
@@ -955,6 +987,7 @@ keepOffline();
       const q = box.value.trim().toLowerCase();
       const marks = /^[.\-\s/_]+$/.test(q) ? q.replace(/[\s/_]/g, "") : null;
       let any = false;
+      $(".morse-code").classList.toggle("finding", !!q);   // both a Q code's rows, the question and the answer
       for (const li of entries()) {
         const hit = !q || (marks ? marksOf(li).startsWith(marks) : wordsOf(li).includes(q));
         li.classList.toggle("unfound", !hit);
@@ -973,6 +1006,16 @@ keepOffline();
     for (const id of ["#opt-cards", "#opt-order", "#opt-chart-order", "#opt-ask"]) $(id)?.addEventListener("change", () => setTimeout(run));
   }
 }
+
+/* a row's or a card's copy menu: right-click, or hold (js/ref/copy-menu.js) */
+copyMenus({
+  rows: ".morse-code li:not(.phrase) a",   // the chart's rows, and the cards drawn from them
+  /* a card is drawn from its row: the same link */
+  entryOf: a => (a.closest(".tile-grid")
+    ? [...document.querySelectorAll(".morse-code li a")].find(row => !row.closest(".tile-grid") && row.href === a.href) ?? a
+    : a),
+  pageOf: marks => (PAGES[marks] ? `/ref/${PAGES[marks]}/` : null)
+});
 
 /* the phrases, under the abbreviations (js/ref/phrases.js): on the
    reference and the whole chart (a group's page has them hidden) */

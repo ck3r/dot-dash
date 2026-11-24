@@ -384,11 +384,22 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
   function openReport(open) {
     $("#report-pop").hidden = !open;
     $("#report").setAttribute("aria-expanded", String(open));
-    if (open) $("#report-copy").focus({ preventScroll: true });
+    if (open) $("#report-send").focus({ preventScroll: true });
   }
+  /* send: the report in an email, from the sender's own app. The +
+     as %2B: some mail apps read a bare + in a mailto as a space */
+  const mailto = text => "mailto:cq%2Bbugs@dot-da.sh"
+    + "?subject=" + encodeURIComponent("dot-da.sh report")
+    + "&body=" + encodeURIComponent("What happened:\n\n\n" + text);
   $("#report").addEventListener("click", async () => {
-    $("#report-text").textContent = await report();
+    const text = await report();
+    $("#report-text").textContent = text;
+    $("#report-send").href = mailto(text);
     openReport(true);
+  });
+  $("#report-send").addEventListener("click", () => {
+    toast("opening your email app: add a line on what happened");
+    openReport(false);
   });
   $("#report-copy").addEventListener("click", async () => {
     try {
@@ -453,7 +464,7 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
     torchTimed();     // how fast it switches is known now: playback's pace follows
   }
   $("#opt-light").addEventListener("change", () => {
-    outputs.quiet();
+    outputs.quiet({ keepScript: true });     // the light changed: playback's buzz goes on
     if (choice("#opt-light") !== "torch") outputs.releaseTorch();
     wantTorch();
   });

@@ -75,6 +75,7 @@ export function createOutputs({ settings, lampTarget, overlay }) {
   let again = 0;
 
   function vibrate(on) {
+    if (scripted) return;                           // playback has the motor (script)
     if (on && !settings().vibrate) return;
     if (!on && !buzzing) return;                    // nothing to stop
     if (motor) {
@@ -93,6 +94,26 @@ export function createOutputs({ settings, lampTarget, overlay }) {
         navigator.vibrate(0);
       }
     } catch { }
+  }
+
+  /* Playback in the app: the whole message to the motor at once
+     (BuzzPlugin play(); station/player.js makes the steps), so it
+     keeps time with no page frames to follow. While it has the motor
+     the signal leaves vibration alone. script(null) ends it.
+     → whether the motor took it (the web's navigator.vibrate is left
+     to follow the signal: Chrome cuts a long pattern short). */
+  let scripted = false;
+  function script(steps, loop = -1) {
+    if (!steps) {
+      if (scripted) motor.off().catch(() => { });
+      scripted = false;
+      return false;
+    }
+    if (!motor || !settings().vibrate || !steps.length) return script(null);
+    if (buzzing) { buzzing = false; motor.off().catch(() => { }); }
+    scripted = true;
+    motor.play({ steps, loop, strength: settings().strength }).catch(() => { scripted = false; });
+    return true;
   }
 
   /* a short buzz to feel the setting (call it from a tap) */
@@ -213,17 +234,21 @@ export function createOutputs({ settings, lampTarget, overlay }) {
     vibrate(down);
   }
 
-  /* drop everything (page hidden, outputs switched off) */
-  function quiet() {
+  /* drop everything (page hidden, outputs switched off). keepScript:
+     a message being played keeps the motor it was handed (script),
+     as when the keys let go as the page is put away: playback goes on
+     out of sight, its tone and its buzz, since that's the point */
+  function quiet({ keepScript = false } = {}) {
     down = false;
     lampTarget.classList.remove("lit");
     overlay.flash(false);
     torch(false);
+    if (!keepScript) script(null);
     vibrate(false);
   }
 
   return {
-    signal, quiet, torchReady, releaseTorch, testBuzz, softens,
+    signal, quiet, script, torchReady, releaseTorch, testBuzz, softens,
     get down() { return down; },
     get torchLag() { return torchLag; }
   };

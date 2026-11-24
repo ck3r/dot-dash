@@ -4,9 +4,14 @@
  * can always be paused or stopped from outside the page.
  *
  *   createMediaControls() → {
- *     follow(playing, words, { position, duration })
+ *     follow(playing, words, { position, duration, period, repeat, art })
  *                              in step with the player, after any change
- *                              (ms: where it is, and the whole message)
+ *                              (ms: where it is, and the whole message);
+ *                              the app's card only: period, one time
+ *                              through and the space after it; repeat,
+ *                              off / three / on; art, { key, frames() }
+ *                              its pictures (js/station/card-art.js),
+ *                              made when the key is new
  *     handle(action, fn)       a button there: play, pause, stop, seekto
  *                              (fn({ seekTime }), in seconds)
  *   }
@@ -43,7 +48,7 @@
  *   follow() ──► navigator.mediaSession            (the web: Chrome's card)
  *            └─► Capacitor.Plugins.Media.follow()  (the app: its own card)
  */
-import { format } from "../core/morse.js";
+import { format, pretty } from "../core/morse.js";
 import { inApp } from "../core/where.js";
 import { plainText } from "./state.js";
 
@@ -73,12 +78,13 @@ export function createMediaControls() {
   const card = appCard();
   let told = null;      // what the app's card was last told, and when
 
-  function follow(playing, words, { position = 0, duration = 0 } = {}) {
+  function follow(playing, words, { position = 0, duration = 0, period = duration, repeat = "off", art = null } = {}) {
     const session = navigator.mediaSession;
     if (session) session.playbackState = playing ? "playing" : "paused";
     place(session, position, duration);
     const now = words?.length ? plainText(words) ?? format(words) : null;
-    tell(playing, now, position, duration);
+    if (card && playing) paint(art);
+    tell(playing, now, position, duration, { morse: words?.length ? pretty(words) : "", period, repeat });
     if (!playing) {
       track?.pause();
       return;
@@ -101,16 +107,30 @@ export function createMediaControls() {
      bar would have got to by itself (a seek), give or take a beat.
      The player asks after every change, and each call crosses the
      bridge. */
-  function tell(playing, now, position, duration) {
+  function tell(playing, now, position, duration, { morse, period, repeat }) {
     if (!card) return;
     const at = performance.now();
     const name = now ?? "Morse";
-    if (told && told.playing === playing && told.title === name && told.duration === duration) {
+    if (told && told.playing === playing && told.title === name && told.duration === duration
+        && told.period === period && told.repeat === repeat) {
       const expected = told.position + (playing ? at - told.at : 0);
       if (Math.abs(expected - position) < 250) return;
     }
-    told = { playing, title: name, duration, position, at };
-    Promise.resolve(card.follow({ playing, title: name, position, duration })).catch(() => { /* no card, the sound still plays */ });
+    told = { playing, title: name, duration, position, at, period, repeat };
+    Promise.resolve(card.follow({ playing, title: name, morse, position, duration, period, repeat }))
+      .catch(() => { /* no card, the sound still plays */ });
+  }
+
+  /* The card's pictures, once for each message as it's drawn (its
+     look, its speed): made as it starts to play, before follow() says
+     so, so the app has them to swap from the start. */
+  let painted = null;
+  function paint(art) {
+    if (!art || art.key === painted) return;
+    painted = art.key;
+    let frames = [];
+    try { frames = art.frames(); } catch { /* no pictures: the card keeps the icon */ }
+    Promise.resolve(card.art?.({ frames })).catch(() => { });
   }
 
   /* a button on the card: the web's media session and the app's both */

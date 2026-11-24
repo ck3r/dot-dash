@@ -284,7 +284,11 @@ function played(code) {
   });
 }
 
-const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+/* less motion asked for: what moves by itself stays still (a card
+   drawing itself as it opens). What the reader asks for (a tap on a
+   card, its tree, its line; play) still moves: it's theirs, and the
+   drawing is what they asked to see. Hence `asked` below */
+const still = (asked = false) => !asked && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /* a tile's letter played through to its end (strokes.js "keyed"): its
    border lights paper a moment, as the letter itself is lit */
@@ -349,12 +353,13 @@ async function copy(text, part, flash) {
 /*
  * A tile's letter drawn again, as its marks sound (the card's own
  * glyph does the same, drawGlyph below): for a tile out on its own,
- * the reference's cards. Still: just the whole letter.
+ * the reference's cards: always a tap's, so it moves even with less
+ * motion asked for.
  */
 const tileFrames = new WeakMap();
 export function playTile(letter, code) {
   cancelAnimationFrame(tileFrames.get(letter));
-  if (still()) { letter.at(Infinity); return; }
+  if (still(true)) { letter.at(Infinity); return; }
   const end = played(code).at(-1).end, t0 = performance.now();
   const tick = now => {
     letter.at(now - t0);
@@ -456,7 +461,7 @@ export function renderCard(element, code, { say: speak, openCut, openHeard, flas
   const tree = make("span", "card-tree");
   /* tapped (not on a character: that's its card), it walks down again */
   tree.title = "walk it again";
-  tree.addEventListener("click", event => { if (!event.target.closest("a")) walkTree(); });
+  tree.addEventListener("click", event => { if (!event.target.closest("a")) walkTree(true); });
   const has = c => !!(DECODE[c] ?? treeChar(c));
   const kids = [code + ".", code + "-"];
   function drawTree(at) {
@@ -479,9 +484,9 @@ export function renderCard(element, code, { say: speak, openCut, openHeard, flas
      them, as far as the tree goes), its way lit; it walks with the little one */
   const whole = drawFull(full, code);
   let steps = [];
-  function walkTree() {
+  function walkTree(asked) {
     steps.forEach(clearTimeout);
-    if (still()) { whole?.(code); return drawTree(code); }
+    if (still(asked)) { whole?.(code); return drawTree(code); }
     drawTree("");
     whole?.("");
     steps = marksAt.map(({ start }, k) => setTimeout(() => { drawTree(code.slice(0, k + 1)); whole?.(code.slice(0, k + 1)); }, start));
@@ -518,7 +523,7 @@ export function renderCard(element, code, { say: speak, openCut, openHeard, flas
   const { el: tile, letter } = renderTile(code);
   tile.classList.add("card-tap");
   tile.title = "play the card again";
-  tile.addEventListener("click", () => { replay(element); drawGlyph(); walkTree(); });
+  tile.addEventListener("click", () => { replay(element); drawGlyph(true); walkTree(true); });
 
   tileBox.append(tile);
 
@@ -632,10 +637,10 @@ export function renderCard(element, code, { say: speak, openCut, openHeard, flas
 
   /* the glyph draws itself as the marks go by, once (again with the card) */
   let frame = 0;
-  function drawGlyph() {
+  function drawGlyph(asked) {
     if (!letter) return;
     cancelAnimationFrame(frame);
-    if (still()) { letter.at(Infinity); return; }
+    if (still(asked)) { letter.at(Infinity); return; }
     const t0 = performance.now();
     const tick = now => {
       letter.at(now - t0);
@@ -710,9 +715,9 @@ export function renderWord(element, word, { means, flash } = {}) {
 
   /* each letter draws itself in its turn, once (again with the line) */
   let frame = 0;
-  function draw() {
+  function draw(asked) {
     cancelAnimationFrame(frame);
-    if (still()) { for (const d of drawn) d.letter?.at(Infinity); return; }
+    if (still(asked)) { for (const d of drawn) d.letter?.at(Infinity); return; }
     const t0 = performance.now();
     const tick = now => {
       for (const d of drawn) d.letter?.at(Math.max(0, now - t0 - d.from));
@@ -720,7 +725,7 @@ export function renderWord(element, word, { means, flash } = {}) {
     };
     tick(t0);
   }
-  line.addEventListener("click", event => { if (!event.target.closest("a")) draw(); });
+  line.addEventListener("click", event => { if (!event.target.closest("a")) draw(true); });
   draw();
   element._stop = () => cancelAnimationFrame(frame);
 }

@@ -16,6 +16,9 @@
  *              ━
  *              J
  *
+ * The watch app's tree (js/design/watch-app.js, drawGrid) and the
+ * reference's "coin" layout (js/ref/grid-tree.js, gridOf) both.
+ *
  * gridOf(codes)   every code (and its prefixes) to its [column, row]:
  *                 columns - to the left (dots), + to the right
  *                 (dashes), rows down

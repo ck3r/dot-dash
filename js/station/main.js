@@ -345,7 +345,7 @@ const sound = createSound();
 const { keyer, trainView, logo, ctrlPaddle, isChord, setKeyMode, syncKeySelect, cancelTaps, soundLetter } = createKeys({
   state, sound, press, send, putKeysAway, setMode, showInput,
   setSignal: down => setSignal(down), playing: () => player.playing, traceLive: down => trace.live(down),
-  stopPlayback: () => stopPlayback(), quietOutputs: () => outputs?.quiet()
+  stopPlayback: () => stopPlayback(), quietOutputs: () => outputs?.quiet({ keepScript: true })
 });
 
 
@@ -693,6 +693,7 @@ const {
   player, trace, playerControls, togglePlay, stopPlayback, messageKey, shareable, tapeRedrawn, isPlayerActive, setPlayerActive, retimed
 } = createPlayback({
   state, sound, keyer, tree, trainView, tab, timingNow: playTiming, speedNote, choice, cancelTaps, setSignal,
+  buzzScript: (steps, loop) => outputs.script(steps, loop),
   wantsLamp, lampOk, askLamp, openLamp, closeLamp,
   drawLocal, drawTree, settleTape, fadeTape, followNode, inTree, REAL, isTreeOpen
 });

@@ -97,6 +97,8 @@
         </div>
         <pre class="tree tree-h" id="tree-h" aria-label="Morse tree: dot branches left, dash branches right"></pre>
         <pre class="tree tree-v" id="tree-v" aria-label="Morse tree: dot branches up, dash branches down"></pre>
+        <!-- the coin's layout: every step along or down (js/ref/coin-tree.js) -->
+        <div class="tree tree-coin" id="tree-coin" aria-label="Morse tree as on a coin: dots to the left, dashes to the right, the other mark a step down"></div>
       </div>
 
       <fieldset class="options options-look">
@@ -105,6 +107,7 @@
           <select id="opt-layout">
             <option value="horizontal" selected>horizontal</option>
             <option value="vertical">vertical</option>
+            <option value="coin">coin</option>
           </select>
         </label>
         <label class="pick">style

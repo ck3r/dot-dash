@@ -100,6 +100,8 @@
       <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-play" viewBox="0 0 24 24"><path d="M7 4.5 19 12 7 19.5Z"/></symbol>
       <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-pause" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M6.5 5h3.5v14H6.5zM14 5h3.5v14H14z"/></symbol>
       <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-repeat" viewBox="0 0 24 24"><!-- drawn a size up about its middle, its circle as tall as ▷ beside it (15 of 24); the line as thick as the others' --><g transform="translate(12 12) scale(1.07) translate(-12 -12)"><path vector-effect="non-scaling-stroke" d="M19 12a7 7 0 1 1-2.05-4.95"/><path vector-effect="non-scaling-stroke" d="M19.5 4v4.5H15"/></g></symbol>
+      <!-- the pop-out: a window with a smaller one in its corner, as the extension's card draws it -->
+      <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" id="i-pop" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><rect x="12" y="11.5" width="6" height="4.5" rx="0.8" fill="currentColor"/></symbol>
       <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-sound" viewBox="0 0 24 24"><path d="M14 17.5V4.5c1.5 1.5 4.5 2.5 4.5 6"/><ellipse fill="currentColor" stroke="none" cx="10.5" cy="17.5" rx="3.5" ry="2.8" transform="rotate(-20 10.5 17.5)"/></symbol>
       <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-light" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.8"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></symbol>
       <symbol fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="i-vibrate" viewBox="0 0 24 24"><path d="M3 7.5c3-2.6 6 2.6 9 0s6 2.6 9 0M3 12c3-2.6 6 2.6 9 0s6 2.6 9 0M3 16.5c3-2.6 6 2.6 9 0s6 2.6 9 0"/></symbol>
@@ -402,7 +404,18 @@
       <p>This is everything it holds: the version, this device, the
       settings and the last errors. Never a message.</p>
       <pre id="report-text" class="report-text" tabindex="0"></pre>
+      <!-- send: a mailto (its href made on open, js/station/settings.js),
+           so it goes from the sender's own email app, to their own
+           address's reply; nothing passes through the site. email_off:
+           Cloudflare would scramble the address shown (privacy/) -->
+      <!--email_off-->
+      <p class="report-note">Send opens your email app with it, to
+      cq+bugs@dot-da.sh; add a line on what happened. The reply goes to
+      the address it's sent from, used for nothing else. Maybe
+      it's in the manual's <a id="report-trouble" href="/manual/#troubleshooting" target="_blank" rel="noopener">troubleshooting ↗</a></p>
+      <!--/email_off-->
       <div class="actions">
+        <a id="report-send" class="quiet" href="mailto:cq+bugs@dot-da.sh">send</a>
         <button type="button" id="report-copy" class="quiet">copy</button>
         <button type="button" id="report-cancel" class="quiet">cancel</button>
       </div>
@@ -507,6 +520,18 @@
     <p class="profile-note" id="profile-empty">Key something: letters, words and fixes count from any key; speed and the slowest letters need a timed one (straight, bug, a paddle).</p>
     <button type="button" id="profile-clear" class="quiet popup-clear">clear stats</button>
 
+    <!-- the profile as a file, to keep or to move to another device
+         (js/station/profile.js): the settings and stats, never a message -->
+    <div class="profile-file">
+      <p class="profile-since">on another device</p>
+      <div class="actions">
+        <button type="button" id="profile-save" class="quiet">save to a file</button>
+        <button type="button" id="profile-load" class="quiet">load a file</button>
+        <input type="file" id="profile-file" accept=".json,application/json" hidden>
+      </div>
+      <p class="profile-note" id="profile-file-note">Your settings, stats and wear, and the games' bests; never your messages. Loading one replaces this device's.</p>
+    </div>
+
     <div class="profile-practice">
       <p class="profile-since">copy practice, Koch order</p>
       <p class="koch-row">
@@ -609,6 +634,9 @@
         </span>
         <div class="seek-pop" hidden aria-hidden="true"><canvas></canvas></div>
         <button type="button" id="repeat" class="repeat" aria-pressed="false" aria-label="repeat" title="repeat"><svg class="ico" aria-hidden="true"><use href="#i-repeat"/></svg></button>
+        <!-- the message going out, in a small window on top of the others
+             (Chrome and Edge; elsewhere it stays hidden): js/station/player.js -->
+        <button type="button" id="pop" class="pop" aria-pressed="false" aria-label="pop out" title="pop out: the message as it plays, in a small window on top of the others" hidden><svg class="ico" aria-hidden="true"><use href="#i-pop"/></svg></button>
       </div>
       <!-- the input modes: one switch, a press anywhere on it flips
            (hold for the list of keys; swipe it down to put the keys

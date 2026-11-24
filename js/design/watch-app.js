@@ -25,7 +25,7 @@ import { timeline } from "/js/shared/playback.js";
 import { STROKES, createLetter } from "/js/core/strokes.js";
 import { STRESS, spokenOf, syllablesOf, layStair } from "/js/core/stair.js";
 import { createStrikes } from "/js/game/strikes.js";
-import { drawGrid } from "./watch-grid.js";
+import { drawGrid } from "../shared/grid-tree.js";
 
 const LETTERS = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
 const CHARS = [...LETTERS, ..."1234567890"];
@@ -602,8 +602,9 @@ export function createApp({ watch, screen, options, toggle = () => { } }) {
   }
 
   /* Chart: the letters as a coin has them, in rows, each with its marks
-     under it. UP and DOWN go through them, each sounding; START sounds
-     the one lit again; a tap sounds the one tapped */
+     over it (read the marks, then what they make). UP and DOWN go
+     through them, each sounding; START sounds the one lit again; a tap
+     sounds the one tapped */
   const CHART = ["ABCDE", "FGHIJ", "KLMNO", "PQRST", "UVWX", "YZ"];
   function chartScreen() {
     let at = 0;
@@ -620,12 +621,12 @@ export function createApp({ watch, screen, options, toggle = () => { } }) {
           [...row].forEach((ch, c) => {
             const x = 120 + (c - (row.length - 1) / 2) * 36, code = ENCODE[ch];
             const on = LETTERS[at] === ch;
-            body += `<g class="cell${on ? " on" : ""}" data-ch="${ch}"><rect class="hit" x="${x - 17}" y="${y - 13}" width="34" height="27"/><text x="${x}" y="${y}">${ch}</text>`;
+            body += `<g class="cell${on ? " on" : ""}" data-ch="${ch}"><rect class="hit" x="${x - 17}" y="${y - 13}" width="34" height="27"/><text x="${x}" y="${y + 7}">${ch}</text>`;
             const w = [...code].reduce((s, m) => s + (m === "." ? 3 : 8) + 1.5, -1.5);
             let mx = x - w / 2;
             for (const m of code) {
               const mw = m === "." ? 3 : 8;
-              body += `<rect class="m ${m === "." ? "dot" : "dash"}" x="${mx}" y="${y + 5}" width="${mw}" height="3"/>`;
+              body += `<rect class="m ${m === "." ? "dot" : "dash"}" x="${mx}" y="${y - 9}" width="${mw}" height="3"/>`;   // over the letter
               mx += mw + 1.5;
             }
             body += "</g>";

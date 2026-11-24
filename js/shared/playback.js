@@ -18,7 +18,7 @@
  *     lineOf(words, rec)  the timeline, if not timing's (the voice)
  *     load(words)     set the message (array of words of codes)
  *     play()  pause()  stop()  seek(ms)
- *     playing, position, duration
+ *     playing, position, duration, round (which time through, from 0)
  *
  *   frame(state)  every animation frame while playing / seeking:
  *     { position, duration, down, symbol, letter, mark, path }
@@ -295,6 +295,8 @@ export function createPlayer({ sound, timing, lineOf = (words, rec) => timeline(
     get playing() { return playing; },
     get position() { return current(); },
     get duration() { return line.duration; },
+    get round() { return playing ? viewRound : 0; },   // which time through (repeat), from 0
+    get line() { return line; },             // the timeline: its letters, for the pop-out
     get loaded() { return line.marks.length > 0; }
   };
 }
