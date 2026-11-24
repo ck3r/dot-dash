@@ -194,6 +194,20 @@ export function createPlayer({ sound, timing, lineOf = (words, rec) => timeline(
 
   function schedule() {
     const t = elapsed();
+    /* Out of sight (the tab behind another, the app put away, the
+       screen off) there are no frames, so loop() never sees the end:
+       the sound stops, yet the player, and the system's card with it,
+       would say playing until it's looked at again. The scheduler still
+       runs, so it ends the message here instead. */
+    const last = rounds();
+    if (globalThis.document?.hidden && Number.isFinite(last) && t >= (last - 1) * round() + line.duration) {
+      cancelAnimationFrame(raf);
+      frame(stateAt(line.duration));
+      pause();
+      position = line.duration;
+      end();
+      return;
+    }
     const marks = cues();
     for (;;) {
       if (nextMark >= marks.length) {

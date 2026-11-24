@@ -2001,69 +2001,55 @@ body:not(.signal) :is(.morse-code, .card) .stroked .fill circle { fill: var(--pa
  *
  * A phone on its side is 360 to 410px tall: the share menu, the
  * profile, some popups and Key hero's results run past the bottom.
- * They scroll, then. But a scrolling box clips whatever pokes out of
- * it, and the label sits on the frame's top line, half above it. So
- * the box reaches up by --lift over its frame, and draws the frame
- * itself (backgrounds, fixed to the box as it scrolls) that far down:
+ * Then what's in them scrolls, inside the frame: the frame, its label
+ * on the top line and the × hold still, and the text slides under
+ * the frame's padding, never over the line.
  *
- *      ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐  the box's top: a strip dimmed as
- *       ┌─ share ─────────┐      the page behind it        ▲ --lift
- *       │  copy morse      │   the frame, drawn            ▼
- *       │  …               │   the label and the close scroll
- *       └──────────────────┘   away with what's under them
+ *       ┌─ share ─────────── × ┐   holds still
+ *       │ ┌──────────────────┐ │
+ *       │ │ copy morse       │▐│   .pop-body: scrolls
+ *       │ │ …                │ │
+ *       │ └──────────────────┘ │
+ *       └──────────────────────┘
  *
- * Unscrolled, it's where and as it was, line for line.
+ * Each popup's markup holds its content in a .pop-body; anywhere
+ * taller it's display: contents, as if it weren't there.
  */
+.pop-body { display: contents; }
+
 @media (max-height: 560px) {
-  :root :is(.popup, .share-menu),     /* :root: over station.css's own */
-  .hero .result {
-    --lift: 0.75rem;
-    --dim: color-mix(in srgb, var(--bakelite) 60%, transparent);
-    --line: linear-gradient(var(--graphite), var(--graphite));
+  :root :is(.popup, .share-menu):not([hidden]),     /* :root: over station.css's own */
+  .hero .result:not([hidden]) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .pop-body {
+    display: block;
+    min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
     scrollbar-color: var(--wire) transparent;
-    border-color: transparent;
-    background:
-      var(--line) 0 var(--lift) / 100% 1px,
-      var(--line) 0 var(--lift) / 1px 100%,
-      var(--line) 100% var(--lift) / 1px 100%,
-      var(--line) 0 100% / 100% 1px,
-      linear-gradient(var(--dim), var(--dim)) 0 0 / 100% var(--lift),
-      linear-gradient(var(--bakelite), var(--bakelite)) 0 var(--lift) / 100% 100%;
-    background-repeat: no-repeat;
-    background-origin: border-box;
   }
 
-  :is(.popup, .share-menu, .hero .result) > .frame-label {
-    top: calc(var(--lift) - 0.75em);
+  /* the share menu's rows keep their gaps */
+  .share-menu .pop-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
   }
 
-  :is(.popup, .share-menu, .hero .result) > .close {
-    margin-top: var(--lift);
-  }
-
-  /* centred: grows by --lift, so half of it up */
-  :root .popup {
-    padding-top: calc(1.1rem + var(--lift));
-    margin-top: calc(var(--lift) / -2);
-    max-height: calc(100dvh - 0.75rem);
-  }
+  /* centred, the label's half above the frame kept on screen */
+  :root .popup { max-height: calc(100dvh - 1.5rem); }
 
   /* under the share button */
-  :root .share-menu {
-    --dim: color-mix(in srgb, var(--bakelite) 55%, transparent);
-    padding-top: calc(1rem + var(--lift));
-    margin-top: calc(-1 * var(--lift));
-    max-height: calc(100dvh - var(--share-top, 3rem) + var(--lift) - 0.5rem);
-  }
+  :root .share-menu { max-height: calc(100dvh - var(--share-top, 3rem) - 0.5rem); }
 
   /* the results: over the screen rather than a share of the stage */
   .hero .result {
     position: fixed;
-    inset: 0.5rem 0 auto;
-    padding-top: calc(1rem + var(--lift));
-    max-height: calc(100dvh - 1rem);
+    inset: 0.75rem 0 auto;
+    max-height: calc(100dvh - 1.25rem);
   }
 }

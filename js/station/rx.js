@@ -17,7 +17,7 @@
  *
  * and above it all, in the row over the slot, after settings:
  *
- *   ⚙  Heard here only: …   open a file…  save a .wav
+ *   ⚙  not kept, never sent  open a file…  save a .wav
  *
  * It's a tape recorder. What's heard goes onto a tape (in memory,
  * the last ten minutes) as well as onto the line:
@@ -882,7 +882,7 @@ export function createRx({ state, press, unitNow, fist, logo, playing }) {
     if (light) eye.reading = aim;
     for (const side of mediumButton.querySelectorAll(".side")) side.classList.toggle("on", side.dataset.medium === medium);
     mediumButton.setAttribute("aria-label", light ? "reading light: switch to sound" : "reading sound: switch to light");
-    note.textContent = `${light ? "Seen" : "Heard"} here only: not kept, never sent.`;
+    note.textContent = "not kept, never sent";
     keys.rec.title = light ? "record: watch (the camera, or the video that's open), read as Morse onto the line" : "record: listen (the microphone), read as Morse onto the line";
     try { localStorage.setItem(MEDIUM, medium); } catch { }
     sync();

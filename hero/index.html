@@ -63,18 +63,20 @@
   <section id="share" class="share-menu" hidden aria-label="share">
     <span class="frame-label">share</span>
     <button type="button" class="close" aria-label="close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button>
-    <div class="rows">
-      <button type="button" data-do="copy-link" title="a link that opens Key hero with this text"><span>copy link</span><span class="peek"></span></button>
-      <button type="button" data-do="copy-result" title="the run just keyed, in a line, with the link"><span>copy result</span><span class="peek"></span></button>
+    <div class="pop-body">
+      <div class="rows">
+        <button type="button" data-do="copy-link" title="a link that opens Key hero with this text"><span>copy link</span><span class="peek"></span></button>
+        <button type="button" data-do="copy-result" title="the run just keyed, in a line, with the link"><span>copy result</span><span class="peek"></span></button>
+      </div>
+      <div class="rows">
+        <button type="button" data-do="share"><span>share…</span></button>
+      </div>
+      <div class="rows">
+        <a id="share-station" href="/">this text in the station ↗</a>
+      </div>
+      <p class="share-note" aria-live="polite"></p>
+      <p class="privacy">Morse is an encoding, not encryption.<br>Don't send anything private.</p>
     </div>
-    <div class="rows">
-      <button type="button" data-do="share"><span>share…</span></button>
-    </div>
-    <div class="rows">
-      <a id="share-station" href="/">this text in the station ↗</a>
-    </div>
-    <p class="share-note" aria-live="polite"></p>
-    <p class="privacy">Morse is an encoding, not encryption.<br>Don't send anything private.</p>
   </section>
 
   <main>
@@ -144,21 +146,23 @@
     <section class="result" id="card" role="dialog" hidden aria-labelledby="c-title">
       <span class="frame-label" id="c-title">RESULTS</span>
       <button type="button" class="close" id="card-close" aria-label="close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button>
-      <p class="ghost" id="c-ghost" aria-hidden="true"></p>
-      <p class="percent"><b id="c-percent"></b> <span id="c-best"></span></p>
-      <dl>
-        <div><dt>landed</dt><dd id="c-landed"></dd></div>
-        <div><dt>close</dt><dd id="c-close"></dd></div>
-        <div><dt>missed</dt><dd id="c-missed"></dd></div>
-        <div><dt>stray</dt><dd id="c-stray"></dd></div>
-        <div><dt>strikes</dt><dd id="c-strikes"></dd></div>
-        <div><dt>longest run</dt><dd id="c-streak"></dd></div>
-        <div><dt>dah to dit</dt><dd id="c-ratio"></dd></div>
-        <div><dt>on average</dt><dd id="c-lag"></dd></div>
-        <div><dt>speed at the end</dt><dd id="c-speed"></dd></div>
-      </dl>
-      <button type="button" id="again">again</button>
-      <span class="hint">or either key</span>
+      <div class="pop-body">
+        <p class="ghost" id="c-ghost" aria-hidden="true"></p>
+        <p class="percent"><b id="c-percent"></b> <span id="c-best"></span></p>
+        <dl>
+          <div><dt>landed</dt><dd id="c-landed"></dd></div>
+          <div><dt>close</dt><dd id="c-close"></dd></div>
+          <div><dt>missed</dt><dd id="c-missed"></dd></div>
+          <div><dt>stray</dt><dd id="c-stray"></dd></div>
+          <div><dt>strikes</dt><dd id="c-strikes"></dd></div>
+          <div><dt>longest run</dt><dd id="c-streak"></dd></div>
+          <div><dt>dah to dit</dt><dd id="c-ratio"></dd></div>
+          <div><dt>on average</dt><dd id="c-lag"></dd></div>
+          <div><dt>speed at the end</dt><dd id="c-speed"></dd></div>
+        </dl>
+        <button type="button" id="again">again</button>
+        <span class="hint">or either key</span>
+      </div>
     </section>
 
     <!-- two keys, both yours to time: hold each as long as its note -->
@@ -191,9 +195,11 @@
          place while a message of your own is typed -->
     <div id="kbd" class="kbd" aria-label="keyboard" hidden></div>
     <section id="hold-pop" class="result" role="dialog" aria-labelledby="hold-title" hidden>
-      <p id="hold-title"><b>hold for more</b></p>
-      <p>A key with a mark in its corner holds more: press and hold,
-      slide onto one, and let go. A quick tap is just the letter.</p>
+      <div class="pop-body">
+        <p id="hold-title"><b>hold for more</b></p>
+        <p>A key with a mark in its corner holds more: press and hold,
+        slide onto one, and let go. A quick tap is just the letter.</p>
+      </div>
       <button type="button" class="close">close</button>
     </section>
   </main>

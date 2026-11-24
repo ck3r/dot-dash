@@ -7,6 +7,8 @@
  *     follow(playing, words, { position, duration })
  *                              in step with the player, after any change
  *                              (ms: where it is, and the whole message)
+ *     handle(action, fn)       a button there: play, pause, stop, seekto
+ *                              (fn({ seekTime }), in seconds)
  *   }
  *
  * Chrome only shows them for a playing <audio> element; the message
@@ -31,8 +33,18 @@
  *
  *   silence  ┄┄┄┄┄┄↺┄┄┄┄┄┄↺┄┄┄┄┄┄↺     what the bar showed
  *   message  ━━━━━━━━━━━●┄┄┄┄┄┄┄┄┄     what it shows
+ *
+ * IN THE APP (apps/mobile) Android's WebView draws no card from a
+ * page's media session, so the app has its own (MediaPlugin.java),
+ * told the same things over Capacitor's bridge, and its buttons come
+ * back as "action" events to the same handlers. Only when something
+ * changes: the bar between changes is the system's to move.
+ *
+ *   follow() ──► navigator.mediaSession            (the web: Chrome's card)
+ *            └─► Capacitor.Plugins.Media.follow()  (the app: its own card)
  */
 import { format } from "../core/morse.js";
+import { inApp } from "../core/where.js";
 import { plainText } from "./state.js";
 
 /* six seconds (Chrome wants five or more) of 8-bit silence, 8 kHz:
@@ -52,21 +64,27 @@ function silentTrack() {
   return audio;
 }
 
+/* the app's card, through the bridge (as ≋'s motor is, shared/outputs.js) */
+const appCard = () => (inApp() ? globalThis.Capacitor?.Plugins?.Media ?? null : null);
+
 export function createMediaControls() {
   let track = null;     // made on the first play (inside a tap, as play() needs)
   let title = null;
+  const card = appCard();
+  let told = null;      // what the app's card was last told, and when
 
   function follow(playing, words, { position = 0, duration = 0 } = {}) {
     const session = navigator.mediaSession;
     if (session) session.playbackState = playing ? "playing" : "paused";
     place(session, position, duration);
+    const now = words?.length ? plainText(words) ?? format(words) : null;
+    tell(playing, now, position, duration);
     if (!playing) {
       track?.pause();
       return;
     }
     track ??= silentTrack();
     if (track.paused) track.play().catch(() => { /* no controls, the sound still plays */ });
-    const now = words?.length ? plainText(words) ?? format(words) : null;
     if (session && window.MediaMetadata && now !== title) {
       title = now;
       session.metadata = new MediaMetadata({
@@ -77,6 +95,31 @@ export function createMediaControls() {
       });
     }
   }
+
+  /* The app's card, only when it would show something new: playing or
+     not, another message or length, or a place that isn't where the
+     bar would have got to by itself (a seek), give or take a beat.
+     The player asks after every change, and each call crosses the
+     bridge. */
+  function tell(playing, now, position, duration) {
+    if (!card) return;
+    const at = performance.now();
+    const name = now ?? "Morse";
+    if (told && told.playing === playing && told.title === name && told.duration === duration) {
+      const expected = told.position + (playing ? at - told.at : 0);
+      if (Math.abs(expected - position) < 250) return;
+    }
+    told = { playing, title: name, duration, position, at };
+    Promise.resolve(card.follow({ playing, title: name, position, duration })).catch(() => { /* no card, the sound still plays */ });
+  }
+
+  /* a button on the card: the web's media session and the app's both */
+  const handlers = new Map();
+  function handle(action, fn) {
+    try { navigator.mediaSession?.setActionHandler(action, fn); } catch { /* not offered here */ }
+    if (card) handlers.set(action, fn);
+  }
+  card?.addListener?.("action", ({ action, seekTime }) => handlers.get(action)?.({ action, seekTime }));
 
   /* (a message of no length clears it; the system's own clamps are
      strict, so the place is kept inside the length) */
@@ -89,5 +132,5 @@ export function createMediaControls() {
     } catch { /* not offered here */ }
   }
 
-  return { follow };
+  return { follow, handle };
 }

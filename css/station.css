@@ -1153,7 +1153,9 @@ body.reading .caret { visibility: hidden; }
 .stats.secret:not(:empty) { cursor: default; }   /* hidden by the eye: a tap only says "hidden" */
 
 #stats-morse {
-  padding-right: var(--edge-w);   /* the ↵'s column: as far in as the counts on the left */
+  /* the ↵'s column: as far in as the counts on the left. A margin, not
+     padding, so the tap that copies ends where the counts do */
+  margin-right: var(--edge-w);
 }
 
 .send {
@@ -1816,7 +1818,11 @@ body.reading .caret { visibility: hidden; }
 .flags {
   grid-column: 2;
   grid-row: 1 / span 2;
-  align-self: center;
+  /* centred by its margins, not align-self: taller than a short tray
+     (a phone on its side), centring would push ctrl and mouse up out
+     of the scroll's reach; auto margins stop at the top */
+  align-self: start;
+  margin-block: auto;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -2431,12 +2437,16 @@ body.rx .outputs [data-out="vibrate"]::after { content: none; }
  */
 .rx.light .rx-screen { flex-direction: column; gap: 0.45rem; }
 .rx.light .rx-scope { flex: 2; }
+/* the zoom's width, as a length where it's set (its 4ch in the eye's
+   type), so the flip in its own smaller type can stand clear of it */
+@property --zoom-w { syntax: "<length>"; inherits: true; initial-value: 0px; }
 .rx-eye {
   position: relative;
   flex: 3;
   min-height: 0;
   display: flex;
   gap: 0.45rem;
+  --zoom-w: 4ch;
 }
 .rx-eye[hidden] { display: none; }
 .rx-picture {
@@ -2459,11 +2469,13 @@ body.rx .outputs [data-out="vibrate"]::after { content: none; }
   opacity: 0;
   pointer-events: none;
 }
-/* the other camera, in the picture's top corner: grey, brass to the touch */
+/* the other camera, in the picture's bottom right corner (by the
+   zoom, out of the way of the top, where a lamp usually is): grey,
+   brass to the touch */
 .rx-flip {
   position: absolute;
-  left: 0.35rem;
-  top: 0.35rem;
+  right: calc(var(--zoom-w) + 0.45rem + 0.35rem);
+  bottom: 0.35rem;
   padding: 0.1rem 0.4rem;
   border: 1px solid var(--wire);
   background: var(--bakelite);
@@ -2480,10 +2492,31 @@ body.rx .outputs [data-out="vibrate"]::after { content: none; }
    picture, as tall as it: how far at the top, "zoom" at the foot */
 .rx-zoom {
   flex: none;
-  width: 4ch;
+  width: var(--zoom-w);
   line-height: 1;
 }
 .rx-zoom output { width: 4ch; text-align: center; font-size: var(--fs-xs); }
+
+/* a short screen (a phone on its side): the picture's too low for a
+   fader, so the zoom is a tap in the same column, 1× 2× 3× 5× 8× … */
+.rx-zoom-step { display: none; }
+@media (max-height: 560px) {
+  .rx-eye .rx-zoom { display: none; }
+  .rx-zoom-step {
+    display: block;
+    flex: none;
+    width: var(--zoom-w);
+    padding: 0;
+    border: 1px solid var(--wire);
+    background: transparent;
+    color: var(--graphite);
+    font-size: var(--fs-xs);
+  }
+  .rx-zoom-step:disabled { opacity: 0.5; }
+}
+@media (hover: hover) {
+  .rx-zoom-step:not(:disabled):hover { border-color: var(--brass); color: var(--brass); }
+}
 
 .rx.on .rx-scope { border-color: var(--graphite); }
 .rx.drop .rx-scope { border-color: var(--brass); }      /* a file held over it: let go, and it's read */
@@ -2978,8 +3011,10 @@ body:has(#train:not([hidden])) .pad {
      letters   310    words    52
      most      E T A I N           */
 /* taller than a short phone: the contents scroll inside, the label
-   and the × stay on the frame */
+   and the × stay on the frame. It's the popup's .pop-body too, but
+   a scroller at any height (base.css "SHORT SCREENS"), not contents */
 .profile-body {
+  display: block;
   max-height: calc(100dvh - 4rem);
   overflow-y: auto;
   overscroll-behavior: contain;

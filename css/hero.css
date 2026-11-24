@@ -844,6 +844,12 @@ body[data-input="text"] .incoming { outline-color: var(--brass); }
   padding: 0.6rem 0.2rem 0.4rem;
   border-top: 1px solid var(--wire);
   font-size: var(--fs-s);
+  /* a phone on its side: the keys' height is less than the settings
+     need, so they scroll there rather than run off the bottom */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--wire) transparent;
 }
 .tray-slot[hidden] { display: none; }
 .tray-slot .pick { grid-column: 1; }

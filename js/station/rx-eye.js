@@ -286,6 +286,11 @@ export function createEye({ frame, ended = () => { }, tap = () => { } }) {
     slider.disabled = !showing();
     slider.value = String(placeOfZoom(zoom));
     slider.style.setProperty("--p", String(slider.value / TRAVEL));
+    if (stepper) {
+      stepper.textContent = label.textContent;
+      stepper.disabled = slider.disabled;
+      stepper.setAttribute("aria-label", `zoom, ${label.textContent}`);
+    }
   }
   /* (from the slider: about the ring, where it is on the screen now) */
   function ringHeld() {
@@ -294,6 +299,16 @@ export function createEye({ frame, ended = () => { }, tap = () => { } }) {
     return { x: spot.x, y: spot.y, sx: (spot.x * s.vw - s.x) / s.w, sy: (spot.y * s.vh - s.y) / s.h };
   }
   slider.addEventListener("input", () => zoomTo(zoomAt(Number(slider.value)), ringHeld()));
+
+  /* a short screen's zoom, a tap at a time (the fader's too short to
+     hold there): the next of 1 2 3 5 8 13 … the lens allows, then 1× */
+  const stepper = $("#rx-zoom-step");
+  const STEPS = [1, 2, 3, 5, 8, 13, 21, 34];
+  stepper?.addEventListener("click", () => {
+    const hi = limits()[1];
+    const next = STEPS.find(z => z > zoom * 1.01 && z <= hi * 1.001);
+    zoomTo(next ?? 1, ringHeld());
+  });
 
   /*
    * THE PICTURE UNDER A FINGER

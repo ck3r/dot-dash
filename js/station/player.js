@@ -485,8 +485,24 @@ export function createPlayback({
 
   function setPlayerActive(on) {
     playerActive = on;
-    playerRow.classList.toggle("active", on);
+    playerRow.classList.toggle("active", on || keysAway());
   }
+
+  /*
+   * The keys put away (TX collapsed): nothing to compose into, so the
+   * keyboard is the player's, as if it had been clicked, and its frame
+   * stays brass to say so. Receiving keeps its own keys.
+   */
+  const keysAway = () => state.inputAway && !state.rx;
+  /* (main.js puts them away; the body's classes, reading and rx, follow) */
+  let wasAway = false;
+  new MutationObserver(() => {
+    if (keysAway() === wasAway) return;
+    wasAway = keysAway();
+    setPlayerActive(playerActive);
+    if (wasAway && matchMedia("(hover: hover) and (pointer: fine)").matches)
+      toast("playback keys on: k play, ← → step, 0–9 jump, m mute");
+  }).observe(document.body, { attributes: true, attributeFilter: ["class"] });
   playerRow.addEventListener("pointerdown", () => setPlayerActive(true));
   playerRow.addEventListener("focusin", () => setPlayerActive(true));
   playerRow.addEventListener("focusout", event => {
@@ -508,21 +524,26 @@ export function createPlayback({
     }
     if (event.target.closest?.("input, select, textarea") && event.target.id !== "seek") return;   // the scrub bar steps our way
     if (event.target.closest?.('[role="tab"]') && /^Arrow(Left|Right)$/.test(event.key)) return;   // a tab's ← → move between tx and rx
-    const active = playerActive;
-    const typing = !active && state.mode === "type" && !state.inputAway;
+    const active = playerActive || keysAway();
+    /* typing (the keyboard out): every key is the message's, the
+       player's only once it's clicked; put away, they're the player's */
+    const typing = !active && !state.rx && state.mode === "type";
     const inUse = active || playerInUse();
     const k = event.key.length === 1 ? event.key.toLowerCase() : event.key;
     const once = fn => () => { if (!event.repeat) fn(); };
+    /* said over the message, so a key pressed blind shows what it did */
+    const said = (fn, what) => () => { fn(); if (keysAway()) toast(typeof what === "function" ? what() : what); };
+    const where = () => `${clock(player.position)} of ${clock(player.duration)}`;
     let act = null;
-    if (event.code === "Space" && !typing && inUse) act = once(togglePlay);
-    else if ((k === "k" || k === "p") && !typing) act = once(togglePlay);
-    else if (k === "m" && !typing && !state.rx) act = once(() => $('[data-out="sound"]').click());
-    else if (k === "ArrowLeft" || k === "ArrowRight") act = () => step(k === "ArrowRight" ? 1 : -1, event.shiftKey);
-    else if ((k === "j" || k === "l") && !typing) act = () => step(k === "l" ? 1 : -1, true);
-    else if (k === "Home") act = () => seekTo(0);
-    else if (k === "End") act = () => seekTo(Infinity);
-    else if (k === "ArrowUp" || k === "ArrowDown") act = () => nudgeVolume(k === "ArrowUp" ? 5 : -5);
-    else if (/^[0-9]$/.test(k) && !typing && inUse) act = once(() => seekTo(player.duration * Number(k) / 10));
+    if (event.code === "Space" && !typing && inUse) act = once(said(togglePlay, () => player.playing ? "play" : "pause"));
+    else if ((k === "k" || k === "p") && !typing) act = once(said(togglePlay, () => player.playing ? "play" : "pause"));
+    else if (k === "m" && !typing && !state.rx) act = once(said(() => $('[data-out="sound"]').click(), () => `sound ${$('[data-out="sound"]').getAttribute("aria-pressed") === "true" ? "on" : "off"}`));
+    else if ((k === "ArrowLeft" || k === "ArrowRight") && !typing) act = said(() => step(k === "ArrowRight" ? 1 : -1, event.shiftKey), () => `${k === "ArrowRight" ? "next" : "back a"} ${event.shiftKey ? "word" : "letter"}: ${where()}`);
+    else if ((k === "j" || k === "l") && !typing) act = said(() => step(k === "l" ? 1 : -1, true), () => `${k === "l" ? "next" : "back a"} word: ${where()}`);
+    else if (k === "Home" && !typing) act = said(() => seekTo(0), "to the start");
+    else if (k === "End" && !typing) act = said(() => seekTo(Infinity), "to the end");
+    else if ((k === "ArrowUp" || k === "ArrowDown") && !typing) act = said(() => nudgeVolume(k === "ArrowUp" ? 5 : -5), () => `volume ${$("#opt-vol").value}`);
+    else if (/^[0-9]$/.test(k) && !typing && inUse) act = once(said(() => seekTo(player.duration * Number(k) / 10), `to ${k}0%`));
     if (!act) {
       if (active && !passesThrough(event)) swallow();   // active: nothing else gets through
       return;
@@ -574,14 +595,10 @@ export function createPlayback({
       event.preventDefault();
       act();
     });
-    const session = navigator.mediaSession;
-    if (session) {
-      /* seekto: the panel's bar, dragged (seconds) */
-      const seekto = details => seekTo((details.seekTime ?? 0) * 1000);
-      for (const [name, fn] of [["play", play], ["pause", pause], ["stop", stopPlayback], ["seekto", seekto]]) {
-        try { session.setActionHandler(name, fn); } catch { /* not offered here */ }
-      }
-    }
+    /* the system's card (js/station/media.js: the browser's, or the
+       app's own); seekto: its bar, dragged (seconds) */
+    const seekto = details => seekTo((details.seekTime ?? 0) * 1000);
+    for (const [name, fn] of [["play", play], ["pause", pause], ["stop", stopPlayback], ["seekto", seekto]]) media.handle(name, fn);
   }
 
   return {

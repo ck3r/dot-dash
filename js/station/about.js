@@ -105,7 +105,10 @@ export function createAbout({ hiding, redact, openHeard, openCut, openWord, gree
     const box = $("#about");
     box.textContent = "";
     box.classList.toggle("pending", sent !== null);
-    const ch = code ? DECODE[code] : null;
+    /* cut on, a letter that reads as a digit in its word (the Ns of
+       5NN) is that digit here too: NINER, not NOVEMBER */
+    const digit = code && word && READING.cut ? namesOf(word.codes)[word.at] : null;
+    const ch = code ? (/^\d$/.test(digit ?? "") && digit !== DECODE[code] ? digit : DECODE[code]) : null;
 
     /* (i), always at the foot of the column (tree open or not):
        this character's page, or the reference itself */
@@ -211,6 +214,7 @@ export function createAbout({ hiding, redact, openHeard, openCut, openWord, gree
     const cutFor = CUT[code];                                     // this code is a cut: for that digit
     const cutCode = Object.keys(CUT).find(k => CUT[k] === own && k !== code);   // this digit's cut
     if (!shows("cut")) { /* switched off */ }
+    else if (ch !== own) cutStack(`${ch}, sent cut as ${own}`, code, code);      // read as its digit: the letter it went as
     else if (cutFor && cutFor !== own) cutStack(`also sent as a cut ${cutFor}`, ENCODE[cutFor], code);
     else if (cutCode) cutStack(`often sent cut, as ${DECODE[cutCode]}`, cutCode, cutCode);
 

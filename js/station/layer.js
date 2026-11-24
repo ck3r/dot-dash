@@ -96,7 +96,7 @@ export function createLayer({
   /*
    * Long-press an output, and its list opens on its own, above it,
    * without the settings: ♪ the sound, ☼ the light, ≋ vibration (its
-   * strength, in the app; on the web, on soon), the input switch
+   * strength, in the app; on the web, "app only"), the input switch
    * (.- ⇄ A, anywhere on it) which keyer, text
    * among them; a tap there still just swaps keying and typing. The
    * time holds pretty play, the suggestions' corner the suggestions:
@@ -149,7 +149,7 @@ export function createLayer({
   function choicesOf(select, button) {
     if (button?.id === "chips-more") return chipChoices();
     if (document.body.classList.contains("rx") && button?.closest(".outputs")) return rxChoices(button);
-    if (!select) return { name: "vibration", options: [{ value: "off", label: "off" }, { value: "on", label: "on · soon", soon: true }], value: "off", choose: () => { } };
+    if (!select) return { name: "vibration", options: [{ value: "off", label: "off" }, { value: "on", label: "on · app only", soon: true }], value: "off", choose: () => { } };
     if (select.type === "checkbox") {
       const name = select.closest(".flag")?.querySelector(".flag-word")?.textContent ?? "";
       return {

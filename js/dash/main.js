@@ -161,6 +161,24 @@ if (pitch) sound.setPitch(pitch);
 const keys = { ".": $('.keybox [data-lane="."]'), "-": $('.keybox [data-lane="-"]') };
 const svg = $("#run"), layer = svg.querySelector(".obstacles"), lettersLayer = svg.querySelector(".letters"), runner = svg.querySelector(".runner");
 
+/*
+ * The view as wide as its box. On a short, wide screen (a phone on its
+ * side) the run is low, and the 420-wide picture shrank to a strip in
+ * the middle; widened, the ground runs edge to edge and more of what's
+ * coming shows. The runner keeps its place from the left.
+ *
+ *   ┌──────────────────────────────┐        ┌──────────────────────────────┐
+ *   │         ● ▮ ▔▔▔              │   →    │ ● ▮ ▔▔▔ ● ▮ ▮ ▔▔▔ ●  ▮ ▔▔▔   │
+ *   │       ━━━━━━━━━              │        │━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━│
+ */
+const VIEW = { w: 420, h: 200 };
+new ResizeObserver(() => {
+  const { width, height } = svg.getBoundingClientRect();
+  const w = height > 0 ? Math.max(VIEW.w, Math.round(VIEW.h * width / height)) : VIEW.w;
+  svg.setAttribute("viewBox", `0 0 ${w} ${VIEW.h}`);
+  svg.querySelector(".ground").setAttribute("x2", String(w));
+}).observe(svg);
+
 let state = "ready", frame = 0, last = 0, endedAt = 0;
 /* wpm: the speed now; cruise: the speed to run at (the fader's, and
    ramp's); a stumble pulls wpm down and it climbs back to cruise */

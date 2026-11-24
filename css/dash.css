@@ -44,7 +44,10 @@ body.dash[data-input="text"] .word { outline-color: var(--brass); color: var(--p
 @media (hover: hover) { .dash .word:hover { outline-color: var(--brass); } }
 .dash .word .here { color: var(--brass); }
 
-.dash .run { width: 100%; height: auto; display: block; }
+/* its box as tall as a 420 × 200 picture, or what the stage has left:
+   the picture inside (its viewBox, main.js) is widened to fill the box,
+   so on a phone on its side the ground runs the stage's whole width */
+.dash .run { width: 100%; height: auto; aspect-ratio: 420 / 200; min-height: 0; display: block; }
 .run .ground { stroke: var(--wire); stroke-width: 2; }
 .run .runner circle { fill: var(--paper); }
 .run .ob { fill: var(--paper); }

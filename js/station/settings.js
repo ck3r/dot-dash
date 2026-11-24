@@ -426,7 +426,7 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
       light: outputOn("light"),
       lightMode: choice("#opt-light"),
       vibrate: outputOn("vibrate"),
-      strength: STRENGTH[choice("#opt-vibrate")] ?? STRENGTH.medium   // the app's; the web's ≋ is "soon"
+      strength: STRENGTH[choice("#opt-vibrate")] ?? STRENGTH.medium   // the app's; the web's ≋ is "app only"
     }),
     lampTarget: $(".station"),
     overlay: {
@@ -689,7 +689,7 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
 
   /*
    * Vibration is the app's (strength, a sharp tap per dit: a page has
-   * neither, roadmap). On the web the toggle says "soon" and stays off.
+   * neither, roadmap). On the web the toggle says "app only" and stays off.
    * In the app it's a switch like the others, a short buzz saying it's
    * on; its long-press list has the strengths, or just on where the
    * motor can't be softened (many cheap ones), and always "not felt?",
@@ -715,7 +715,7 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
     b.addEventListener("click", () => {
       /* receiving, ♪ and ☼ say what's read, not what comes out (js/station/main.js); ≋ is greyed */
       if (document.body.classList.contains("rx")) return document.dispatchEvent(new CustomEvent("dot-dash:rx-out", { detail: b.dataset.out }));
-      if (b.dataset.out === "vibrate" && !inApp()) return flash(b, "soon");
+      if (b.dataset.out === "vibrate" && !inApp()) return flash(b, "app only");
       setOutput(b.dataset.out, !outputOn(b.dataset.out));
       if (b.dataset.out === "sound" && sound.enabled) preview();
       if (b.dataset.out === "vibrate" && outputOn("vibrate")) outputs.testBuzz();

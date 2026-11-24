@@ -146,35 +146,37 @@
   <section id="share" class="share-menu" hidden aria-label="share">
     <span class="frame-label">share</span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
-    <div class="rows" id="share-copy">
-      <button type="button" data-do="copy-morse"><span>copy morse</span><span class="peek" data-peek="morse"></span></button>
-      <button type="button" data-do="copy-text"><span>copy text</span><span class="peek" data-peek="text"></span></button>
-      <button type="button" data-do="copy-link"><span>copy link</span><span class="peek" data-peek="link"></span></button>
-      <!-- how it sounds here (speed, pitch, wave …), after the link's "#" -->
-      <label class="share-with" title="the link carries your speed, pitch and sound; it opens with them, for that visit">
-        <span class="check"><input type="checkbox" id="share-settings"></span><span>with my settings</span><span class="peek" data-peek="settings"></span>
-      </label>
+    <div class="pop-body">
+      <div class="rows" id="share-copy">
+        <button type="button" data-do="copy-morse"><span>copy morse</span><span class="peek" data-peek="morse"></span></button>
+        <button type="button" data-do="copy-text"><span>copy text</span><span class="peek" data-peek="text"></span></button>
+        <button type="button" data-do="copy-link"><span>copy link</span><span class="peek" data-peek="link"></span></button>
+        <!-- how it sounds here (speed, pitch, wave …), after the link's "#" -->
+        <label class="share-with" title="the link carries your speed, pitch and sound; it opens with them, for that visit">
+          <span class="check"><input type="checkbox" id="share-settings"></span><span>with my settings</span><span class="peek" data-peek="settings"></span>
+        </label>
+      </div>
+      <div class="rows saves">
+        <span class="lead">save</span>
+        <button type="button" data-do="save-txt">.txt</button>
+        <button type="button" data-do="save-sh" title="the message as a script you can run in a terminal">.sh</button>
+        <button type="button" data-do="save-wav">.wav</button>
+        <button type="button" data-do="save-gif" id="save-gif">.gif</button>
+      </div>
+      <!-- the message read out (in the voice chosen), from recordings -->
+      <div class="rows" id="share-voice">
+        <button type="button" data-do="save-voice" title="the text read out, in the voice last chosen under sound (ALFA, ABC, Di-Dah or Dot Dash)"><span>save spoken .wav</span></button>
+      </div>
+      <div class="rows" id="share-native" hidden>
+        <button type="button" data-do="share"><span>share…</span></button>
+      </div>
+      <p class="share-note" id="share-note" aria-live="polite"></p>
+      <p class="privacy">
+        Morse is an encoding, not encryption.<br>Don't send anything private.
+        <button type="button" class="info privacy-open" aria-label="more about privacy"
+                aria-expanded="false" aria-controls="privacy-pop">i</button>
+      </p>
     </div>
-    <div class="rows saves">
-      <span class="lead">save</span>
-      <button type="button" data-do="save-txt">.txt</button>
-      <button type="button" data-do="save-sh" title="the message as a script you can run in a terminal">.sh</button>
-      <button type="button" data-do="save-wav">.wav</button>
-      <button type="button" data-do="save-gif" id="save-gif">.gif</button>
-    </div>
-    <!-- the message read out (in the voice chosen), from recordings -->
-    <div class="rows" id="share-voice">
-      <button type="button" data-do="save-voice" title="the text read out, in the voice last chosen under sound (ALFA, ABC, Di-Dah or Dot Dash)"><span>save spoken .wav</span></button>
-    </div>
-    <div class="rows" id="share-native" hidden>
-      <button type="button" data-do="share"><span>share…</span></button>
-    </div>
-    <p class="share-note" id="share-note" aria-live="polite"></p>
-    <p class="privacy">
-      Morse is an encoding, not encryption.<br>Don't send anything private.
-      <button type="button" class="info privacy-open" aria-label="more about privacy"
-              aria-expanded="false" aria-controls="privacy-pop">i</button>
-    </p>
   </section>
 
   <!--
@@ -193,13 +195,15 @@
   <section id="lamp-warn" class="popup" role="alertdialog" aria-labelledby="lamp-title" hidden>
     <span class="frame-label" id="lamp-title">signal lamp</span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
-    <p class="what">The signal lamp flashes the whole screen with your message.</p>
-    <p class="warn">If flashing light could affect you (for example
-    photosensitive epilepsy), please don't use it.</p>
-    <p class="fast" hidden></p>
-    <div class="actions">
-      <button type="button" id="lamp-go" class="quiet">start</button>
-      <button type="button" id="lamp-cancel" class="quiet">cancel</button>
+    <div class="pop-body">
+      <p class="what">The signal lamp flashes the whole screen with your message.</p>
+      <p class="warn">If flashing light could affect you (for example
+      photosensitive epilepsy), please don't use it.</p>
+      <p class="fast" hidden></p>
+      <div class="actions">
+        <button type="button" id="lamp-go" class="quiet">start</button>
+        <button type="button" id="lamp-cancel" class="quiet">cancel</button>
+      </div>
     </div>
   </section>
 
@@ -279,52 +283,60 @@
   <section id="about-pop" class="popup about-pop" role="dialog" aria-labelledby="about-title" hidden>
     <span class="frame-label" id="about-title">about</span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
-    <div id="about-card" class="card about-card"></div>
-    <!-- the word it ends, if that is a Q code or an abbreviation (QTH, 73): what it means -->
-    <div id="about-term" class="about-term" hidden></div>
-    <p class="about-more"><a id="about-full" href="/ref/" target="_blank" rel="noopener">the full page, with the whole tree ↗</a></p>
+    <div class="pop-body">
+      <div id="about-card" class="card about-card"></div>
+      <!-- the word it ends, if that is a Q code or an abbreviation (QTH, 73): what it means -->
+      <div id="about-term" class="about-term" hidden></div>
+      <p class="about-more"><a id="about-full" href="/ref/" target="_blank" rel="noopener">the full page, with the whole tree ↗</a></p>
+    </div>
   </section>
 
   <!-- (i) on the text keyboard: the keys that hold more (× / tap outside / Escape) -->
   <section id="hold-pop" class="popup" role="dialog" aria-labelledby="hold-title" hidden>
     <span class="frame-label" id="hold-title">hold for more</span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
-    <p>A key with a mark in its corner holds more: press and hold,
-    slide onto one, and let go. A quick tap is just the letter.</p>
-    <p>What it holds are the letter's descendants in the Morse tree:
-    the numbers and symbols whose code starts with the letter's.
-    V <span class="dot">...</span><span class="dash">-</span> holds
-    3 <span class="dot">...</span><span class="dash">--</span>;
-    O <span class="dash">---</span> holds 8, 9, 0 and the colon.</p>
-    <p>Everything is on the 123 keys too.</p>
+    <div class="pop-body">
+      <p>A key with a mark in its corner holds more: press and hold,
+      slide onto one, and let go. A quick tap is just the letter.</p>
+      <p>What it holds are the letter's descendants in the Morse tree:
+      the numbers and symbols whose code starts with the letter's.
+      V <span class="dot">...</span><span class="dash">-</span> holds
+      3 <span class="dot">...</span><span class="dash">--</span>;
+      O <span class="dash">---</span> holds 8, 9, 0 and the colon.</p>
+      <p>Everything is on the 123 keys too.</p>
+    </div>
   </section>
 
   <!-- ~ in the about column: why marks get misheard (× / tap outside / Escape) -->
   <section id="heard-pop" class="popup" role="dialog" aria-labelledby="heard-title" hidden>
     <span class="frame-label" id="heard-title">misheard</span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
-    <p>Morse is two marks and time. A dit is one beat, a dah three;
-    the quiet inside a letter is one beat, between letters three,
-    between words seven.</p>
-    <p>Hands aren't metronomes. Stretch the gap inside a letter and it
-    splits: A <span class="dot">.</span><span class="dash">-</span>
-    is heard as E <span class="dot">.</span> T <span class="dash">-</span>.
-    Rush the gap between letters and they run together the other way.</p>
-    <p>So ears learn whole letters and words by their rhythm, and lean
-    on context; when it still doesn't make sense, ask again (AGN, or ?).
-    The <b>~</b> shows what the same marks could become, cut differently.</p>
+    <div class="pop-body">
+      <p>Morse is two marks and time. A dit is one beat, a dah three;
+      the quiet inside a letter is one beat, between letters three,
+      between words seven.</p>
+      <p>Hands aren't metronomes. Stretch the gap inside a letter and it
+      splits: A <span class="dot">.</span><span class="dash">-</span>
+      is heard as E <span class="dot">.</span> T <span class="dash">-</span>.
+      Rush the gap between letters and they run together the other way.</p>
+      <p>So ears learn whole letters and words by their rhythm, and lean
+      on context; when it still doesn't make sense, ask again (AGN, or ?).
+      The <b>~</b> shows what the same marks could become, cut differently.</p>
+    </div>
   </section>
 
   <!-- cut numbers: the digits shortened (the about column's "cut") -->
   <section id="cut-pop" class="popup" role="dialog" aria-labelledby="cut-title" hidden>
     <span class="frame-label" id="cut-title">cut numbers</span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
-    <p>Digits are long: five marks each. In contests and signal reports
-    they're often sent cut, the run of dahs trimmed, so 599 goes as
-    <b>5NN</b>. The same marks as a letter, read as a number.</p>
-    <pre class="cut-chart" id="cut-chart" aria-label="each digit, and the marks its cut keeps"></pre>
-    <p class="cut-note">4 and 6 aren't cut: their letters would be V and B.</p>
-    <p><a id="cut-full" class="about-more" href="/ref/#cut" target="_blank" rel="noopener">on the tree, in the reference ↗</a></p>
+    <div class="pop-body">
+      <p>Digits are long: five marks each. In contests and signal reports
+      they're often sent cut, the run of dahs trimmed, so 599 goes as
+      <b>5NN</b>. The same marks as a letter, read as a number.</p>
+      <pre class="cut-chart" id="cut-chart" aria-label="each digit, and the marks its cut keeps"></pre>
+      <p class="cut-note">4 and 6 aren't cut: their letters would be V and B.</p>
+      <p><a id="cut-full" class="about-more" href="/ref/#cut" target="_blank" rel="noopener">on the tree, in the reference ↗</a></p>
+    </div>
   </section>
 
   <!-- a prosign or an operators' word in the about column, tapped:
@@ -332,9 +344,11 @@
   <section id="word-pop" class="popup word-pop" role="dialog" aria-labelledby="word-title" hidden>
     <span class="frame-label" id="word-title"></span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
-    <p class="word-marks" id="word-marks"></p>
-    <div id="word-means"></div>
-    <p><a id="word-full" class="about-more" href="/ref/" target="_blank" rel="noopener">with the others, in the reference ↗</a></p>
+    <div class="pop-body">
+      <p class="word-marks" id="word-marks"></p>
+      <div id="word-means"></div>
+      <p><a id="word-full" class="about-more" href="/ref/" target="_blank" rel="noopener">with the others, in the reference ↗</a></p>
+    </div>
   </section>
 
   <!-- "about" in the tray, tapped: what the about column shows, each
@@ -342,37 +356,41 @@
   <section id="about-set-pop" class="popup about-set-pop" role="dialog" aria-labelledby="about-set-title" hidden>
     <span class="frame-label" id="about-set-title">about</span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
-    <p>The column under the tree: the letter showing, its marks at the
-    top, and below them what's worth knowing. The tray's box shows or
-    hides the whole column; the (i) stays.</p>
-    <ul class="about-parts">
-      <li><label class="check"><input type="checkbox" id="opt-about-name" checked> name</label> its phonetic name, or the prosign</li>
-      <li><label class="check"><input type="checkbox" id="opt-about-cut" checked> cut</label> the cut number it is, or is sent as</li>
-      <li><label class="check"><input type="checkbox" id="opt-about-heard" checked> ~</label> what it could be misheard as</li>
-    </ul>
-    <p>A short screen lets go of the last of these first; with
-    <b>cut</b> on, the cut comes first. A Q code or abbreviation
-    (QTH, 73) is explained in the (i)'s card, not here.</p>
+    <div class="pop-body">
+      <p>The column under the tree: the letter showing, its marks at the
+      top, and below them what's worth knowing. The tray's box shows or
+      hides the whole column; the (i) stays.</p>
+      <ul class="about-parts">
+        <li><label class="check"><input type="checkbox" id="opt-about-name" checked> name</label> its phonetic name, or the prosign</li>
+        <li><label class="check"><input type="checkbox" id="opt-about-cut" checked> cut</label> the cut number it is, or is sent as</li>
+        <li><label class="check"><input type="checkbox" id="opt-about-heard" checked> ~</label> what it could be misheard as</li>
+      </ul>
+      <p>A short screen lets go of the last of these first; with
+      <b>cut</b> on, the cut comes first. A Q code or abbreviation
+      (QTH, 73) is explained in the (i)'s card, not here.</p>
+    </div>
   </section>
 
   <!-- the timing train, tapped: what it shows -->
   <section id="train-pop" class="popup" role="dialog" aria-labelledby="train-title" hidden>
     <span class="frame-label" id="train-title">timing</span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
-    <p>The bar times each press against your speed, from the
-    upright line at the left. Key down fills in colour: a full dit
-    ends at the dit key's edge, a full dah at the dah key's.</p>
-    <p>Key up fills grey: a letter space <b>˽</b> at the dit key's
-    edge too, a word space <b>/</b> at the far end. It slows and
-    quickens to meet each one on time.</p>
-    <p>Let go within a tenth of a unit of a dit or dah's length, or
-    press again within a tenth of a space's, and what you just keyed
-    takes a brass edge: on time.</p>
-    <p>The brass lines are where one turns into the next: hold past
-    the first and a dit becomes a dah; wait, and a pause becomes a
-    letter space, then a word space.</p>
-    <p>Playing back, it shows the timing as it was keyed, with a notch
-    where the ideal length ends: a dah held short, a gap rushed.</p>
+    <div class="pop-body">
+      <p>The bar times each press against your speed, from the
+      upright line at the left. Key down fills in colour: a full dit
+      ends at the dit key's edge, a full dah at the dah key's.</p>
+      <p>Key up fills grey: a letter space <b>˽</b> at the dit key's
+      edge too, a word space <b>/</b> at the far end. It slows and
+      quickens to meet each one on time.</p>
+      <p>Let go within a tenth of a unit of a dit or dah's length, or
+      press again within a tenth of a space's, and what you just keyed
+      takes a brass edge: on time.</p>
+      <p>The brass lines are where one turns into the next: hold past
+      the first and a dit becomes a dah; wait, and a pause becomes a
+      letter space, then a word space.</p>
+      <p>Playing back, it shows the timing as it was keyed, with a notch
+      where the ideal length ends: a dah held short, a gap rushed.</p>
+    </div>
   </section>
 
   <!-- the report for support, shown in full before anything is copied
@@ -380,12 +398,14 @@
   <section id="report-pop" class="popup" role="dialog" aria-labelledby="report-title" hidden>
     <span class="frame-label" id="report-title">report for support</span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
-    <p>This is everything it holds: the version, this device, the
-    settings and the last errors. Never a message.</p>
-    <pre id="report-text" class="report-text" tabindex="0"></pre>
-    <div class="actions">
-      <button type="button" id="report-copy" class="quiet">copy</button>
-      <button type="button" id="report-cancel" class="quiet">cancel</button>
+    <div class="pop-body">
+      <p>This is everything it holds: the version, this device, the
+      settings and the last errors. Never a message.</p>
+      <pre id="report-text" class="report-text" tabindex="0"></pre>
+      <div class="actions">
+        <button type="button" id="report-copy" class="quiet">copy</button>
+        <button type="button" id="report-cancel" class="quiet">cancel</button>
+      </div>
     </div>
   </section>
 
@@ -395,44 +415,50 @@
   <section id="suggest-pop" class="popup" role="dialog" aria-labelledby="suggest-title" hidden>
     <span class="frame-label" id="suggest-title">finish</span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
-    <p>Chips at the right of the tabs finish what you've started:
-    <b>letters</b> the one you're keying could still become, then
-    <b>words</b>, then <b>prosigns</b> (with prosigns on). A tap
-    keys it.</p>
-    <p>Keying with timing (straight, bug, a paddle), the words last
-    until the word space: the pause that ends the word. So the
-    faster the spacing, the sooner they go.</p>
-    <p>Farnsworth sets that spacing. Keep the letters fast and bring
-    <b>farns.</b> down, and the pause grows: more time to pick a word,
-    and more time to think while you learn the rhythm.</p>
-    <p class="suggest-now" id="suggest-now"></p>
-    <p>Tap keying waits for you, so they stay until you go on.</p>
-    <p>They help, but they work against practice: leave them off to
-    learn.</p>
-    <p><b>next</b>, the other switch in the chips' corner, is a few to
-    start a message with (CQ, PARIS, SOS, 73) and a few between words
-    (DE, K, TU, 73). It can stay on while you practise.</p>
+    <div class="pop-body">
+      <p>Chips at the right of the tabs finish what you've started:
+      <b>letters</b> the one you're keying could still become, then
+      <b>words</b>, then <b>prosigns</b> (with prosigns on). A tap
+      keys it.</p>
+      <p>Keying with timing (straight, bug, a paddle), the words last
+      until the word space: the pause that ends the word. So the
+      faster the spacing, the sooner they go.</p>
+      <p>Farnsworth sets that spacing. Keep the letters fast and bring
+      <b>farns.</b> down, and the pause grows: more time to pick a word,
+      and more time to think while you learn the rhythm.</p>
+      <p class="suggest-now" id="suggest-now"></p>
+      <p>Tap keying waits for you, so they stay until you go on.</p>
+      <p>They help, but they work against practice: leave them off to
+      learn.</p>
+      <p><b>next</b>, the other switch in the chips' corner, is a few to
+      start a message with (CQ, PARIS, SOS, 73) and a few between words
+      (DE, K, TU, 73). It can stay on while you practise.</p>
+    </div>
   </section>
 
   <!-- a checkbox's word, tapped: what it does (js/station/layer.js FLAG_NOTES) -->
   <section id="flag-pop" class="popup" role="dialog" aria-labelledby="flag-title" hidden>
     <span class="frame-label" id="flag-title"></span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
-    <div id="flag-note"></div>
+    <div class="pop-body">
+      <div id="flag-note"></div>
+    </div>
   </section>
 
   <section id="farns-pop" class="popup" role="dialog" aria-labelledby="farns-title" hidden>
     <span class="frame-label" id="farns-title">farnsworth</span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
-    <p>Each letter is sent at full speed (<b>wpm</b>), with longer
-    gaps between letters and words, so the message as a whole runs
-    slower (<b>farns.</b>).</p>
-    <p>Learn the sound of a whole letter at speed, not dits and dahs
-    to count; close the gaps as you get quicker. It's never faster
-    than wpm: at the same number, there's no stretch at all.</p>
-    <p class="farns-eg"><span>wpm 20, farns. 20</span>  <span class="dot">.</span><span class="dash">-</span>   <span class="dash">-</span><span class="dot">...</span><br><span>wpm 20, farns. 10</span>  <span class="dot">.</span><span class="dash">-</span>         <span class="dash">-</span><span class="dot">...</span></p>
-    <div class="actions">
-      <button type="button" id="farns-ok" class="quiet">ok</button>
+    <div class="pop-body">
+      <p>Each letter is sent at full speed (<b>wpm</b>), with longer
+      gaps between letters and words, so the message as a whole runs
+      slower (<b>farns.</b>).</p>
+      <p>Learn the sound of a whole letter at speed, not dits and dahs
+      to count; close the gaps as you get quicker. It's never faster
+      than wpm: at the same number, there's no stretch at all.</p>
+      <p class="farns-eg"><span>wpm 20, farns. 20</span>  <span class="dot">.</span><span class="dash">-</span>   <span class="dash">-</span><span class="dot">...</span><br><span>wpm 20, farns. 10</span>  <span class="dot">.</span><span class="dash">-</span>         <span class="dash">-</span><span class="dot">...</span></p>
+      <div class="actions">
+        <button type="button" id="farns-ok" class="quiet">ok</button>
+      </div>
     </div>
   </section>
 
@@ -440,12 +466,14 @@
   <section id="privacy-pop" class="popup" role="dialog" aria-labelledby="privacy-title" hidden>
     <span class="frame-label" id="privacy-title">privacy</span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
-    <p>Morse is an encoding, not encryption: anyone who knows it,
-    or pastes it into a decoder, can read your message.</p>
-    <p>Shared links show the message decoded in their previews.</p>
-    <p>Your history stays on this device until you clear it, here
-    or at the top of the history.</p>
-    <button type="button" id="privacy-clear" class="quiet popup-clear">clear history</button>
+    <div class="pop-body">
+      <p>Morse is an encoding, not encryption: anyone who knows it,
+      or pastes it into a decoder, can read your message.</p>
+      <p>Shared links show the message decoded in their previews.</p>
+      <p>Your history stays on this device until you clear it, here
+      or at the top of the history.</p>
+      <button type="button" id="privacy-clear" class="quiet popup-clear">clear history</button>
+    </div>
   </section>
 
   <!-- the profile (the ring, top right): a callsign and your keying,
@@ -453,7 +481,7 @@
   <section id="profile-pop" class="popup profile-pop" role="dialog" aria-labelledby="profile-title" hidden>
     <span class="frame-label" id="profile-title">profile</span>
     <button type="button" class="close" aria-label="close"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
-    <div class="profile-body">
+    <div class="pop-body profile-body">
     <label class="profile-call"><span>callsign</span>
       <input type="text" id="profile-call" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" placeholder="none yet"></label>
     <p class="profile-note">Kept on this device, never sent: no account.</p>
@@ -536,7 +564,7 @@
       <span class="outputs" role="group" aria-label="outputs">
         <button type="button" data-out="sound" class="holds" aria-pressed="true" title="sound (hold: which sound)"><svg class="ico" aria-hidden="true"><use href="#i-sound"/></svg></button>
         <button type="button" data-out="light" class="holds" aria-pressed="false" title="light (hold: which light)"><svg class="ico" aria-hidden="true"><use href="#i-light"/></svg></button>
-        <button type="button" data-out="vibrate" class="holds" aria-pressed="false" title="vibration (soon)"><svg class="ico" aria-hidden="true"><use href="#i-vibrate"/></svg></button>
+        <button type="button" data-out="vibrate" class="holds" aria-pressed="false" title="vibration (in the app)"><svg class="ico" aria-hidden="true"><use href="#i-vibrate"/></svg></button>
       </span>
       <div class="tiles">
         <!-- suggestions (js/station/suggest.js): a tap keys it -->
@@ -560,7 +588,7 @@
       <!-- receiving only, in the player's place (js/station/rx.js): what's
            heard stays here; a recording to read; the tape, kept -->
       <div class="rx-row">
-        <p id="rx-note" class="rx-note">Heard here only: not kept, never sent.</p>
+        <p id="rx-note" class="rx-note">not kept, never sent</p>
         <button type="button" id="rx-file" class="rx-link" title="a recording of Morse, read onto the line (sound, or a video's sound; in light, a video's pictures); or drop one here">open a file…</button>
         <input type="file" id="rx-file-input" accept="audio/*,video/*" hidden>
         <!-- the one way the sound is kept, and only when asked -->
@@ -810,6 +838,9 @@
           <!-- a fader, as the settings' are: how far, the slider, its name -->
           <label class="fader rx-zoom"><output id="rx-zoom-now" for="rx-zoom">1×</output>
             <input type="range" id="rx-zoom" min="0" max="1000" step="1" value="0" disabled aria-label="zoom" title="zoom (or pinch, or the wheel)"><span>zoom</span></label>
+          <!-- a short screen's zoom (a phone on its side): no room for the
+               fader, so a tap steps it, 1× 2× 3× 5× 8× … and back to 1× -->
+          <button type="button" id="rx-zoom-step" class="rx-zoom-step" disabled title="zoom: a tap for the next step (or pinch, or the wheel)" aria-label="zoom, 1×">1×</button>
         </div>
         <canvas id="rx-scope" class="rx-scope" aria-hidden="true" title="tap to listen"></canvas>
         <span id="rx-span" class="rx-span" aria-hidden="true"></span>
