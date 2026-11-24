@@ -981,6 +981,34 @@ body[data-mode="type"] .entry.current .line:not(.empty-line) .caret {
   border-radius: 50%;
 }
 
+/* a message the extension sent: its × and, under it, ↗ to the page
+   it came from (station/tape.js ends()), riding together at the top
+   right as the × alone does; ↗ level with the text row */
+.entry .ends {
+  flex: none;
+  align-self: flex-start;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--bakelite);
+  border-radius: calc(var(--icon-box) / 2);
+}
+.entry .ends .x { position: static; }
+.entry .src {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-box);
+  height: var(--icon-box);
+  margin-top: -0.35rem;
+  color: var(--graphite);
+}
+.entry .src:focus-visible { outline: 1px dashed var(--brass); outline-offset: -2px; color: var(--brass); }
+@media (hover: hover) { .entry .src:hover { color: var(--brass); } }
+
 /* words wrap whole; a letter is its code over its character */
 .line .w { display: inline-flex; flex-wrap: wrap; gap: 0.6rem 1.4ch; max-width: calc(100% - 1ch); }   /* a word wider than the line breaks between letters */
 .line .slash { margin: 0 1.2ch; color: var(--graphite); }

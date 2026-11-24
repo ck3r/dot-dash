@@ -248,14 +248,14 @@ body:not(.tx, .hero) > .top.stuck::before { border-bottom-color: var(--wire); }
   display: flex;
   flex-wrap: nowrap;   /* one line: what doesn't fit folds (js/shared/nav.js) */
   gap: 0;
-  align-items: baseline;   /* the name and the crumbs on one line of type, sizes apart */
+  align-items: center;   /* each crumb centred on the bar's line: no baseline to shift when the script makes the heading a button (it moved the crumbs a pixel as the page loaded) */
   list-style: none;
   white-space: nowrap;
 }
 
 .crumbs li {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   margin: 0;   /* (prose.css .notes li + li spacing isn't the bar's: see below) */
   min-width: 0;
   flex: none;
@@ -293,10 +293,21 @@ body:not(.tx, .hero) > .top.stuck::before { border-bottom-color: var(--wire); }
   color: var(--paper);
 }
 
-/* short of room, the name is the logo: the switch (js/shared/nav.js) */
-.crumbs .home-logo { display: none; width: 1.55rem; height: 1.65rem; align-self: center; }
-.crumbs.tight .home { display: inline-flex; font-size: 0; }
+/* the name, or on a narrow phone the logo (the switch, js/shared/nav.js):
+   either one centred on the bar's line, out of the crumbs' baseline,
+   so swapping one for the other moves nothing (on the baseline, the
+   logo's foot sat on it: the logo high, the line taller, the crumbs
+   pushed down) */
+.crumbs li:first-child { align-self: center; }
+.crumbs .home { display: flex; align-items: center; }
+.crumbs .home-logo { display: none; width: 1.55rem; height: 1.55rem; }
+.crumbs.tight .home { font-size: 0; }
 .crumbs.tight .home-logo { display: block; }
+/* the logo's lever is a slash already: no "/" after it (its room kept,
+   so the crumb after it doesn't crowd it). After the fold's "…", or
+   with no fold shown, whichever crumb comes first */
+.crumbs.tight li:first-child + li::before,
+.crumbs.tight li:first-child + li[hidden] + li::before { background: transparent; }
 
 .top .crumbs h1 {
   min-width: 0;
@@ -341,6 +352,10 @@ body:not(.tx, .hero) > .top.stuck::before { border-bottom-color: var(--wire); }
   padding-bottom: 1px;
 }
 .crumbs h1 .crumb { max-width: 100%; }
+/* in the button the name is a box of its own, centred with its dotted
+   line under it: as much above, so its letters sit where they did
+   before the script (they rose a pixel as the page loaded) */
+.crumbs h1 .crumb .crumb-name { padding-top: 2px; }
 
 /* the section you're reading (js/shared/nav.js): "#" and its name */
 .crumbs li.section .crumb { max-width: 100%; }
@@ -468,6 +483,24 @@ body:not(.tx, .hero) > .top.stuck::before { border-bottom-color: var(--wire); }
   text-overflow: ellipsis;
   text-align: right;
   color: var(--wire);
+}
+
+/* the sections' list: a long title (how it works' are questions) wraps
+   in the menu's width, its lines close together, the rows apart */
+.crumb-list.sections a {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+  padding-block: 0.35rem;
+}
+
+/* a menu's title (the sections': "on this page") */
+.crumb-menu-title {
+  margin: 0.1rem 0 0.35rem;
+  padding: 0 0.9rem 0.35rem;
+  border-bottom: 1px solid var(--wire);
+  color: var(--graphite);
+  font-size: 0.72rem;
 }
 
 .crumb-note {

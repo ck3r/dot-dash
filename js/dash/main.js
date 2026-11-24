@@ -24,8 +24,8 @@
  * little and still clear. Just after every dash, where the hand lets
  * go of the dah, hangs a brass crumb at head height: taken standing
  * up, missed still ducked. Three in a row and it
- * all goes bronze, each mark worth two, until one's missed or a mark
- * is hit.
+ * all goes bronze, each mark worth two, until one's missed, a mark
+ * is hit, or a hurdle is landed on (keyed, but early: not perfect).
  *
  * A hit is a strike (Key hero's boxes, game/strikes.js), a letter
  * cleared clean heals a third, three whole ones and the run is over.
@@ -43,7 +43,9 @@
  * After a hit, a moment's grace (the runner blinks): what it touches
  * then costs no strike, so one miss is one strike. A jump come down
  * too early lands on the hurdle like a step and drops off the far
- * side.
+ * side: no hit, so no strike and no stumble (it was a dot, keyed);
+ * but not clean either: the crumbs' run starts again, and its letter
+ * heals nothing (a strike is for a miss; early is a lesser thing).
  *
  * With ramp, a word cleared clean is a wpm faster to cruise at.
  *
@@ -117,11 +119,28 @@ const JUMP_H = 58;
  *   a beam      half a unit at each end doesn't count: ducked a
  *               little late, or up a little early, it's clear
  *               ░▓▓▓▓▓▓▓▓░
- *   a hurdle    only on the ground as it passes the runner's middle;
- *               a jump a little early or late still clears it
+ *   a hurdle    none: it's met where it's drawn, the runner's circle
+ *               against its box, edge to edge (touching from above
+ *               is a landing on it, a step; from the side, a hit)
  *   a point     taken a little either side of the runner's middle
  */
-const ROOM = { inner: 2, dashToDot: 2.5, beamEnds: 0.5 * 40, hurdle: 5, point: 9 };
+const ROOM = { inner: 2, dashToDot: 2.5, beamEnds: 0.5 * 40, point: 9 };
+
+/* the runner's circle and a hurdle's box (its left edge at sx on the
+   screen), as drawn: how far across from the circle's middle to the
+   box (0 over it), and whether they touch
+
+        ◯          the circle: centre RUNNER, GROUND - air - R
+     ▕▔▔▏          the box: sx … sx + w, GROUND - h … GROUND       */
+const across = sx => Math.max(0, sx - RUNNER, RUNNER - (sx + HURDLE.w));
+function touches(sx, air) {
+  const cy = GROUND - air - R;
+  const dy = Math.max(0, (GROUND - HURDLE.h) - cy, cy - GROUND);
+  return across(sx) ** 2 + dy ** 2 < (R - 0.5) ** 2;    // (half a pixel: a graze isn't a touch)
+}
+/* resting on a hurdle: on its top while it's under the middle, then
+   rolling off its far corner, the circle's bottom this high */
+const restOn = sx => HURDLE.h - R + Math.sqrt(Math.max(0, R * R - across(sx) ** 2));
 const LETTER = 54;            // a stroke letter's size, riding over the run
 const CARD_HOLD = 900;        // ms the card stays before a key sends it away
 const NS = "http://www.w3.org/2000/svg";
@@ -146,7 +165,7 @@ let state = "ready", frame = 0, last = 0, endedAt = 0;
 /* wpm: the speed now; cruise: the speed to run at (the fader's, and
    ramp's); a stumble pulls wpm down and it climbs back to cruise */
 let wpm = 5, cruise = 5, gaps = { letter: 3, word: 7 };     // the gaps in units (farns. stretches them)
-let stumbleAt = -1, stumbleFrom = 5, graceUntil = 0, step = null, dropAt = -1;
+let stumbleAt = -1, stumbleFrom = 5, graceUntil = 0, step = null, dropAt = -1, dropFrom = 0;
 const STUMBLE = { to: 5, ms: 250, back: 1.5 };      // down to 5 wpm in ¼ s; back 1.5 wpm a second
 let x = 0, laidTo = 0, queue = [], words = [];
 let obstacles = [], points = [], letters = [], laidWords = [];
@@ -328,17 +347,18 @@ function tick(now) {
      side; squashed while ducking; blinking in its grace */
   const jump = jumpMs();
   const phase = jumpAt >= 0 ? (now - jumpAt) / jump : 1;
-  const descending = phase > 0.5 && phase < 1;
   let lift = phase < 1 ? Math.sin(phase * Math.PI) * JUMP_H : 0;
   if (phase >= 1) jumpAt = -1;
   if (step) {
-    if (step.x - x + step.w > RUNNER - R * 0.6) lift = Math.max(lift, HURDLE.h);
-    else { step = null; dropAt = now; }
+    const sx = step.x - x;
+    /* on it till its far corner has rolled out from under the circle */
+    if (sx + step.w > RUNNER - R) lift = Math.max(lift, restOn(sx));
+    else { step = null; dropAt = now; dropFrom = lift; }
   }
   if (dropAt >= 0) {
     const k = (now - dropAt) / DROP;
     if (k >= 1) dropAt = -1;
-    else lift = Math.max(lift, HURDLE.h * (1 - k * k));
+    else lift = Math.max(lift, dropFrom * (1 - k * k));
   }
   air = lift;
   runner.setAttribute("transform", `translate(${RUNNER} ${GROUND - air}) scale(1 ${ducking && !step ? 0.5 : 1})`);
@@ -351,11 +371,22 @@ function tick(now) {
     /* a beam forgives its ends; a hurdle counts only as it passes the
        runner's middle (ROOM) */
     const over = o.dot
-      ? sx < RUNNER + ROOM.hurdle && sx + o.w > RUNNER - ROOM.hurdle
+      ? touches(sx, air)
       : sx + ROOM.beamEnds < RUNNER + R - 3 && sx + o.w - ROOM.beamEnds > RUNNER - R + 3;
-    if (!o.done && !o.hit && !o.excused && over) {
-      const clear = o.dot ? air > HURDLE.h * 0.5 : ducking;
-      if (!clear && now < graceUntil) {
+    if (!o.done && !o.hit && !o.excused && !o.stepped && over) {
+      /* a hurdle touched with the circle's middle above its top: come
+         down on it (or clipped it going up), a step, ridden and
+         rolled off, and the dot was keyed: no strike, no stumble.
+         Early, though: the crumbs' run ends, and its letter isn't clean */
+      const onTop = o.dot && GROUND - air - R <= GROUND - HURDLE.h;
+      const clear = o.dot ? false : ducking;
+      if (onTop) {
+        o.stepped = true;
+        step = o; jumpAt = -1;
+        setRow(0);
+        air = Math.max(air, restOn(sx));
+        runner.setAttribute("transform", `translate(${RUNNER} ${GROUND - air}) scale(1 1)`);
+      } else if (!clear && now < graceUntil) {
         /* in the grace after a hit: no strike, no score */
         o.excused = true;
         o.el.classList.add("excused");
@@ -363,9 +394,6 @@ function tick(now) {
         o.hit = true;
         o.word.hits++;
         o.el.classList.add("hit");
-        /* come down too early on a hurdle: it's a step, ridden and
-           dropped off */
-        if (o.dot && descending) { step = o; jumpAt = -1; }
         /* the stumble, and the grace that follows (the runner blinks:
            that's the strike, seen) */
         stumbleAt = now; stumbleFrom = wpm;
@@ -383,7 +411,7 @@ function tick(now) {
       const l = letters.find(l => l.word === o.word && l.k === o.letter);
       if (l?.drawn && !o.hit && !o.excused) l.drawn.at(l.local[o.index].end);
       if (o.last) {
-        const hit = obstacles.some(p => p.word === o.word && p.letter === o.letter && p.hit);
+        const hit = obstacles.some(p => p.word === o.word && p.letter === o.letter && (p.hit || p.stepped));
         if (!hit) { clean++; strikes.heal(1); }
         if (o.letter === o.word.codes.length - 1) wordDone(o.word);
       }

@@ -62,6 +62,9 @@ const CHEV = `<svg class="crumb-chev" viewBox="0 0 12 8" aria-hidden="true"><pat
 
 const here = () => location.pathname.replace(/index\.html$/, "");
 
+/* narrow enough for the name to give way to the logo */
+const NARROW = matchMedia("(max-width: 399.98px)");
+
 /* the switch, the site's mark (js/shared/logo.js draws the icons; this is the pages' own inline one) */
 const SWITCH = `<svg class="home-logo" viewBox="0 0 73 79" fill="none" aria-hidden="true"><circle cx="13.66" cy="52.81" r="7" stroke="currentColor" stroke-width="6"/><rect x="16.02" y="47.22" width="56" height="7" rx="3.5" fill="currentColor" transform="rotate(-30 13.66 52.81)"/></svg>`;
 
@@ -224,41 +227,55 @@ function wire(nav) {
     crumbs[0].after(fold);
   }
   /* short of room: the line runs over, or the heading's name is cut;
-     for the logo, the section's name cut too (the room is its) */
+     for the logo, the section's name cut too (the room is its). The
+     logo only on a narrow phone: wider, the name stays, and the
+     crumbs fold instead.
+     Fitted to the page's longest section name, not the one showing,
+     so scrolling from section to section moves nothing (fitted to each
+     in turn, the logo and the fold came and went under the reader) */
   const cut = n => n && n.scrollWidth > n.clientWidth + 1;
   const heading = nav.querySelector("h1 .crumb-name"), section = nav.querySelector("li.section .crumb-name");
+  const longest = sectionsOf().map(s => s.name).reduce((a, b) => (b.length > a.length ? b : a), "");
   const short = () => nav.scrollWidth > nav.clientWidth + 1 || cut(heading);
   const fit = () => {
+    const showing = section && [section.textContent, section.hidden];
+    if (section) { section.textContent = longest; section.hidden = false; }
     nav.classList.remove("tight");
     for (const c of middle) c.classList.remove("folded");
     fold.hidden = true;
-    if (!short() && !cut(section)) return;
-    nav.classList.add("tight");
-    for (const c of middle) {
-      if (!short()) break;
-      c.classList.add("folded");
-      fold.hidden = false;
+    if (short() || cut(section)) {
+      nav.classList.toggle("tight", NARROW.matches);
+      for (const c of middle) {
+        if (!short()) break;
+        c.classList.add("folded");
+        fold.hidden = false;
+      }
     }
+    if (section) [section.textContent, section.hidden] = showing;
   };
   fit();
   new ResizeObserver(fit).observe(nav.closest("header"));
   document.fonts?.ready.then(fit);   // (measured again in the bar's own type)
-  list.addEventListener("crumbs-change", fit);
 }
 
 /*
  * A page in sections: its frames with an id, each under its heading
- * (section.frame#keying > h2.frame-label). Two or more make a page
- * worth a crumb for them.
+ * (section.frame#keying > h2.frame-label), called by it, or by its
+ * data-topic where the heading is long (how it works' are whole
+ * questions: "timing"). Two or more make a page worth a crumb for them.
  */
 function sectionsOf() {
   const list = [...document.querySelectorAll("main section.frame[id] > h2.frame-label")]
-    .map(h => ({ id: h.parentElement.id, name: h.textContent.trim(), el: h.parentElement }));
+    .map(h => ({ id: h.parentElement.id, name: h.parentElement.dataset.topic || h.textContent.trim(), el: h.parentElement }));
   return list.length >= 2 ? list : [];
 }
 
 /* the link to a section, as it's shared (the app's pages too: core/where.js) */
-const linkTo = id => siteOrigin() + location.href.replace(/#.*$/, "").slice(location.origin.length) + `#${id}`;
+const linkTo = id => siteOrigin() + location.href.replace(/#.*$/, "").slice(location.origin.length) + (id ? `#${id}` : "");
+
+/* the section being read (the section crumb's), for share: its link
+   goes to there, not the page's top */
+let reading = null;
 
 /*
  * The section crumb: the last section whose top has passed under the
@@ -287,9 +304,9 @@ function sectionCrumb(list) {
     if (scrollY > 0 && innerHeight + scrollY >= document.documentElement.scrollHeight - 2) now = all.at(-1);
     if (now === at) return;
     at = now;
+    reading = now?.id ?? null;
     name.textContent = now ? now.name : "";
     name.hidden = !now;
-    list.dispatchEvent(new Event("crumbs-change"));   // (room for it: the bar fits itself again)
   };
   let queued = false;
   addEventListener("scroll", () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; follow(); }); } }, { passive: true });
@@ -297,7 +314,9 @@ function sectionCrumb(list) {
   follow();
 
   b.addEventListener("click", () => open(b, box => {
-    const ul = make("ul", { className: "crumb-list" });
+    /* its title, as a menu of the page's own, not the site's */
+    box.append(make("p", { className: "crumb-menu-title", textContent: "on this page" }));
+    const ul = make("ul", { className: "crumb-list sections" });
     for (const s of all) {
       const a = make("a", { href: `#${s.id}`, textContent: s.name }), row = make("li");
       if (s === at) a.setAttribute("aria-current", "location");
@@ -339,7 +358,7 @@ function addShare(header) {
   b.setAttribute("aria-controls", "crumb-menu");
   right.prepend(b);
   b.addEventListener("click", () => open(b, box => {
-    const link = siteOrigin() + location.href.replace(/#.*$/, "").slice(location.origin.length);   // the app's pages too: core/where.js
+    const link = linkTo(reading);   // the app's pages too (core/where.js), and the section you're reading
     const ul = make("ul", { className: "crumb-list share-rows" });
     const note = make("p", { className: "crumb-note", ariaLive: "polite" });
     const row = (label, peek, act) => {

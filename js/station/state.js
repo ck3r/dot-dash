@@ -18,6 +18,7 @@
  *     playKey       which message the player has loaded (or null)
  *     playEntry     and where it is: "current" or a history index
  *     lastInput     when the last key went in (the caret holds steady)
+ *     source        the page the line came from (the extension), or null
  *
  *     saveHistory()          keep the tape on this device
  *     entry()                the line as a tape entry (null if empty)
@@ -82,6 +83,8 @@ export function tookFor(toks, rec = []) {
  * the tape doesn't change under it when the tray does: "p" prosigns,
  * "c" cut, "pc" both; none (or an entry from before) is plain. And
  * n: the text as typed, when it holds cut digits (morse.js namesFor).
+ * s: the page it came from, when the extension sent it (an http(s)
+ * address, kept on this device like the rest; the tape links it).
  */
 export const morseOf = e => (typeof e === "string" ? e : e.m);
 export const recOfEntry = e => (typeof e === "string" ? [] : e.t ?? []);
@@ -90,6 +93,19 @@ export const readingOf = e => {
   return { pro: r.includes("p"), cut: r.includes("c"), typed: typedOf(e) };
 };
 export const typedOf = e => e?.n?.split(" ") ?? null;
+export const sourceOf = e => (typeof e === "string" ? null : sourceFrom(e?.s));
+
+/* a page's address, if it's one to link to: http(s) only (not
+   javascript:, data:, file:), without its #, at most 2,000 characters */
+export function sourceFrom(s) {
+  if (typeof s !== "string" || s.length > 2000) return null;
+  try {
+    const u = new URL(s);
+    if (u.protocol !== "https:" && u.protocol !== "http:") return null;
+    u.hash = "";
+    return u.href;
+  } catch { return null; }
+}
 const readingCode = ({ pro, cut }) => (pro ? "p" : "") + (cut ? "c" : "");
 
 /* tokens → { done: finished words, word: letters of the word in
@@ -198,6 +214,7 @@ export function createState() {
     playKey: null,
     playEntry: null,
     lastInput: -Infinity,
+    source: null,
 
     saveHistory() {
       try { localStorage.setItem(HISTORY_KEY, JSON.stringify(this.history)); } catch { /* storage blocked */ }
@@ -207,10 +224,10 @@ export function createState() {
        and the reading */
     entry() {
       const words = wordsOf(this.tokens);
-      if (!words.length) return null;
-      const rec = recOf(this.tokens, this.took), r = readingCode(READING);
-      if (!rec.length && !r) return format(words);
-      return { m: format(words), ...(rec.length && { t: rec }), ...(r && { r }), ...(READING.typed && { n: READING.typed.join(" ") }) };
+      if (!words.length) { this.source = null; return null; }        // an empty line came from nowhere
+      const rec = recOf(this.tokens, this.took), r = readingCode(READING), s = this.source;
+      if (!rec.length && !r && !s) return format(words);
+      return { m: format(words), ...(rec.length && { t: rec }), ...(r && { r }), ...(READING.typed && { n: READING.typed.join(" ") }), ...(s && { s }) };
     },
 
     addToHistory(entry) {

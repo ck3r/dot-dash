@@ -35,7 +35,7 @@ import { spokenWords } from "../shared/voice.js";
 import { createSound } from "../shared/sound.js";
 import { PROSIGNS_BY_CODE } from "../core/characters.js";
 import { $, toast } from "../shared/dom.js";
-import { createState, structure, wordsOf, tokensOf, tookFor, morseOf, recOfEntry, typedOf, plainText } from "./state.js";
+import { createState, structure, wordsOf, tokensOf, tookFor, morseOf, recOfEntry, typedOf, sourceOf, sourceFrom, plainText } from "./state.js";
 import { createTape } from "./tape.js";
 import { createUndo } from "./undo.js";
 import { createTreeEdge } from "./tree.js";
@@ -272,6 +272,7 @@ function send() {
   keyer.reset();
   state.addToHistory(state.entry());
   state.record("send", { morse: format(words) });
+  state.source = null;
   state.tokens = [];
   state.took = [];
   setTyped("");
@@ -409,6 +410,7 @@ function practise(words) {
   const line = state.entry();
   if (line) state.addToHistory(line);
   if (state.mode !== "key") setMode("key", false);
+  state.source = null;
   state.tokens = tokensOf(words);
   state.took = state.tokens.map(() => null);
   setTyped(plainText(words) ?? "");
@@ -723,15 +725,19 @@ const { openPrivacy, openHeard, openCut, openWord } = createLayer({
                          its text, or the title if there's none (a
                          bare url= alone brings nothing: an address
                          isn't a message)
-     /#text=…            the browser extension; in the hash, so a
+     /#text=…&src=…      the browser extension; in the hash, so a
                          page's words never reach a server, and a
-                         long selection isn't cut by a URL limit
+                         long selection isn't cut by a URL limit.
+                         src: the page it came from, kept with the
+                         message (state.source; the tape's ↗)
 
    null when nothing arrived this way. */
+let arrivingFrom = null;
 const arriving = (() => {
   const hash = new URLSearchParams(location.hash.slice(1));
   if (hash.has("text")) {
     window.history.replaceState(null, "", location.pathname + location.search);
+    arrivingFrom = sourceFrom(hash.get("src"));
     return hash.get("text");
   }
   if (location.search.startsWith("?/")) return null;
@@ -779,6 +785,7 @@ setKeyMode($("#opt-key").value);
       state.took = state.tokens.map(() => null);
       setTyped(plainText(words) ?? "");
       state.localCleared = false;
+      state.source = arrivingFrom;
     }
     window.history.replaceState(null, "", "/" + location.hash);   // (history, alone, is the tape)
     tab.arrive(words, words.length ? format(words) : null);
@@ -787,6 +794,7 @@ setKeyMode($("#opt-key").value);
       state.tokens = tokensOf(parse(morseOf(kept)));
       state.took = tookFor(state.tokens, recOfEntry(kept));
       READING.typed = typedOf(kept);
+      state.source = sourceOf(kept);
       setTyped(plainText(wordsOf(state.tokens)) ?? "");
     }
     tab.arrive(null);     // the name keys itself

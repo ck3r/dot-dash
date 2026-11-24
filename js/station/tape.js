@@ -13,7 +13,7 @@
  *   }
  */
 import { parse, namesOf, namesFor, READING } from "../core/morse.js";
-import { morseOf, recOfEntry, readingOf, typedOf, structure, wordsOf, tokensOf, tookFor, plainText } from "./state.js";
+import { morseOf, recOfEntry, readingOf, typedOf, sourceOf, structure, wordsOf, tokensOf, tookFor, plainText } from "./state.js";
 import { $, el, icon, toast, flash } from "../shared/dom.js";
 import * as share from "../core/formats.js";
 
@@ -280,7 +280,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
         state.saveHistory();
         update();
       });
-      li.append(x);
+      li.append(ends(x, sourceOf(saved)));
       tape.append(li);
     });
 
@@ -304,7 +304,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
       x.type = "button";
       x.setAttribute("aria-label", "clear this message");
       x.addEventListener("click", () => { clearCurrent(); update(); });
-      li.append(x);
+      li.append(ends(x, state.source));
     }
     tape.append(li);
     hush();
@@ -710,6 +710,31 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
   };
   for (const t of ["pointerup", "pointercancel", "lostpointercapture"]) thumb.addEventListener(t, letGo);
 
+  /*
+   * A message's ×, and under it, if the extension sent it, ↗: the
+   * page it came from, in a new tab. The two ride together at the
+   * top right (sticky, as the × alone does), ↗ level with the
+   * message's text row:
+   *
+   *   -- --- .-. ... .   ×
+   *   M  O   R   S   E   ↗
+   */
+  function ends(x, source) {
+    if (!source) return x;
+    const a = el("a", "src");
+    a.href = source;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.innerHTML = icon("external");
+    let where = source;
+    try { const u = new URL(source); where = u.host + (u.pathname === "/" ? "" : u.pathname); } catch { }
+    a.title = "from " + where;
+    a.setAttribute("aria-label", "open the page it came from: " + where);
+    const box = el("span", "ends");
+    box.append(x, a);
+    return box;
+  }
+
   /* tap a past message: it comes back as the current line */
   function recall(i) {
     /* receiving, the line is what's being heard: a message from the
@@ -719,6 +744,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
     state.tokens = tokensOf(parse(morseOf(state.history[i])));
     state.took = tookFor(state.tokens, recOfEntry(state.history[i]));
     READING.typed = typedOf(state.history[i]);
+    state.source = sourceOf(state.history[i]);
     setTyped(plainText(wordsOf(state.tokens)) ?? "");
     update();
   }
@@ -803,6 +829,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
 
   /* the message on the board (not yet sent): gone */
   function clearCurrent() {
+    state.source = null;
     state.tokens = [];
     state.took = [];
     resetKeyer();
