@@ -22,7 +22,7 @@
  * Bump VERSION to clear the old cache after a big change.
  */
 
-const VERSION = "dot-dash-24";
+const VERSION = "dot-dash-25";
 
 /* fetched on install, so the first offline open works too */
 const CORE = [

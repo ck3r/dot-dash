@@ -727,7 +727,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
     a.rel = "noopener noreferrer";
     a.innerHTML = icon("external");
     let where = source;
-    try { const u = new URL(source); where = u.host + (u.pathname === "/" ? "" : u.pathname); } catch { }
+    try { const u = new URL(source); where = u.host + (u.pathname === "/" ? "" : u.pathname) + (u.hash ? ", at the passage" : ""); } catch { }
     a.title = "from " + where;
     a.setAttribute("aria-label", "open the page it came from: " + where);
     const box = el("span", "ends");

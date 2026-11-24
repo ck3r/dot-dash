@@ -84,7 +84,8 @@ export function tookFor(toks, rec = []) {
  * "c" cut, "pc" both; none (or an entry from before) is plain. And
  * n: the text as typed, when it holds cut digits (morse.js namesFor).
  * s: the page it came from, when the extension sent it (an http(s)
- * address, kept on this device like the rest; the tape links it).
+ * address, kept on this device like the rest; the tape links it),
+ * with a text fragment for the selection when it was one.
  */
 export const morseOf = e => (typeof e === "string" ? e : e.m);
 export const recOfEntry = e => (typeof e === "string" ? [] : e.t ?? []);
@@ -96,13 +97,17 @@ export const typedOf = e => e?.n?.split(" ") ?? null;
 export const sourceOf = e => (typeof e === "string" ? null : sourceFrom(e?.s));
 
 /* a page's address, if it's one to link to: http(s) only (not
-   javascript:, data:, file:), without its #, at most 2,000 characters */
+   javascript:, data:, file:), at most 2,000 characters. Its # goes,
+   unless it's a text fragment of the extension's making (a selection's
+   first words and last, percent-encoded: #:~:text=start[,end]), which
+   ↗ keeps, so the page opens at the passage, lit */
+const TEXT_FRAGMENT = /^#:~:text=[\w%.!~*'()]+(,[\w%.!~*'()]+)?$/;
 export function sourceFrom(s) {
   if (typeof s !== "string" || s.length > 2000) return null;
   try {
     const u = new URL(s);
     if (u.protocol !== "https:" && u.protocol !== "http:") return null;
-    u.hash = "";
+    if (!TEXT_FRAGMENT.test(u.hash)) u.hash = "";
     return u.href;
   } catch { return null; }
 }

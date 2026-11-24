@@ -728,7 +728,8 @@ const { openPrivacy, openHeard, openCut, openWord } = createLayer({
      /#text=…&src=…      the browser extension; in the hash, so a
                          page's words never reach a server, and a
                          long selection isn't cut by a URL limit.
-                         src: the page it came from, kept with the
+                         src: the page it came from (from a selection,
+                         with a text fragment for it), kept with the
                          message (state.source; the tape's ↗)
 
    null when nothing arrived this way. */
