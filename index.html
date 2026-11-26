@@ -509,12 +509,21 @@
       <dt>most</dt><dd id="stat-most" class="wide"></dd>
       <dt>slowest</dt><dd id="stat-slowest" class="wide"></dd>
     </dl>
+    <!-- how it looks: preferences, not the keyer's settings; shared
+         with the reference page (js/station/settings.js) -->
+    <p class="profile-look">
+      <label class="check" title="dits red, dahs blue; off, one colour (the reference too)"><input type="checkbox" id="opt-color" checked><span>color</span></label>
+      <label class="check" title="the light theme: dark on paper (the reference too)"><input type="checkbox" id="opt-theme"><span>invert</span></label>
+    </p>
+
+    <!-- wear: dit and dah side by side, as on the pad, worn where
+         the finger lands (js/station/wear.js) -->
     <div class="profile-wear">
       <p class="profile-since">wear</p>
-      <p class="wear-keys" id="wear-keys" role="radiogroup" aria-label="which key's wear"></p>
-      <div class="wear-show">
-        <canvas id="wear-canvas" class="wear-canvas" aria-hidden="true"></canvas>
-        <p class="profile-note" id="wear-note"></p>
+      <p class="profile-note" id="wear-note"></p>
+      <div class="wear-keys" id="wear-keys">
+        <figure class="wear-key" data-key="dit"><canvas aria-hidden="true"></canvas><figcaption><i class="mark dot"></i>dit</figcaption></figure>
+        <figure class="wear-key" data-key="dah"><canvas aria-hidden="true"></canvas><figcaption><i class="mark dash"></i>dah</figcaption></figure>
       </div>
     </div>
     <p class="profile-note" id="profile-empty">Key something: letters, words and fixes count from any key; speed and the slowest letters need a timed one (straight, bug, a paddle).</p>
@@ -532,23 +541,7 @@
       <p class="profile-note" id="profile-file-note">Your settings, stats and wear, and the games' bests; never your messages. Loading one replaces this device's.</p>
     </div>
 
-    <div class="profile-practice">
-      <p class="profile-since">copy practice, Koch order</p>
-      <p class="koch-row">
-        <button type="button" id="koch-less" class="quiet" aria-label="one character fewer">−</button>
-        <span id="koch-set" class="koch-set" aria-live="polite"></span>
-        <button type="button" id="koch-more" class="quiet" aria-label="one character more">+</button>
-      </p>
-      <p class="profile-note">Five groups of five on the line, played, the letters hidden: write down
-        what you hear, then show them with the eye. Copying 90%? Add a character.</p>
-      <button type="button" id="practice-go" class="quiet koch-go">▷ start</button>
-    </div>
-
-    <!-- and practice for the hand: the game (/hero) -->
-    <div class="profile-practice">
-      <p class="profile-since">sending practice</p>
-      <p class="profile-note"><a href="/hero/">Key hero ↗</a>: Morse comes down a road; key each mark as it reaches the line.</p>
-    </div>
+    <p class="made-by">made by ck3r</p>
     </div>
   </section>
 
@@ -732,10 +725,11 @@
 
       <!-- the checkboxes, one order everywhere, in pairs: how it's
            keyed (ctrl mouse), what helps (suggest about), how it reads
-           (pro cut), how it looks (color invert; shared with the
-           reference page), how it plays (pretty), then the report.
+           (pro cut), how it plays (pretty), then the report. How it
+           looks (color, invert) is a preference, not the keyer's: the
+           profile's.
            A column beside the sliders, the report at its foot (on
-           phones, level with the sliders' group names):
+           phones, level with the sliders' captions):
 
              [ ] ctrl
              [ ] mouse
@@ -772,14 +766,6 @@
         <span class="flag">
           <label class="check"><input type="checkbox" id="opt-cut"><span class="visually-hidden">cut numbers</span></label>
           <button type="button" class="flag-word" data-note="cut" aria-haspopup="dialog" aria-controls="flag-pop" title="what's cut?">cut</button>
-        </span>
-        <span class="flag">
-          <label class="check"><input type="checkbox" id="opt-color" checked><span class="visually-hidden">color</span></label>
-          <button type="button" class="flag-word" data-note="color" aria-haspopup="dialog" aria-controls="flag-pop" title="what's color?">color</button>
-        </span>
-        <span class="flag">
-          <label class="check"><input type="checkbox" id="opt-theme"><span class="visually-hidden">invert</span></label>
-          <button type="button" class="flag-word" data-note="invert" aria-haspopup="dialog" aria-controls="flag-pop" title="what's invert?">invert</button>
         </span>
         <span class="flag">
           <label class="check"><input type="checkbox" id="opt-pretty"><span class="visually-hidden">pretty play</span></label>

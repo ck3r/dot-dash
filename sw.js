@@ -22,7 +22,7 @@
  * Bump VERSION to clear the old cache after a big change.
  */
 
-const VERSION = "dot-dash-27";
+const VERSION = "dot-dash-28";
 
 /* fetched on install, so the first offline open works too */
 const CORE = [
@@ -32,7 +32,7 @@ const CORE = [
   "/js/ref/main.js", "/js/ref/copy-menu.js", "/js/ref/coin-tree.js", "/js/shared/grid-tree.js", "/js/shared/nav.js", "/js/shared/nav-tables.js", "/js/core/morse.js", "/js/core/tree.js", "/js/shared/overview.js", "/js/shared/play-marks.js", "/js/shared/tab-keyer.js", "/js/shared/logo.js",
   "/js/core/keyer.js", "/js/shared/sound.js", "/js/shared/playback.js", "/js/shared/pip.js", "/js/core/formats.js", "/js/core/where.js", "/js/shared/offline.js", "/js/shared/files.js", "/js/shared/outputs.js", "/js/shared/trace.js",
   "/js/station/main.js", "/js/shared/dom.js", "/js/station/state.js", "/js/shared/keyboard.js", "/js/station/about.js",
-  "/js/station/player.js", "/js/station/share.js", "/js/station/settings.js", "/js/station/tree.js", "/js/station/layer.js", "/js/station/tape.js", "/js/station/keys.js", "/js/station/typing.js", "/js/station/suggest.js", "/js/station/undo.js", "/js/station/media.js", "/js/station/card-art.js", "/js/station/tab.js", "/js/station/stats.js", "/js/station/profile.js", "/js/station/practice.js", "/js/station/wear.js",
+  "/js/station/player.js", "/js/station/share.js", "/js/station/settings.js", "/js/station/tree.js", "/js/station/layer.js", "/js/station/tape.js", "/js/station/keys.js", "/js/station/typing.js", "/js/station/suggest.js", "/js/station/undo.js", "/js/station/media.js", "/js/station/card-art.js", "/js/station/tab.js", "/js/station/stats.js", "/js/station/profile.js", "/js/station/wear.js",
   "/js/core/characters.js", "/js/core/voice-times.js", "/js/core/voice-syllables.js", "/js/shared/voice.js", "/js/core/strokes.js", "/js/core/stair.js",
   /* hearing (RX): fetched the first time rx is chosen, kept here so that works offline too */
   "/js/station/rx.js", "/js/core/rx-decoder.js", "/js/station/rx-worklet.js", "/js/core/rx-light.js", "/js/station/rx-eye.js",

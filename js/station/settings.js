@@ -10,6 +10,7 @@
  *     wantsLamp(), lampOk(rate), askLamp(rate, go), openLamp(words),
  *     closeLamp(), cancelLamp()
  *     torchOn()          the flashlight is the light
+ *     buzzOn()           ≋ is on, in the app (its motor)
  *     start(hash)        load the saved settings and apply them, then
  *                        a link's, for the visit (true if it had some)
  *     linkedSettings()   how this sounds, for after a link's "#"
@@ -799,6 +800,7 @@ export function createSettings({ state, sound, logo, ctrlPaddle, timingNow, show
     outputs, setSignal, openTray, start, linkedSettings,
     trayJustClosed: () => performance.now() - trayClosedAt < 600,
     wantsLamp, lampOk: rate => lampAgreed && rate <= SAFE_RATE, askLamp, openLamp, closeLamp, cancelLamp,
-    torchOn: () => choice("#opt-light") === "torch" && outputOn("light")
+    torchOn: () => choice("#opt-light") === "torch" && outputOn("light"),
+    buzzOn: () => inApp() && outputOn("vibrate")      // ≋ buzzing (the app's motor; the web's is "app only")
   };
 }

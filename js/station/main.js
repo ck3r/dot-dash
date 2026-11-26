@@ -35,7 +35,7 @@ import { spokenWords } from "../shared/voice.js";
 import { createSound } from "../shared/sound.js";
 import { PROSIGNS_BY_CODE } from "../core/characters.js";
 import { $, toast } from "../shared/dom.js";
-import { createState, structure, wordsOf, tokensOf, tookFor, morseOf, recOfEntry, typedOf, sourceOf, sourceFrom, plainText } from "./state.js";
+import { createState, structure, wordsOf, tokensOf, tookFor, morseOf, recOfEntry, typedOf, sourceOf, sourceFrom, heardOf, plainText } from "./state.js";
 import { createTape } from "./tape.js";
 import { createUndo } from "./undo.js";
 import { createTreeEdge } from "./tree.js";
@@ -203,6 +203,9 @@ function press(act, timing = null, heard = false) {
       break;
   }
   state.record(act === "." || act === "-" ? "mark" : act, { ...(act === "." || act === "-" ? { mark: act, timing } : {}), ...(heard && { heard }) });
+  /* the line was heard, by ear or by eye, if any mark of it was: the
+     tape marks it so (tape.js ends) */
+  if (heard && (act === "." || act === "-")) state.heard = document.body.dataset.rxMedium === "light" ? "light" : "sound";
   const closed = act === "letter" || act === "word";
   /* a letter just landed: with the voice on, it's said, as the line
      reads it (with prosigns on, .-.-. is <AR>, "a r", not PLUS) */
@@ -273,6 +276,7 @@ function send() {
   state.addToHistory(state.entry());
   state.record("send", { morse: format(words) });
   state.source = null;
+  state.heard = null;
   state.tokens = [];
   state.took = [];
   setTyped("");
@@ -396,33 +400,7 @@ function setMode(next, focus = true) {
    on (js/station/stats.js) */
 const stats = createStats({ state });
 const wear = createWear();
-const { openProfile } = createProfile({ stats, wear, practise: words => practise(words) });
-
-/*
- * Copy practice (the profile's ▷ start): groups on the line, the
- * letters hidden, played. What was on the line goes onto the tape
- * first, as when a link arrives. The eye shuts without saving that
- * as your setting (a reload brings yours back); a tap shows the
- * letters.
- */
-function practise(words) {
-  if (player.playing || state.playKey !== null) stopPlayback();
-  const line = state.entry();
-  if (line) state.addToHistory(line);
-  if (state.mode !== "key") setMode("key", false);
-  state.source = null;
-  state.tokens = tokensOf(words);
-  state.took = state.tokens.map(() => null);
-  setTyped(plainText(words) ?? "");
-  state.localCleared = false;
-  state.hidden = true;
-  state.collapsed = false;
-  undo.forget();
-  update();
-  settleTape();
-  togglePlay();
-  toast("listen, write them down, then the eye shows them");
-}
+const { openProfile } = createProfile({ stats, wear });
 
 /* one switch: a press anywhere flips it; the side that comes on
    flashes brass (with the keys away, they come back, flipped) */
@@ -601,7 +579,7 @@ var suggest = createSuggest({ state, retype, update, press });
 /* the settings tray, the outputs, the light: js/station/settings.js */
 const {
   outputs, setSignal, openTray, start: startSettings, linkedSettings, trayJustClosed,
-  wantsLamp, lampOk, askLamp, openLamp, closeLamp, cancelLamp, torchOn
+  wantsLamp, lampOk, askLamp, openLamp, closeLamp, cancelLamp, torchOn, buzzOn
 } = createSettings({
   state, sound, logo, ctrlPaddle, timingNow, showInput, drawStats,
   stopPlayback: () => stopPlayback(), redrawTrace: () => trace.redraw(),
@@ -680,12 +658,24 @@ const torchWpm = () => {
   if (!lag) return TORCH_WPM;
   return Math.max(TORCH_SLOWEST, Math.min(TORCH_WPM, Math.floor(1200 / (lag * TORCH_ROOM))));
 };
-const playTiming = () => timingNow(torchOn() ? torchWpm() : Infinity);
+/*
+ * ≋ the same way, in the app: a phone's motor spins up and down, and
+ * past 20 wpm its buzzes blur (a dit no longer a dit). So with ≋ on,
+ * playback goes no faster either, and the sound, the light and the
+ * buzz stay in step: the slowest of what's on sets the pace.
+ */
+const BUZZ_WPM = 20;
+const paceWpm = () => Math.min(torchOn() ? torchWpm() : Infinity, buzzOn() ? BUZZ_WPM : Infinity);
+const playTiming = () => timingNow(paceWpm());
 let paceNoted = false;
 const speedNote = () => {
   /* speech can't change speed without changing pitch; said once a visit */
   if (sound.speaks && !paceNoted) { paceNoted = true; return "voice: at its own pace, whatever the speed"; }
-  return torchOn() && Number($("#opt-wpm").value) > torchWpm() ? `flashlight: played at ${torchWpm()} wpm, as fast as it switches` : null;
+  const pace = paceWpm();
+  if (!(Number($("#opt-wpm").value) > pace)) return null;
+  return torchOn() && torchWpm() === pace
+    ? `flashlight: played at ${pace} wpm, as fast as it switches`
+    : `≋: played at ${pace} wpm, as fast as the motor keeps up`;
 };
 
 /* the player row: js/station/player.js */
@@ -788,6 +778,7 @@ setKeyMode($("#opt-key").value);
       setTyped(plainText(words) ?? "");
       state.localCleared = false;
       state.source = arrivingFrom;
+      state.heard = null;
     }
     window.history.replaceState(null, "", "/" + location.hash);   // (history, alone, is the tape)
     tab.arrive(words, words.length ? format(words) : null);
@@ -797,6 +788,7 @@ setKeyMode($("#opt-key").value);
       state.took = tookFor(state.tokens, recOfEntry(kept));
       READING.typed = typedOf(kept);
       state.source = sourceOf(kept);
+      state.heard = heardOf(kept);
       setTyped(plainText(wordsOf(state.tokens)) ?? "");
     }
     tab.arrive(null);     // the name keys itself

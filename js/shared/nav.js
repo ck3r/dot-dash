@@ -26,10 +26,29 @@
  * The page writes its crumbs as plain links (and its heading as an
  * h1), so they work with no script.
  *
- * The lists keep the content's own order, never alphabetical or by
- * use: A to Z is already in order, symbols and prosigns as the
- * reference's tables have them, the station before the games before
- * the reference. Nothing reshuffles, so a page is where it was.
+ * The site's own list is in order of use: the folders first, nearest
+ * the tap (REF, PRACTICE: the games, by name), then the station and
+ * its manual, the other ways in (the app, the extension, the
+ * bookmarklet; not shown in the app), and last the notes and privacy.
+ * The rest keep the content's own order, never alphabetical: A to Z
+ * is already in order, symbols and prosigns as the reference's tables
+ * have them. Nothing reshuffles, so a page is where it was.
+ *
+ *   REF                 ›
+ *   PRACTICE            ›     KEY DASH, KEY HERO
+ *   ───────
+ *   STATION
+ *   MANUAL
+ *   ───────
+ *   APP                       the manual's part on it, for now
+ *   EXTENSION
+ *   BOOKMARKLET
+ *   ───────
+ *   DESIGN NOTES
+ *   PRIVACY
+ *
+ * PRACTICE is a folder with no page of its own: on a game's page it's
+ * a crumb that opens the games (dot-da.sh / PRACTICE ▾ / KEY HERO ▾).
  *
  * Too wide (a phone, a long trail), giving way in turn: the section's
  * name shortens; the name becomes the logo, the switch; the middle
@@ -44,11 +63,21 @@
  * on a character's page, its pictures to keep, each to save.
  */
 import { GROUPS } from "./nav-tables.js";
-import { siteOrigin } from "../core/where.js";
+import { siteOrigin, inApp } from "../core/where.js";
 
-/* the site's top level: what you came for first, a rule, then the small pages, the manual (help) first */
-const TOP = [["/", "STATION"], ["/hero/", "KEY HERO"], ["/dash/", "KEY DASH"], ["/ref/", "REF"], null,
-  ["/manual/", "MANUAL"], ["/design/", "DESIGN NOTES"], ["/privacy/", "PRIVACY"], ["/extension/", "EXTENSION"], ["/bookmarklet/", "BOOKMARKLET"]];
+/* the games, by name: a folder with no page of its own */
+const PRACTICE = [["/dash/", "KEY DASH"], ["/hero/", "KEY HERO"]];
+
+/* the ways in besides this one: in the app, it's already the one.
+   APP is the manual's part on it (marked "aside": the manual's page,
+   but not where you are on it) */
+const ELSEWHERE = [["/manual/#app", "APP", "aside"], ["/extension/", "EXTENSION"], ["/bookmarklet/", "BOOKMARKLET"]];
+
+/* the site's top level, in order of use (above) */
+const TOP = () => [["/ref/", "REF"], ["practice", "PRACTICE"], null,
+  ["/", "STATION"], ["/manual/", "MANUAL"], null,
+  ...(inApp() ? [] : [...ELSEWHERE, null]),
+  ["/design/", "DESIGN NOTES"], ["/privacy/", "PRIVACY"]];
 
 /* the reference: its six tables in its own order, a rule, then the pages that gather */
 const REF = [["alphabet", "ALPHABET"], ["numbers", "NUMBERS"], ["symbols", "SYMBOLS"], ["prosigns", "PROSIGNS"],
@@ -56,7 +85,7 @@ const REF = [["alphabet", "ALPHABET"], ["numbers", "NUMBERS"], ["symbols", "SYMB
   ["chart", "CHART"], ["tree", "TREE"], ["phrases", "PHRASES"], ["how-it-works", "HOW IT WORKS"]].map(r => r && [`/ref/${r[0]}/`, r[1]]);
 
 /* a page with pages under it, and which: REF its tables, a table its members */
-const UNDER = { "/ref/": REF, ...Object.fromEntries(Object.entries(GROUPS).map(([slug, rows]) => [`/ref/${slug}/`, rows])) };
+const UNDER = { "/ref/": REF, practice: PRACTICE, ...Object.fromEntries(Object.entries(GROUPS).map(([slug, rows]) => [`/ref/${slug}/`, rows])) };
 
 const CHEV = `<svg class="crumb-chev" viewBox="0 0 12 8" aria-hidden="true"><path d="M1.5 1.8 6 6.2l4.5-4.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
@@ -113,13 +142,10 @@ function place(button) {
  * names (A, 7, QTH) sit in a grid, long ones (ALPHABET) a column. A
  * folder (a page with pages under it) has a chevron at its right, and
  * a tap on it, name or chevron, opens what's in it here, in place,
- * indented (and shuts it again): ALL first, the folder's own page,
- * then the pages under it. So what's below can be found without
+ * indented (and shuts it again): ALL first, the folder's own page
+ * (if it has one: PRACTICE hasn't), then the pages under it. So what's below can be found without
  * leaving the menu.
  *
- *   STATION
- *   KEY HERO
- *   KEY DASH
  *   REF                 ▾
  *     ALL
  *     ALPHABET          ›
@@ -142,7 +168,7 @@ function listOf(list, current) {
   for (const row of list) {
     if (!row) { ul.append(make("li", { className: "rule", role: "separator" })); continue; }
     const [href, label] = row, li = make("li");
-    const under = !short && !row[2] && UNDER[href];     // (ALL is the folder's own page: a link, always)
+    const under = !short && row[2] !== "page" && UNDER[href];     // (ALL is the folder's own page: a link, always)
     if (under) {
       /* a folder: its name opens what's in it (ALL first, its own page) */
       li.className = "has-sub";
@@ -154,7 +180,8 @@ function listOf(list, current) {
       if (holds(href, current)) open.setAttribute("aria-current", href === current ? "page" : "true");
       let sub = null;
       open.addEventListener("click", () => {
-        sub ??= li.appendChild(Object.assign(listOf([[href, "ALL", "page"], ...under], current), { hidden: true }));
+        const own = href.startsWith("/") ? [[href, "ALL", "page"]] : [];
+        sub ??= li.appendChild(Object.assign(listOf([...own, ...under], current), { hidden: true }));
         sub.classList.add("sub");
         sub.hidden = !sub.hidden;
         open.setAttribute("aria-expanded", String(!sub.hidden));
@@ -165,7 +192,8 @@ function listOf(list, current) {
       if (holds(href, current)) open.click();
     } else {
       const a = make("a", { href, textContent: label });
-      if (page(href) === current) a.setAttribute("aria-current", "page");
+      if (page(href) === current && row[2] !== "aside") a.setAttribute("aria-current", "page");
+      a.addEventListener("click", () => close());   // (a part of this page, APP on the manual's: no page load to shut it)
       li.append(a);
     }
     ul.append(li);
@@ -197,8 +225,15 @@ function wire(nav) {
     if (el.tagName === "H1") {
       const b = crumbButton([...el.childNodes], listId);
       b.insertAdjacentHTML("beforeend", CHEV);
-      b.addEventListener("click", () => open(b, pages(TOP, here())));
+      b.addEventListener("click", () => open(b, pages(TOP(), here())));
       el.append(b);
+    } else if (UNDER[listId] && el.tagName !== "A") {
+      /* a folder with no page (PRACTICE): a crumb that opens what's in it */
+      const b = crumbButton([...el.childNodes], listId);
+      b.dataset.folder = listId;
+      b.insertAdjacentHTML("beforeend", CHEV);
+      b.addEventListener("click", () => open(b, pages(UNDER[listId], here())));
+      el.replaceWith(b);
     } else {
       el.classList.add("crumb");
       el.dataset.href = el.getAttribute("href");
@@ -222,7 +257,10 @@ function wire(nav) {
     const b = crumbButton(["…"], "fold");
     b.setAttribute("aria-label", "more of the trail");
     b.addEventListener("click", () => open(b, pages(
-      crumbs.filter(c => c.classList.contains("folded")).map(c => { const x = c.querySelector(".crumb"); return [x.dataset.href, x.textContent]; }), null)));
+      crumbs.filter(c => c.classList.contains("folded")).flatMap(c => {
+        const x = c.querySelector(".crumb");
+        return x.dataset.folder ? UNDER[x.dataset.folder] : [[x.dataset.href, x.textContent]];
+      }), null)));
     fold.append(b);
     crumbs[0].after(fold);
   }

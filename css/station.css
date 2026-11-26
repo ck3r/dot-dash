@@ -1007,6 +1007,17 @@ body[data-mode="type"] .entry.current .line:not(.empty-line) .caret {
   color: var(--graphite);
 }
 .entry .src:focus-visible { outline: 1px dashed var(--brass); outline-offset: -2px; color: var(--brass); }
+/* heard by rx (♪ or ☼, tape.js ends): where ↗ would be, but a mark,
+   not a button: grey, and nothing on hover */
+.entry .heard {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-box);
+  height: var(--icon-box);
+  margin-top: -0.35rem;
+  color: var(--wire);
+}
 @media (hover: hover) { .entry .src:hover { color: var(--brass); } }
 
 /* words wrap whole; a letter is its code over its character */
@@ -2133,15 +2144,16 @@ body.reading .caret { visibility: hidden; }
  * sliders, so the lists are a row of their own, four even columns;
  * under it the sliders, a little tighter, and the checkboxes a column
  * beside them, the report at the foot, level with the sliders'
- * group names:
+ * captions:
  *
  *   key      sound    voice    light
- *   10  10  50  600  50   [ ] ctrl
- *   │   │   │   │    │    [ ] mouse
- *   │   │   │   │    │    [x] suggest
- *   │   │   │   │    │    …
- *   wpm far vol pit  lev  [ ] pretty
- *   speed   noise    light  report…
+ *   10  10  50  600       [ ] ctrl
+ *   │   │   │   │         [ ] mouse
+ *   │   │   │   │         [x] finish
+ *   │   │   │   │         …
+ *   │   │   │   │         [ ] pretty
+ *   wpm far vol pit       report…
+ *   speed   noise
  */
 @media (max-width: 480px) {
   .tray {
@@ -2171,7 +2183,7 @@ body.reading .caret { visibility: hidden; }
     grid-column: 2;
     grid-row: 2;
     align-self: stretch;
-    justify-content: space-between;   /* the report down at the group names */
+    justify-content: space-between;   /* the report down at the sliders' captions */
     gap: 0.15rem;
     padding: 0 0.6rem 0 0.4rem;      /* right: clear of the tray's scrollbar, which phones draw over the edge */
   }
@@ -3089,80 +3101,80 @@ body:has(#train:not([hidden])) .pad {
 .profile-stats dd { margin: 0; font-variant-numeric: tabular-nums; }
 .profile-stats dd.wide { grid-column: 2 / -1; letter-spacing: 0.1em; }
 
-/* wear: the keys as chips (the shown one in paper), and the key
-   drawn below, worn in brass (js/station/wear.js) */
+/* how it looks: color and invert, preferences (not the keyer's
+   settings, in the tray), at the right under the counts */
+.profile-look {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2ch;
+  margin-top: 0.5rem;
+  color: var(--graphite);
+  font-size: var(--fs-xs);
+}
+
+.profile-look .check { cursor: pointer; }
+
+/* wear: dit and dah side by side, as on the pad, each its key's
+   shape, worn in brass, its mark and name in the middle as the pad
+   has them (js/station/wear.js, drawn by profile.js) */
 .profile-wear { margin-top: 0.9rem; }
 .profile-wear .profile-since { margin-top: 0; }
 
 .wear-keys {
   display: flex;
-  flex-wrap: wrap;
+  justify-content: center;
   gap: 0.4rem;
-  margin-top: 0.4rem;
-}
-
-.wear-keys:empty { display: none; }
-
-.wear-keys [aria-checked="true"] {
-  border-color: var(--paper);
-  color: var(--paper);
-}
-
-/* the key drawn beside its count, in a box of its own whatever the
-   key's shape (a tall dit, a wide side key) */
-.wear-show {
-  display: flex;
-  align-items: center;
-  gap: 1ch;
   margin-top: 0.5rem;
 }
 
-.wear-show .profile-note { margin-top: 0; }
-
-.wear-canvas {
-  display: block;
-  flex: none;
+.wear-key {
+  position: relative;
+  margin: 0;
 }
 
-.wear-canvas[hidden] { display: none; }
+.wear-key canvas { display: block; }
 
-/* copy practice: the Koch characters so far, the newest in paper
-   (the one being learned), between − and + */
-.profile-practice,
+.wear-key figcaption {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  color: var(--graphite);
+  font-size: var(--fs-xs);
+  /* readable over the brass where the wear is thickest */
+  text-shadow: 0 0 3px var(--bakelite), 0 0 3px var(--bakelite);
+  pointer-events: none;
+}
+
+/* the marks as the pad draws them: a dot, a dash; red and blue with color on */
+.wear-key .mark { display: block; background: var(--paper); }
+.wear-key .mark.dot  { width: 0.4rem; height: 0.4rem; border-radius: 50%; }
+.wear-key .mark.dash { width: 0.9rem; height: 0.25rem; border-radius: 0.1rem; }
+.signal .wear-key .mark.dot  { background: var(--dot); }
+.signal .wear-key .mark.dash { background: var(--dash); }
+
+/* the profile as a file, under a dashed rule */
 .profile-file {
   margin-top: 0.9rem;
   padding-top: 0.6rem;
   border-top: 1px dashed var(--wire);
 }
 
-:is(.profile-practice, .profile-file) .profile-since { margin-top: 0; }
+.profile-file .profile-since { margin-top: 0; }
 .profile-file .actions { margin-top: 0.4rem; }
 
-.koch-row {
-  display: flex;
-  align-items: center;
-  gap: 1ch;
-  margin-top: 0.4rem;
-}
-
-.koch-row .quiet { align-self: center; }
-
-.koch-set {
-  flex: 1;
+/* who made it, last, under a rule of its own */
+.made-by {
+  margin-top: 0.9rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--wire);
   color: var(--graphite);
-  letter-spacing: 0.15em;
-  overflow-wrap: anywhere;
-  font-weight: 700;
+  font-size: var(--fs-xs);
+  text-align: center;
 }
-
-.koch-set .new { color: var(--paper); }
-
-.popup .koch-go {
-  margin-top: 0.6rem;
-  background: transparent;
-}
-
-.koch-row .quiet:disabled { opacity: 0.5; cursor: default; }
 
 .popup .actions {
   display: flex;

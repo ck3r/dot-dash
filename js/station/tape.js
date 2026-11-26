@@ -13,7 +13,7 @@
  *   }
  */
 import { parse, namesOf, namesFor, READING } from "../core/morse.js";
-import { morseOf, recOfEntry, readingOf, typedOf, sourceOf, structure, wordsOf, tokensOf, tookFor, plainText } from "./state.js";
+import { morseOf, recOfEntry, readingOf, typedOf, sourceOf, heardOf, structure, wordsOf, tokensOf, tookFor, plainText } from "./state.js";
 import { $, el, icon, toast, flash } from "../shared/dom.js";
 import * as share from "../core/formats.js";
 
@@ -280,7 +280,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
         state.saveHistory();
         update();
       });
-      li.append(ends(x, sourceOf(saved)));
+      li.append(ends(x, sourceOf(saved), heardOf(saved)));
       tape.append(li);
     });
 
@@ -304,7 +304,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
       x.type = "button";
       x.setAttribute("aria-label", "clear this message");
       x.addEventListener("click", () => { clearCurrent(); update(); });
-      li.append(ends(x, state.source));
+      li.append(ends(x, state.source, state.heard));
     }
     tape.append(li);
     hush();
@@ -718,9 +718,27 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
    *
    *   -- --- .-. ... .   ×
    *   M  O   R   S   E   ↗
+   *
+   * Heard by rx, the same place holds how: ♪ by sound (the
+   * microphone, a recording), ☼ by light (the camera, a video), in
+   * grey: a mark, not a button. Keyed or typed, nothing.
+   *
+   *   -.-. --.-          ×
+   *   C    Q             ♪
    */
-  function ends(x, source) {
-    if (!source) return x;
+  function ends(x, source, heard) {
+    if (!source && !heard) return x;
+    if (!source) {
+      const how = el("span", "heard");
+      how.innerHTML = icon(heard);
+      const said = heard === "light" ? "seen: rx, by light" : "heard: rx, by sound";
+      how.title = said;
+      how.setAttribute("role", "img");
+      how.setAttribute("aria-label", said);
+      const box = el("span", "ends");
+      box.append(x, how);
+      return box;
+    }
     const a = el("a", "src");
     a.href = source;
     a.target = "_blank";
@@ -745,6 +763,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
     state.took = tookFor(state.tokens, recOfEntry(state.history[i]));
     READING.typed = typedOf(state.history[i]);
     state.source = sourceOf(state.history[i]);
+    state.heard = heardOf(state.history[i]);
     setTyped(plainText(wordsOf(state.tokens)) ?? "");
     update();
   }
@@ -830,6 +849,7 @@ export function createTape({ state, update, setTyped, resetKeyer, forgetUndo, pa
   /* the message on the board (not yet sent): gone */
   function clearCurrent() {
     state.source = null;
+    state.heard = null;
     state.tokens = [];
     state.took = [];
     resetKeyer();

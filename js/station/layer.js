@@ -28,9 +28,7 @@ const FLAG_NOTES = {
   mouse: ["the mouse as the key", "Click the message and the station takes the pointer: the left button is dit, the right one dah (with the straight key, either is the key), wherever the mouse is.", "Esc gives the pointer back; click the message to key with it again."],
   pro: ["prosigns", "Prosigns, not symbols: <AR> <BT> <KN> <AS> read as themselves, not + = ( &.", "Keyed as one letter, a prosign does its job: AR, SK, BK and CL return (↵), HH erases a word, and BT and AA lay out the text (a paragraph, a line)."],
   cut: ["cut numbers", "Keying, in a word with a digit, T A U V E B D N read 0 1 2 3 5 7 8 9, so 5NN is 599.", "Typing, the 123 keys send their digits cut, and letters stay letters.", "A link only carries the marks, so its cut digits read as letters."],
-  pretty: ["pretty play", "Plays back in textbook timing, every gap even.", "Off, it plays as you keyed it, every long dah and rushed gap."],
-  color: ["color", "Dits in red, dahs in blue. Off, they're one colour. It goes for the reference page too."],
-  invert: ["invert", "The light theme: dark on paper. It goes for the reference page too."]
+  pretty: ["pretty play", "Plays back in textbook timing, every gap even.", "Off, it plays as you keyed it, every long dah and rushed gap."]
 };
 
 export function createLayer({

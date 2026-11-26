@@ -48,7 +48,9 @@ export const LEVER = { from: 4.84, length: 56, thick: 7 };
 const MIDDLE = [35.1, 39.4];
 export const ANGLE = { open: -30, closed: 0 };
 
-export const FILL = { disc: 1.42, square: 1.1, maskable: 0.94, adaptive: 0.72 };
+/* maskable as adaptive: both are a launcher's whole layer, cropped to
+   its shape, so the switch is the same size in the PWA's and the app's */
+export const FILL = { disc: 1.42, square: 1.1, maskable: 0.72, adaptive: 0.72 };
 
 function parts({ closed = false, shape = "disc", fill } = {}) {
   return {

@@ -7,11 +7,13 @@
  *     read()           { dit: { n, bins }, … }, and favourite: the
  *                      most-pressed key
  *     clear()
- *     draw(canvas, key, colour)   the key's outline, worn where pressed
+ *     draw(canvas, key, colour, size)   the key's outline, worn where
+ *                      pressed; `size` ({ width, height }, CSS px), or
+ *                      BOX on its longer side, as the key was
  *   }
  *
  * Every key you key with: the pad's (dit, dah, and the side keys)
- * and the switch, a straight key. Not the text keyboard: that's
+ * and the switch, a straight key. The profile shows dit and dah. Not the text keyboard: that's
  * typing. Touch and pen only: a mouse lands on the same pixel every
  * time and wears nothing.
  *
@@ -88,12 +90,13 @@ export function createWear() {
    * as bright as its share of the busiest cell, blurred together (the
    * canvas's own filter) so the grid doesn't show.
    */
-  function draw(canvas, name, { brass, wire }) {
+  function draw(canvas, name, { brass, wire }, size) {
     const w = wear[name];
     /* the key's shape, in a box BOX px on its longer side */
     const aspect = Math.max(0.4, Math.min(2.5, w?.aspect || 1));
     const dpr = devicePixelRatio || 1;
-    const cssW = Math.round(aspect >= 1 ? BOX : BOX * aspect), cssH = Math.round(aspect >= 1 ? BOX / aspect : BOX);
+    const cssW = Math.round(size?.width ?? (aspect >= 1 ? BOX : BOX * aspect));
+    const cssH = Math.round(size?.height ?? (aspect >= 1 ? BOX / aspect : BOX));
     canvas.style.width = `${cssW}px`;
     canvas.style.height = `${cssH}px`;
     canvas.width = Math.round(cssW * dpr);

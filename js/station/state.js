@@ -86,6 +86,9 @@ export function tookFor(toks, rec = []) {
  * s: the page it came from, when the extension sent it (an http(s)
  * address, kept on this device like the rest; the tape links it),
  * with a text fragment for the selection when it was one.
+ * h: how it came in, when any of it was heard by rx: "sound" (the
+ * microphone, a recording) or "light" (the camera, a video). The
+ * tape marks it under the ×; keyed or typed, there's no h.
  */
 export const morseOf = e => (typeof e === "string" ? e : e.m);
 export const recOfEntry = e => (typeof e === "string" ? [] : e.t ?? []);
@@ -95,6 +98,7 @@ export const readingOf = e => {
 };
 export const typedOf = e => e?.n?.split(" ") ?? null;
 export const sourceOf = e => (typeof e === "string" ? null : sourceFrom(e?.s));
+export const heardOf = e => (typeof e === "string" ? null : e?.h === "sound" || e?.h === "light" ? e.h : null);
 
 /* a page's address, if it's one to link to: http(s) only (not
    javascript:, data:, file:), at most 2,000 characters. Its # goes,
@@ -230,9 +234,9 @@ export function createState() {
     entry() {
       const words = wordsOf(this.tokens);
       if (!words.length) { this.source = null; return null; }        // an empty line came from nowhere
-      const rec = recOf(this.tokens, this.took), r = readingCode(READING), s = this.source;
-      if (!rec.length && !r && !s) return format(words);
-      return { m: format(words), ...(rec.length && { t: rec }), ...(r && { r }), ...(READING.typed && { n: READING.typed.join(" ") }), ...(s && { s }) };
+      const rec = recOf(this.tokens, this.took), r = readingCode(READING), s = this.source, h = this.heard;
+      if (!rec.length && !r && !s && !h) return format(words);
+      return { m: format(words), ...(rec.length && { t: rec }), ...(r && { r }), ...(READING.typed && { n: READING.typed.join(" ") }), ...(s && { s }), ...(h && { h }) };
     },
 
     addToHistory(entry) {

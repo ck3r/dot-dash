@@ -3,7 +3,7 @@
  * keying, kept on this device. No account, nothing sent: the same
  * promise as the tape.
  *
- *   createProfile({ stats, wear, practise }) → {
+ *   createProfile({ stats, wear }) → {
  *     openProfile(open)      the popup (#profile-pop)
  *   }
  *
@@ -15,31 +15,32 @@
  *   │ keying  14 min   speed 18 wpm │
  *   │ most     E T A I N            │
  *   │ slowest  Q Y X                │
- *   │ wear  [dit] dah ⌫ switch      │   the most worn key first
- *   │ ┌──────┐                      │   (js/station/wear.js)
- *   │ │  ▒▓  │  dit: 412 presses    │
- *   │ └──────┘                      │
+ *   │          [x] color [ ] invert │   how it looks: preferences
+ *   │ wear                          │
+ *   │ ┌──────────┐ ┌──────────────┐ │   dit and dah as on the pad,
+ *   │ │   ▒▓  •  │ │      ━  ░▒   │ │   worn where the finger lands
+ *   │ │   dit    │ │     dah      │ │   (js/station/wear.js)
+ *   │ └──────────┘ └──────────────┘ │
  *   │ [clear stats]                 │
+ *   │ - - - - - - - - - - - - - - - │
  *   │ on another device             │   the profile as a file (below)
  *   │ [save to a file] [load a file]│
- *   │ copy practice, Koch order     │
- *   │ [−] K M R [+]       [▷ start] │   practise(words): js/station/main.js
+ *   │ - - - - - - - - - - - - - - - │
+ *   │          made by ck3r         │
  *   └───────────────────────────────┘
  *
  * With a callsign, the ring holds its first character, in bold
  * (docs/roadmap.md, Profiles: the frame of brass marks comes later).
  */
-import { $, el, toast } from "../shared/dom.js";
-import { KOCH, KOCH_MIN, groups } from "./practice.js";
+import { $, toast } from "../shared/dom.js";
 
 const KEY = "dot-dash:profile";
 
 function loadProfile() {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY));
-    const koch = Number.isInteger(saved?.koch) ? Math.min(KOCH.length, Math.max(KOCH_MIN, saved.koch)) : KOCH_MIN;
-    return { callsign: typeof saved?.callsign === "string" ? saved.callsign : "", koch };
-  } catch { return { callsign: "", koch: KOCH_MIN }; }
+    return { callsign: typeof saved?.callsign === "string" ? saved.callsign : "" };
+  } catch { return { callsign: "" }; }
 }
 
 /* letters, digits and /, as callsigns are written: W1AW, VE3/G4ABC */
@@ -47,7 +48,7 @@ const tidy = text => text.toUpperCase().replace(/[^A-Z0-9/]/g, "").slice(0, 12);
 
 const DATE = { day: "numeric", month: "short", year: "numeric" };
 
-export function createProfile({ stats, wear, practise }) {
+export function createProfile({ stats, wear }) {
   let profile = loadProfile();
   const pop = $("#profile-pop"), button = $("#profile"), call = $("#profile-call");
 
@@ -83,32 +84,40 @@ export function createProfile({ stats, wear, practise }) {
     drawWear();
   }
 
-  /* wear: a chip for each key pressed (by touch), the most worn
-     chosen when the profile opens; another chip shows that key */
-  let wearShown = null;
-  function drawWear(name) {
-    const { keys, favourite } = wear.read();
-    wearShown = name ?? favourite;
-    const row = $("#wear-keys"), canvas = $("#wear-canvas"), note = $("#wear-note");
-    row.textContent = "";
-    const names = Object.keys(keys).sort((a, b) => keys[b].n - keys[a].n);
-    for (const k of names) {
-      const chip = el("button", "quiet", k);
-      chip.type = "button";
-      chip.setAttribute("role", "radio");
-      chip.setAttribute("aria-checked", String(k === wearShown));
-      chip.addEventListener("click", () => drawWear(k));
-      row.append(chip);
-    }
-    canvas.hidden = !wearShown;
-    if (!wearShown) {
-      note.textContent = "Touch the keys (on a touch screen) and where your finger lands wears in here, key by key.";
-      return;
-    }
+  /*
+   * wear: dit and dah side by side, one height, the row's width
+   * between them, each the shape of its key on the pad (as it is now,
+   * or as it was when worn, with the keys put away):
+   *
+   *   ┌────────┐ ┌────────────┐
+   *   │   ▒▓   │ │     ░▒     │   widths by the keys' shapes
+   *   └────────┘ └────────────┘
+   */
+  const WEAR = ["dit", "dah"], TALLEST = 220;
+  function drawWear() {
+    const { keys } = wear.read();
+    const row = $("#wear-keys"), note = $("#wear-note");
+    const worn = WEAR.filter(k => keys[k]?.n);
+    note.textContent = worn.length
+      ? worn.map(k => `${k}: ${keys[k].n.toLocaleString("en")} press${keys[k].n === 1 ? "" : "es"}`).join(", ")
+      : "Touch the keys (on a touch screen) and where your finger lands wears in here, key by key.";
+    const aspect = k => {
+      const r = $(`#pad .key.${k}`)?.getBoundingClientRect();
+      const a = r?.width && r.height ? r.width / r.height : keys[k]?.aspect || (k === "dit" ? 0.6 : 0.85);
+      return Math.max(0.3, Math.min(2.5, a));
+    };
+    const gap = parseFloat(getComputedStyle(row).columnGap) || 0;
+    const room = row.clientWidth - gap * (WEAR.length - 1);
+    if (room <= 0) return;
+    const shapes = WEAR.map(aspect), sum = shapes.reduce((a, b) => a + b, 0);
+    const height = Math.min(TALLEST, room / sum);
     const css = getComputedStyle(document.documentElement);
-    wear.draw(canvas, wearShown, { brass: css.getPropertyValue("--brass").trim(), wire: css.getPropertyValue("--wire").trim() });
-    const n = keys[wearShown].n;
-    note.textContent = `${wearShown}: ${n.toLocaleString("en")} press${n === 1 ? "" : "es"}${wearShown === favourite && names.length > 1 ? ", the most worn" : ""}`;
+    const colours = { brass: css.getPropertyValue("--brass").trim(), wire: css.getPropertyValue("--wire").trim() };
+    WEAR.forEach((k, i) => {
+      const figure = row.querySelector(`[data-key="${k}"]`);
+      figure.classList.toggle("worn", !!keys[k]?.n);
+      wear.draw(figure.querySelector("canvas"), k, colours, { width: Math.floor(height * shapes[i]), height });
+    });
   }
 
   function openProfile(open) {
@@ -121,6 +130,9 @@ export function createProfile({ stats, wear, practise }) {
     resetLoad();
     $("#profile-pop .close").focus({ preventScroll: true });
   }
+
+  /* invert is here now: the wear's brass and wire are the theme's */
+  $("#opt-theme").addEventListener("change", () => { if (!pop.hidden) drawWear(); });
 
   button.addEventListener("click", () => openProfile(pop.hidden));
   $("#profile-pop .close").addEventListener("click", () => openProfile(false));
@@ -236,27 +248,7 @@ export function createProfile({ stats, wear, practise }) {
     }
   } catch { }
 
-  /* copy practice: how many Koch characters, the newest in paper */
-  function drawKoch() {
-    const box = $("#koch-set");
-    box.textContent = "";
-    KOCH.slice(0, profile.koch).forEach((ch, i) => box.append(el("span", i === profile.koch - 1 ? "new" : "", ch)));
-    $("#koch-less").disabled = profile.koch <= KOCH_MIN;
-    $("#koch-more").disabled = profile.koch >= KOCH.length;
-  }
-  const step = by => {
-    profile.koch = Math.min(KOCH.length, Math.max(KOCH_MIN, profile.koch + by));
-    saveProfile();
-    drawKoch();
-  };
-  $("#koch-less").addEventListener("click", () => step(-1));
-  $("#koch-more").addEventListener("click", () => step(1));
-  $("#practice-go").addEventListener("click", () => {
-    openProfile(false);
-    practise(groups(profile.koch));
-  });
 
   drawButton();
-  drawKoch();
   return { openProfile };
 }

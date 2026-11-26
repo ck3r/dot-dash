@@ -10,8 +10,9 @@
  *
  *   groups(3)  →  [["-.-", "--", "--", "-.-", ".-."], …]   K M M K R
  *
- * Pure: the profile (js/station/profile.js) picks how many, and the
- * station (js/station/main.js) puts them on the line.
+ * Pure. Nothing uses it for now: the profile's copy practice, which
+ * put these groups on the line, was taken out with Koch shelved
+ * (docs/roadmap.md). Kept for its return, or Key hero's ladder.
  */
 import { ENCODE } from "../core/morse.js";
 
